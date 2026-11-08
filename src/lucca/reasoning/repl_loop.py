@@ -17,41 +17,29 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
-import argparse
-from dataclasses import dataclass, field
-import glob
 import json
-import logging
-from pathlib import Path
-import re
+import math
 import shlex
-import sys
 import time
+from pathlib import Path
 from typing import Final
 
-import httpx
+import structlog
 
 from lucca.memory.episodic_cache import EpisodicSolutionCache
 from lucca.reasoning.cegis_unshackled import (
-    ARC_PALETTE_NAMES,
     CEGISRunResult,
-    GridDiff,
     UnshackledCEGISEngine,
     compute_detailed_grid_diff,
     execute_unshackled_python,
     render_grid_ansi,
     render_grid_side_by_side,
 )
-from lucca.reasoning.scheme.eval import SchemeEvaluator
-from lucca.reasoning.scheme.parser import parse_expr
 from lucca.reasoning.spatial_scheme import (
-    GLOBAL_MACRO_REGISTRY,
-    _coerce_grid,
     evaluate_spatial_sketch,
-    make_spatial_scheme_env,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -60,7 +48,6 @@ def wilson_ci(k: int, n: int, confidence: float = 0.95) -> tuple[float, float]:
     """Computes Wilson score interval for binomial proportions."""
     if n == 0:
         return 0.0, 0.0
-    import math
 
     z = 1.95996 if abs(confidence - 0.95) < 1e-4 else 2.57583
     p = k / n
@@ -162,12 +149,13 @@ class ReasoningREPL:
         self.use_color = use_color
         self.registry = TaskRegistry()
         self.engine = UnshackledCEGISEngine(server_url=server_url)
-        self.cache = EpisodicSolutionCache(cache_file=cache_path or Path("data/episodic_solutions.json"))
+        self.cache = EpisodicSolutionCache(
+            cache_file=cache_path or Path("data/episodic_solutions.json"))
 
         # Active Session State
         self.active_task_id: str | None = None
         self.active_task_path: Path | None = None
-        self.active_task_data: dict[str, object] | None = None
+        self.active_task_data: dict[str, list[dict[str, list[list[int]]]]] | None = None
         self.candidate_code: str | None = None
         self.candidate_hypothesis: str | None = None
         self.candidate_scheme: str | None = None
@@ -188,7 +176,9 @@ class ReasoningREPL:
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             if "train" not in data or "test" not in data:
-                print(f"Error: Invalid task format in '{path}'. Must contain 'train' and 'test' keys.")
+                print(
+                    f"Error: Invalid task format in '{
+                        path}'. Must contain 'train' and 'test' keys.")
                 return False
 
             self.active_task_id = path.stem
@@ -208,7 +198,8 @@ class ReasoningREPL:
             cached = self.cache.lookup(data)
             if cached:
                 self.candidate_code = cached.code
-                print(f"  * \033[1;32m[EPISODIC CACHE HIT]\033[0m Verified code auto-restored (0 ms LLM).")
+                print("  * \033[1;32m[EPISODIC CACHE HIT]\033[0m Verified code auto-restored "
+                    "(0 ms LLM).")
             return True
         except Exception as exc:
             logger.debug("load_task_failed", path=str(path), error=str(exc))
@@ -228,7 +219,9 @@ class ReasoningREPL:
             concepts = [c for c in concepts if filter_term.lower() in c.lower()]
         for c in concepts:
             tasks = self.registry.list_tasks_in_concept(c)
-            print(f"  \033[1;33m{c}\033[0m ({len(tasks)} tasks): {', '.join(tasks[:5])}{'...' if len(tasks) > 5 else ''}")
+            print(
+                f"  \033[1;33m{c}\033[0m ({len(tasks)} tasks): "
+                f"{', '.join(tasks[:5])}{'...' if len(tasks) > 5 else ''}")
         print()
 
     # =========================================================================
@@ -276,7 +269,8 @@ class ReasoningREPL:
             return
 
         if not self.candidate_code:
-            print("No candidate code available. Use `induce`, `step`, `auto`, or `code <text>` first.")
+            print("No candidate code available. Use `induce`, `step`, `auto`, or `code "
+                "<text>` first.")
             return
 
         train_pairs = self.active_task_data.get("train", [])
@@ -293,7 +287,8 @@ class ReasoningREPL:
 
         print(f"\n=== SIDE-BY-SIDE DIFF FOR DEMONSTRATION {train_idx + 1} ===")
         if not outcome.success:
-            print(f"\033[1;31mExecution Failed:\033[0m {outcome.error_type}: {outcome.error_message}")
+            print(
+                f"\033[1;31mExecution Failed:\033[0m {outcome.error_type}: {outcome.error_message}")
             if outcome.traceback_str:
                 print(outcome.traceback_str)
             return
@@ -343,7 +338,8 @@ class ReasoningREPL:
         h = len(grid)
         w = len(grid[0]) if h > 0 else 0
         diff = compute_detailed_grid_diff(pair["output"], grid)
-        match_badge = "\033[1;32m[MATCH 100%]\033[0m" if diff.is_match else f"\033[1;31m[{diff.summary_message}]\033[0m"
+        match_badge = "\033[1;32m[MATCH 100%]\033[0m" if diff.is_match else f"\033[1;31m[{
+            diff.summary_message}]\033[0m"
 
         print(f"Result Shape: {h}x{w}  {match_badge}")
         print(render_grid_ansi(grid, use_color=self.use_color))
@@ -369,7 +365,8 @@ class ReasoningREPL:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
             diff = compute_detailed_grid_diff(pair["output"], result)
-            badge = "\033[1;32m[MATCH 100%]\033[0m" if diff.is_match else f"\033[1;31m[{diff.summary_message}]\033[0m"
+            badge = "\033[1;32m[MATCH 100%]\033[0m" if diff.is_match else f"\033[1;31m[{
+                diff.summary_message}]\033[0m"
 
             print(f"\n--- Scheme Result ({elapsed_ms:.2f} ms) {badge} ---")
             print(render_grid_ansi(result, use_color=self.use_color))
@@ -387,13 +384,16 @@ class ReasoningREPL:
             print("No active task loaded. Use `load <task>` first.")
             return
 
-        print(f"\nSynthesizing candidate transformation for \033[1;36m{self.active_task_id}\033[0m...")
+        print(
+            f"\nSynthesizing candidate transformation for \033[1;36m{
+                self.active_task_id}\033[0m...")
         t0 = time.perf_counter()
         code, hypo, prompt = self.engine.synthesize_turn_1(self.active_task_data, hint=hint)
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
         if not code or not code.strip():
-            print("\033[1;31mSynthesis Failed: No executable Python code extracted from LLM response.\033[0m")
+            print("\033[1;31mSynthesis Failed: No executable Python code extracted from LLM "
+                "response.\033[0m")
             return
 
         self.candidate_code = code
@@ -422,11 +422,15 @@ class ReasoningREPL:
         )
 
         if all_passed:
-            print(f"\033[1;32mAll {len(train_pairs)} demonstrations already passed! No repair needed.\033[0m")
+            print(
+                f"\033[1;32mAll {
+                    len(train_pairs)} demonstrations already passed! No repair needed.\033[0m")
             return
 
         turn_num = (self.latest_cegis_result.turns_taken + 1) if self.latest_cegis_result else 2
-        print(f"\n--- CEGIS Step {turn_num}: Repairing Failure on Demonstration {(fail_idx or 0) + 1} ---")
+        print(
+            f"\n--- CEGIS Step {
+                turn_num}: Repairing Failure on Demonstration {(fail_idx or 0) + 1} ---")
         if err_msg:
             print(f"Runtime Error: {err_msg}")
         elif fail_diff:
@@ -456,7 +460,10 @@ class ReasoningREPL:
         self.verify_candidate()
 
     def backtrack_cegis(self) -> None:
-        """Triggers a clean-slate backtrack turn, discarding failed code and seeking a fresh hypothesis."""
+        """
+        Triggers a clean-slate backtrack turn, discarding failed code and seeking a fresh
+        hypothesis.
+        """
         if not self.active_task_data:
             print("No active task loaded. Use `load <task>` first.")
             return
@@ -492,22 +499,31 @@ class ReasoningREPL:
         cached = self.cache.lookup(self.active_task_data)
         if cached:
             self.candidate_code = cached.code
-            print(f"\033[1;32m[EPISODIC CACHE HIT]\033[0m Verified code auto-restored in <1 ms (0 LLM tokens).")
+            print("\033[1;32m[EPISODIC CACHE HIT]\033[0m Verified code auto-restored in <1 ms (0 "
+                "LLM tokens).")
             self.verify_candidate()
             return True
 
-        print(f"\nStarting Autonomous CEGIS for \033[1;36m{self.active_task_id}\033[0m (max_turns={max_turns})...")
+        print(
+            f"\nStarting Autonomous CEGIS for \033[1;36m{
+                self.active_task_id}\033[0m (max_turns={max_turns})...")
         res = self.engine.run_cegis_loop(self.active_task_data, max_turns=max_turns)
         self.latest_cegis_result = res
         self.candidate_code = res.final_code
 
-        print(f"\n=== CEGIS Loop Complete ({res.total_elapsed_ms:.2f} ms, {res.turns_taken} turn(s)) ===")
+        print(
+            f"\n=== CEGIS Loop Complete ({
+                res.total_elapsed_ms:.2f} ms, {res.turns_taken} turn(s)) ===")
         for t in res.turns:
-            status = f"\033[1;32mPASSED ({t.passed_examples}/{t.total_examples})\033[0m" if t.passed_examples == t.total_examples else f"\033[1;33mFAILED ({t.passed_examples}/{t.total_examples})\033[0m"
+            status = (
+                "\033[1;32mPASSED "
+                f"({t.passed_examples}/{t.total_examples})\033[0m"
+            ) if t.passed_examples == t.total_examples else f"\033[1;33mFAILED ({
+                t.passed_examples}/{t.total_examples})\033[0m"
             print(f"  Turn {t.turn}: {status} in {t.elapsed_ms:.1f} ms")
 
         if res.success:
-            print(f"\n\033[1;32mSUCCESS: 100% of training demonstrations satisfied!\033[0m")
+            print("\n\033[1;32mSUCCESS: 100% of training demonstrations satisfied!\033[0m")
             # Store to cache
             if self.active_task_id:
                 self.cache.store(
@@ -517,11 +533,13 @@ class ReasoningREPL:
                     method="CEGIS_UNSHACKLED",
                     turns_taken=res.turns_taken,
                 )
-                print(f"  * Cached verified program into episodic memory.")
+                print("  * Cached verified program into episodic memory.")
             self.test_candidate()
             return True
         else:
-            print(f"\n\033[1;31mFAILED: Could not satisfy all demonstrations within {max_turns} turns.\033[0m")
+            print(
+                f"\n\033[1;31mFAILED: Could not satisfy all demonstrations within {
+                    max_turns} turns.\033[0m")
             return False
 
     def verify_candidate(self) -> bool:
@@ -544,7 +562,9 @@ class ReasoningREPL:
             if err_msg:
                 print(f"  * First failure on Demonstration {(fail_idx or 0) + 1}: {err_msg}")
             elif fail_diff:
-                print(f"  * First failure on Demonstration {(fail_idx or 0) + 1}: {fail_diff.summary_message}")
+                print(
+                    f"  * First failure on Demonstration {
+                        (fail_idx or 0) + 1}: {fail_diff.summary_message}")
             return False
 
     def test_candidate(self) -> None:
@@ -565,7 +585,9 @@ class ReasoningREPL:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
             if not outcome.success:
-                print(f"Test {idx}: \033[1;31mExecution Failed:\033[0m {outcome.error_type}: {outcome.error_message}")
+                print(
+                    f"Test {idx}: \033[1;31mExecution Failed:\033[0m {outcome.error_type}: "
+                    f"{outcome.error_message}")
                 continue
 
             pred_grid = outcome.output_grid or []
@@ -576,9 +598,13 @@ class ReasoningREPL:
             if has_gt:
                 diff = compute_detailed_grid_diff(pair["output"], pred_grid)
                 if diff.is_match:
-                    print(f"Test {idx}: \033[1;32m[TEST GROUND TRUTH MATCH 100%]\033[0m ({h}x{w}, {elapsed_ms:.2f} ms)")
+                    print(
+                        f"Test {idx}: \033[1;32m[TEST GROUND TRUTH MATCH 100%]\033[0m ({h}x{w}, "
+                        f"{elapsed_ms:.2f} ms)")
                 else:
-                    print(f"Test {idx}: \033[1;31m[TEST MISMATCH: {diff.summary_message}]\033[0m ({h}x{w}, {elapsed_ms:.2f} ms)")
+                    print(
+                        f"Test {idx}: \033[1;31m[TEST MISMATCH: {diff.summary_message}]\033[0m "
+                        f"({h}x{w}, {elapsed_ms:.2f} ms)")
             else:
                 print(f"Test {idx}: Output Predicted ({h}x{w}, {elapsed_ms:.2f} ms):")
 
@@ -622,9 +648,9 @@ class ReasoningREPL:
             print("No tasks found matching criteria.")
             return {}
 
-        print(f"\n========================================================")
+        print("\n========================================================")
         print(f"Running Benchmark Suite: \033[1;36m{suite.upper()}\033[0m (N = {n_total})")
-        print(f"========================================================")
+        print("========================================================")
 
         train_solved = 0
         test_solved = 0
@@ -661,33 +687,45 @@ class ReasoningREPL:
                 "elapsed_ms": t_task,
             })
 
-            badge = "\033[1;32m[PASS]\033[0m" if test_ok else ("\033[1;33m[TRAIN ONLY]\033[0m" if success else "\033[1;31m[FAIL]\033[0m")
+            badge = "\033[1;32m[PASS]\033[0m" if test_ok else (
+                "\033[1;33m[TRAIN ONLY]\033[0m" if success else "\033[1;31m[FAIL]\033[0m")
             print(f"[{idx}/{n_total}] {tp.stem.ljust(24)} {badge} ({t_task:.1f} ms)")
 
         # Summary Statistics & Wilson CIs
         w_low_train, w_high_train = wilson_ci(train_solved, n_total)
         w_low_test, w_high_test = wilson_ci(test_solved, n_total)
+        train_acc = train_solved / n_total
+        test_acc = test_solved / n_total
+        avg_task_ms = total_time_ms / n_total
 
-        summary = {
+        summary: dict[str, object] = {
             "suite": suite,
             "concept": concept,
             "total_tasks": n_total,
             "train_solved": train_solved,
-            "train_accuracy": train_solved / n_total,
+            "train_accuracy": train_acc,
             "train_wilson_95_ci": (w_low_train, w_high_train),
             "test_solved": test_solved,
-            "test_accuracy": test_solved / n_total,
+            "test_accuracy": test_acc,
             "test_wilson_95_ci": (w_low_test, w_high_test),
             "total_elapsed_ms": total_time_ms,
-            "avg_task_ms": total_time_ms / n_total,
+            "avg_task_ms": avg_task_ms,
             "records": records,
         }
 
         print("\n================ BENCHMARK AUDIT SUMMARY ================")
         print(f"Tasks Evaluated:         {n_total}")
-        print(f"Train Solved:            {train_solved}/{n_total} ({summary['train_accuracy']*100:.1f}%) [95% CI: {w_low_train*100:.1f}% - {w_high_train*100:.1f}%]")
-        print(f"Test Solved (Ground Tr): {test_solved}/{n_total} ({summary['test_accuracy']*100:.1f}%) [95% CI: {w_low_test*100:.1f}% - {w_high_test*100:.1f}%]")
-        print(f"Total Time:              {total_time_ms / 1000.0:.2f} s (avg {summary['avg_task_ms']:.1f} ms/task)")
+        print(
+            f"Train Solved:            {train_solved}/{n_total} "
+            f"({train_acc * 100:.1f}%) [95% CI: {w_low_train * 100:.1f}% - "
+            f"{w_high_train * 100:.1f}%]")
+        print(
+            f"Test Solved (Ground Tr): {test_solved}/{n_total} "
+            f"({test_acc * 100:.1f}%) [95% CI: {w_low_test * 100:.1f}% - "
+            f"{w_high_test * 100:.1f}%]")
+        print(
+            f"Total Time:              {
+                total_time_ms / 1000.0:.2f} s (avg {avg_task_ms:.1f} ms/task)")
         print("=========================================================\n")
 
         return summary
@@ -708,8 +746,12 @@ class ReasoningREPL:
     def print_status(self) -> None:
         """Prints current session status."""
         task_str = f"\033[1;36m{self.active_task_id}\033[0m" if self.active_task_id else "None"
-        code_str = f"Available ({len(self.candidate_code.splitlines())} lines)" if self.candidate_code else "None"
-        hypo_str = f"Available ({len(self.candidate_hypothesis.splitlines())} lines)" if self.candidate_hypothesis else "None"
+        code_str = f"Available ({
+            len(self.candidate_code.splitlines())} lines)" if self.candidate_code else "None"
+        hypo_str = (
+            f"Available ({len(self.candidate_hypothesis.splitlines())} "
+            "lines)"
+        ) if self.candidate_hypothesis else "None"
         cache_stats = self.cache.stats()
 
         print("\n=== Lucca Reasoning REPL Status ===")
@@ -737,7 +779,8 @@ Visualization:
 Evaluation & Induction:
   induce [hint]                 Synthesize Turn 1 candidate code using Hypothesis-First Induction
   step                          Run 1 turn of Counterexample-Guided Inductive Synthesis (CEGIS)
-  backtrack                     Clean-slate backtrack: discard failed branch and seek fresh hypothesis
+  backtrack                     Clean-slate backtrack: discard failed branch and
+                                seek fresh hypothesis
   auto [max_turns]              Run full autonomous CEGIS loop with adaptive backtracking
   hypothesis                    Display active spatial transformation hypothesis
   verify                        Verify current candidate code against all training examples
@@ -757,6 +800,10 @@ General:
   quit / exit                   Exit the REPL
 """
         print(help_text)
+
+    def run(self) -> None:
+        """Alias for run_interactive()."""
+        self.run_interactive()
 
     def run_interactive(self) -> None:
         """Starts the interactive read-eval-print loop."""
@@ -790,8 +837,7 @@ General:
             elif cmd == "status":
                 self.print_status()
             elif cmd == "clear":
-                import os
-                os.system("cls" if os.name == "nt" else "clear")
+                print("\033[2J\033[H", end="", flush=True)
             elif cmd == "list":
                 concept_filter = args[0] if args else None
                 self.list_available_tasks(concept_filter)
@@ -826,7 +872,9 @@ General:
                 self.backtrack_cegis()
             elif cmd == "hypothesis":
                 if self.candidate_hypothesis:
-                    print(f"\n\033[1;33m=== Active Spatial Hypothesis ===\033[0m\n{self.candidate_hypothesis}\n")
+                    print(
+                        f"\n\033[1;33m=== Active Spatial Hypothesis ===\033[0m\n{
+                            self.candidate_hypothesis}\n")
                 else:
                     print("No spatial hypothesis currently active.")
             elif cmd == "auto":

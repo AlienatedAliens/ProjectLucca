@@ -6,8 +6,10 @@ all 6 transformer layers + embeddings unfrozen) and exported to static-shape `[1
 (`models/router_intent_ov/openvino_model.xml`) for Intel NPU / iGPU / CPU execution.
 
 WO-42 Milestone 1.3 Multi-Sentence Task-Priority Pooling:
-  - Evaluates both the full transcript and individual sentences when a prompt spans multiple sentences.
-  - Applies task-priority max-pooling (`Tier 3 Safety/Reflex > Tier 2 Formal Reasoning > Tier 1 Tool/Action > Tier 0 Chit-Chat/Unknown`)
+  - Evaluates both the full transcript and individual sentences when a prompt spans multiple
+  sentences.
+  - Applies task-priority max-pooling (`Tier 3 Safety/Reflex > Tier 2 Formal Reasoning > Tier 1
+  Tool/Action > Tier 0 Chit-Chat/Unknown`)
     so multi-sentence prompts (e.g., greeting + math problem, or 4-sentence logic/code descriptions)
     never collapse to `chit_chat` or `unknown`.
   - Unions high-confidence (`>= 0.78`) reasoning domain flags across sentences so multi-sentence
@@ -21,11 +23,11 @@ Output Tensor (`[1, 29]`):
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import threading
 import time
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 import numpy as np
@@ -166,7 +168,7 @@ class NeuralIntentClassifier:
 
             tok = Tokenizer.from_file(str(tok_path))
             tok.enable_truncation(max_length=STATIC_SEQ_LEN)
-            tok.enable_padding(length=STATIC_SEQ_LEN, pad_id=1, pad_token="<pad>")
+            tok.enable_padding(length=STATIC_SEQ_LEN, pad_id=1, **{"pad_token": "<pad>"})
             self._tokenizer = tok
 
             core = ov.Core()
@@ -200,7 +202,14 @@ class NeuralIntentClassifier:
         except Exception as exc:  # noqa: BLE001
             logger.warning("neural_intent_classifier_init_failed", error=str(exc))
 
-    def _infer_single(self, formatted_text: str) -> tuple[str, float, np.ndarray, np.ndarray]:
+    def _infer_single(
+        self, formatted_text: str
+    ) -> tuple[
+        str,
+        float,
+        np.ndarray[tuple[int, ...], np.dtype[np.float64]],
+        np.ndarray[tuple[int, ...], np.dtype[np.float64]],
+    ]:
         enc = self._tokenizer.encode(formatted_text)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
         attention_mask = np.array([enc.attention_mask], dtype=np.int64)
@@ -269,12 +278,15 @@ class NeuralIntentClassifier:
                 if s_cls not in ("chit_chat", "clarify"):
                     non_chitchat_sents.append(sent)
 
-                # Pool domain probabilities across sentences when a sentence has a strong reasoning signal
+                # Pool domain probabilities across sentences when a sentence has a strong reasoning
+                # signal
                 if s_tier >= 2 and s_conf >= 0.65:
                     max_dom_probs = np.maximum(max_dom_probs, s_dom_probs)
 
-                # Promote concrete task/reasoning sentence over Tier-0 (chit_chat / clarify / unknown)
-                # or promote higher-tier reasoning sentence, or higher-confidence sentence within the same tier
+                # Promote concrete task/reasoning sentence over Tier-0 (chit_chat / clarify /
+                # unknown)
+                # or promote higher-tier reasoning sentence, or higher-confidence sentence within
+                # the same tier
                 if best_tier == 0 and s_tier >= 1 and s_conf >= 0.60:
                     best_cls = s_cls
                     best_conf = s_conf
@@ -343,19 +355,20 @@ class NeuralIntentClassifier:
 
 
 _SINGLETON_LOCK = threading.Lock()
-_SINGLETON_INSTANCE: NeuralIntentClassifier | None = None
+_SINGLETON_HOLDER: dict[str, NeuralIntentClassifier | None] = {"instance": None}
 
 
 def get_neural_intent_classifier() -> NeuralIntentClassifier:
-    global _SINGLETON_INSTANCE
-    if _SINGLETON_INSTANCE is None:
+    inst = _SINGLETON_HOLDER["instance"]
+    if inst is None:
         with _SINGLETON_LOCK:
-            if _SINGLETON_INSTANCE is None:
-                _SINGLETON_INSTANCE = NeuralIntentClassifier()
-    return _SINGLETON_INSTANCE
+            inst = _SINGLETON_HOLDER["instance"]
+            if inst is None:
+                inst = NeuralIntentClassifier()
+                _SINGLETON_HOLDER["instance"] = inst
+    return inst
 
 
 def reset_neural_intent_classifier() -> None:
-    global _SINGLETON_INSTANCE
     with _SINGLETON_LOCK:
-        _SINGLETON_INSTANCE = None
+        _SINGLETON_HOLDER["instance"] = None

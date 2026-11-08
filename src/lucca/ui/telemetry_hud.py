@@ -11,9 +11,6 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
-
 from pydantic import JsonValue
 from PyQt6.QtCore import QPoint, QRectF, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (
@@ -47,7 +44,7 @@ from lucca.ui.theme import (
     CT_SILVER_BORDER,
 )
 
-
+logger = logging.getLogger(__name__)
 class TelemetryWorker(QThread):
     """Off-thread hardware telemetry sampler preventing GUI hitching."""
 
@@ -298,24 +295,33 @@ class TelemetryHUD(QWidget):
         self.worker.start()
 
     def _apply_metrics(self, m: dict[str, JsonValue]) -> None:
+        def _f(v: JsonValue, default: float = 0.0) -> float:
+            return float(v) if isinstance(v, (int, float, str)) else default
+
+        def _i(v: JsonValue, default: int = 0) -> int:
+            return int(float(v)) if isinstance(v, (int, float, str)) else default
+
+        def _d(v: JsonValue) -> dict[str, JsonValue]:
+            return v if isinstance(v, dict) else {}
+
         try:
             # dGPU
-            dg = m["dgpu"]
-            vram_used = dg["used_gb"]
-            vram_total = dg["total_gb"]
-            vram_pct = int(dg["percent"])
+            dg = _d(m.get("dgpu"))
+            vram_used = _f(dg.get("used_gb"))
+            vram_total = _f(dg.get("total_gb"))
+            vram_pct = _i(dg.get("percent"))
             self.dgpu_label.setText(
-                f"⚡ dGPU: {dg['name']} · VRAM: {vram_used:.1f} / {vram_total:.1f} GB ({vram_pct}%)"
+                f"⚡ dGPU: {dg.get('name', 'GPU')} · VRAM: {vram_used:.1f} / {vram_total:.1f} GB ({vram_pct}%)"
             )
             self.dgpu_bar.setValue(min(100, max(0, vram_pct)))
             self.dgpu_bar.setFormat(f"{vram_used:.1f} GB ({vram_pct}%)")
 
             # RAM
-            ram = m["ram"]
-            tot_ram = ram["total_gb"]
-            used_ram = ram["used_gb"]
-            luc_mb = ram["lucca_used_mb"]
-            ram_pct = int(ram["percent"])
+            ram = _d(m.get("ram"))
+            tot_ram = _f(ram.get("total_gb"))
+            used_ram = _f(ram.get("used_gb"))
+            luc_mb = _f(ram.get("lucca_used_mb"))
+            ram_pct = _i(ram.get("percent"))
             self.ram_label.setText(
                 f"💾 System RAM: Total {tot_ram:.1f} GB · Lucca: {luc_mb:.0f} MB (Host: {used_ram:.1f} GB / {ram_pct}%)"
             )
@@ -323,9 +329,9 @@ class TelemetryHUD(QWidget):
             self.ram_bar.setFormat(f"Host: {used_ram:.1f} GB ({ram_pct}%)")
 
             # CPU
-            cpu = m["cpu"]
-            sys_cpu = cpu["system_percent"]
-            luc_cpu = cpu["lucca_percent"]
+            cpu = _d(m.get("cpu"))
+            sys_cpu = _f(cpu.get("system_percent"))
+            luc_cpu = _f(cpu.get("lucca_percent"))
             self.cpu_label.setText(
                 f"⚙️ CPU: Ultra 9 275HX · Lucca: {luc_cpu:.1f}% (Total: {sys_cpu:.1f}%)"
             )
@@ -333,8 +339,8 @@ class TelemetryHUD(QWidget):
             self.cpu_bar.setFormat(f"{sys_cpu:.1f}%")
 
             # NPU
-            npu = m["npu"]
-            self.npu_label.setText(f"🧠 NPU: {npu['name']} · {npu['status']}")
+            npu = _d(m.get("npu"))
+            self.npu_label.setText(f"🧠 NPU: {npu.get('name', 'NPU')} · {npu.get('status', '')}")
 
         except Exception as exc:  # noqa: BLE001
             logger.debug("update_metrics_ui_failed: %s", exc)

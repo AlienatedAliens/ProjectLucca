@@ -27,28 +27,21 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import io
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 import ulid
 
-from lucca.core.coherence import ToolReceipt
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import (
     ChatMessage,
     Done,
     ExecutionTier,
-    LLMEvent,
     LLMUsage,
-    Risk,
     TokenDelta,
-    ToolCall,
-    ToolResult,
 )
-from lucca.core.signer_factory import SignerFactory
 from lucca.core.trace import TurnTrace
 from lucca.memory.db import DatabaseManager
 from lucca.memory.store import MemoryStore

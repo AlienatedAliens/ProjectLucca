@@ -1,5 +1,6 @@
 """
-Project Lucca — Compound Autonomous Research Tool (Scrapling-Powered Concurrent Multi-Source Dossier)
+Project Lucca — Compound Autonomous Research Tool (Scrapling-Powered Concurrent Multi-Source
+Dossier)
 Spec 09 §5, Spec 10 §4, Work Order #42 (WO-42 Phase 4 Milestone 4.2)
 Orchestrates multi-query web search, source ranking, followable URL resolution,
 and concurrent deep content extraction (with prompt-injection DOM sanitization and
@@ -8,12 +9,12 @@ tiered TLS/headless rendering fallback) to provide grounded factual dossiers.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-from pydantic import JsonValue
 import structlog
+from pydantic import JsonValue
 
 from lucca.sandbox.search_tool import classify_link_followability, search_web
 from lucca.sandbox.web_tool import fetch_url
@@ -162,7 +163,7 @@ def research_topic(
         candidate_sources = all_results[:max_sources]
 
     selected_sources = candidate_sources[:max_sources]
-    fetched_sources: list[dict[str, JsonValue]] = []
+    fetched_sources: list[JsonValue] = []
     dossier_sections: list[str] = [
         f"# Research Dossier: {clean_query}\n",
         f"**Search Angles Explored:** {', '.join(f'`{sq}`' for sq in sub_queries)}\n",
@@ -185,11 +186,12 @@ def research_topic(
         dossier_sections.extend(section_lines)
 
     summary_text = "\n".join(dossier_sections).strip()
+    sub_queries_json: list[JsonValue] = [str(sq) for sq in sub_queries]
 
     structured_out: dict[str, JsonValue] = {
         "query": clean_query,
         "ok": True,
-        "sub_queries": sub_queries,
+        "sub_queries": sub_queries_json,
         "sources_count": len(fetched_sources),
         "sources": fetched_sources,
         "results": fetched_sources,

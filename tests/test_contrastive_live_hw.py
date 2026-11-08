@@ -40,13 +40,12 @@ import httpx
 import pytest
 
 from lucca.eval.contrastive_grader import (
-    Grade,
-    grade_probe,
-    grader_sha256,
-    stratum_invalid,
     THRESHOLD_ABSTENTION,
     THRESHOLD_INTROSPECTION,
     THRESHOLD_RECALL,
+    Grade,
+    grade_probe,
+    grader_sha256,
 )
 from lucca.reasoning.stats import wilson_score_interval
 from tests.test_a1_live_hw import (
@@ -55,6 +54,7 @@ from tests.test_a1_live_hw import (
     _seed_a1_history,
     _write_report,
 )
+
 PROBES_PATH: Final[Path] = (
     Path(__file__).parent / "fixtures" / "contrastive" / "probes.jsonl"
 )

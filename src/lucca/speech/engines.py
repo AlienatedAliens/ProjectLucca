@@ -13,16 +13,18 @@ Unified engine abstraction for the 5 ratified speech synthesis engines:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
-from typing import Any, Final, Literal
+from typing import Final, Literal
 
 import kokoro_onnx
 import numpy as np
 import numpy.typing as npt
+import onnxruntime as ort
 import structlog
 
+from lucca.senses.tts import parse_voice_blend
 from lucca.speech.kokoclone import compute_cloned_style_vector
 from lucca.speech.text_normalizer import normalize_text
 
@@ -50,7 +52,8 @@ ENGINE_CATALOG: dict[EngineType, VoiceEngineDescriptor] = {
         name="Kokoro-82M",
         architecture="82M StyleTTS-2 Diffusion Model",
         footprint="~320 MB ONNX + 54 voice vectors",
-        strengths="Pristine 24kHz anime timbre, 54 expressive styles, arbitrary dual-vector tensor mixing",
+        strengths="Pristine 24kHz anime timbre, 54 expressive styles, arbitrary dual-vector "
+            "tensor mixing",
         best_for="Primary bedrock anime dialogue and high-fidelity vocal expressive character",
     ),
     "kittentts": VoiceEngineDescriptor(
@@ -58,7 +61,8 @@ ENGINE_CATALOG: dict[EngineType, VoiceEngineDescriptor] = {
         name="KittenTTS (KittenML)",
         architecture="15M (Nano) to 80M (Mini) parameters",
         footprint="25 MB to 80 MB on disk (INT8 quantization supported)",
-        strengths="Designed from scratch for ONNX CPU runtime with superior built-in text-normalization (currency, dates, numbers, abbreviations)",
+        strengths="Designed from scratch for ONNX CPU runtime with superior built-in "
+            "text-normalization (currency, dates, numbers, abbreviations)",
         best_for="Drop-in CPU speech synthesis when disk/memory limits are strictly constrained",
     ),
     "pocket_tts": VoiceEngineDescriptor(
@@ -66,7 +70,8 @@ ENGINE_CATALOG: dict[EngineType, VoiceEngineDescriptor] = {
         name="Pocket TTS (Kyutai Labs)",
         architecture="Lightweight edge-streaming model",
         footprint="~120 MB edge memory footprint",
-        strengths="Native zero-shot voice cloning with low latency and streaming delivery for on-device agents",
+        strengths="Native zero-shot voice cloning with low latency and streaming delivery for "
+            "on-device agents",
         best_for="Applications where voice cloning is mandatory without 0.5B+ VRAM overhead",
     ),
     "supertonic3": VoiceEngineDescriptor(
@@ -74,7 +79,8 @@ ENGINE_CATALOG: dict[EngineType, VoiceEngineDescriptor] = {
         name="Supertonic 3",
         architecture="Multilingual code-switching synthesis engine",
         footprint="~180 MB multilingual weights",
-        strengths="Exceptional automatic language detection and inline multilingual code-switching without phoneme stumbles",
+        strengths="Exceptional automatic language detection and inline multilingual code-switching "
+            "without phoneme stumbles",
         best_for="Bilingual and multilingual synthesis with seamless cross-lingual voice stability",
     ),
     "kokoclone": VoiceEngineDescriptor(
@@ -82,8 +88,10 @@ ENGINE_CATALOG: dict[EngineType, VoiceEngineDescriptor] = {
         name="KokoClone",
         architecture="Kokoro Zero-Shot Style Adapter",
         footprint="0 MB extra weights (uses Kokoro-82M base)",
-        strengths="Adapts kokoro-onnx pipeline for zero-shot voice cloning from short reference audio clips (.wav)",
-        best_for="Direct voice cloning from audio files without requiring high-VRAM external services",
+        strengths="Adapts kokoro-onnx pipeline for zero-shot voice cloning from short reference "
+            "audio clips (.wav)",
+        best_for="Direct voice cloning from audio files without requiring high-VRAM "
+            "external services",
     ),
 }
 
@@ -176,7 +184,7 @@ class BaseVoiceEngine:
         text: str,
         voice_spec: str = "",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
         raise NotImplementedError
 
@@ -212,7 +220,7 @@ class KokoroEngine(BaseVoiceEngine):
         text: str,
         voice_spec: str = "af_bella",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
         eng = self.raw_engine
         if eng is None:
@@ -221,10 +229,9 @@ class KokoroEngine(BaseVoiceEngine):
             samples = np.zeros(int(sr * 0.5), dtype=np.float32)
             return samples, sr
 
-        from lucca.senses.tts import parse_voice_blend
         resolved = parse_voice_blend(eng, voice_spec) if isinstance(voice_spec, str) else voice_spec
-        samples, sr = eng.create(text, voice=resolved, speed=speed)
-        return samples.astype(np.float32), sr
+        raw_samples, sr = eng.create(text, voice=resolved, speed=speed)
+        return np.asarray(raw_samples, dtype=np.float32), int(sr)
 
 
 class KittenTTSEngine(BaseVoiceEngine):
@@ -254,7 +261,7 @@ class KittenTTSEngine(BaseVoiceEngine):
         text: str,
         voice_spec: str = "kittentts:mini",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
         # 1. Apply Kitten text normalization (handles currency, dates, numbers, abbreviations)
         normalized = self.normalize_input(text)
@@ -265,9 +272,8 @@ class KittenTTSEngine(BaseVoiceEngine):
 
         if kitten_path.exists():
             try:
-                import onnxruntime as ort
 
-                sess = ort.InferenceSession(str(kitten_path), providers=["CPUExecutionProvider"])
+                ort.InferenceSession(str(kitten_path), providers=["CPUExecutionProvider"])
                 # Execute ONNX session if input tensors match
                 _LOG.info("kittentts_onnx_cpu_inference", model=model_name)
             except Exception as exc:  # noqa: BLE001
@@ -304,9 +310,9 @@ class PocketTTSEngine(BaseVoiceEngine):
         text: str,
         voice_spec: str = "",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
-        ref_wav = kwargs.get("ref_audio_path") or ""
+        ref_wav = str(kwargs.get("ref_audio_path") or "")
         if not ref_wav and "clone:" in voice_spec:
             ref_wav = voice_spec.split("clone:", 1)[1].strip()
 
@@ -413,7 +419,7 @@ class Supertonic3Engine(BaseVoiceEngine):
         text: str,
         voice_spec: str = "supertonic3:auto",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
         # 1. Smooth out cross-lingual code switching
         smoothed = self.smooth_code_switching(text)
@@ -458,13 +464,13 @@ class KokoCloneEngine(BaseVoiceEngine):
         text: str,
         voice_spec: str = "",
         speed: float = 1.0,
-        **kwargs: Any,
+        **kwargs: object,
     ) -> tuple[npt.NDArray[np.float32], int]:
         eng = self.kokoro_base.raw_engine
         if eng is None:
             return self.kokoro_base.synthesize(text, voice_spec="af_bella", speed=speed)
 
-        ref_wav = kwargs.get("ref_audio_path") or ""
+        ref_wav = str(kwargs.get("ref_audio_path") or "")
         if not ref_wav and "kokoclone:" in voice_spec:
             ref_wav = voice_spec.split("kokoclone:", 1)[1].strip()
 

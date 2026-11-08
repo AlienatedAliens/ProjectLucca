@@ -16,7 +16,6 @@ Zero benchmark strings in test suite per anti-benchmax contract.
 from __future__ import annotations
 
 import random
-import pytest
 
 from lucca.reasoning.relational.mereo import (
     externally_connected,
@@ -30,12 +29,10 @@ from lucca.reasoning.relational.mereo import (
 )
 from lucca.reasoning.relational.realize_grid import (
     above,
-    below,
     bbox_during,
+    below,
     left_of,
     right_of,
-    x_projection,
-    y_projection,
 )
 from lucca.reasoning.relational.realize_real import during_real, point_in_interval
 from lucca.reasoning.relational.sorts import GridRegion, Interval1D, RealRegion
@@ -43,14 +40,14 @@ from lucca.reasoning.relational.sorts import GridRegion, Interval1D, RealRegion
 
 def test_closed_ring_enclosing_blob() -> None:
     """A closed 5x5 ring enclosing a central 1x1 blob.
-    
+
     Ring:
     # # # # #
     # . . . #
     # . X . #
     # . . . #
     # # # # #
-    
+
     Verifies:
     - in_cavity(blob, ring) is True
     - bbox_during(blob, ring) is True
@@ -75,14 +72,14 @@ def test_closed_ring_enclosing_blob() -> None:
 
 def test_u_shape_concavity_disagreement() -> None:
     """A 5x5 U-shape open to the top with a central blob in the concavity.
-    
+
     U-Shape:
     # . . . #   <- Open to top!
     # . . . #
     # . X . #
     # . . . #
     # # # # #
-    
+
     MANDATORY DISAGREEMENT TEST:
     - Because the U-shape is open to the border, complement flood-fill reaches into the concavity.
     - Therefore, in_cavity(blob, u_shape) MUST BE FALSE.
@@ -180,7 +177,7 @@ def test_synthetic_1000_random_holed_masks() -> None:
         # Generate a random bounding frame size: 7x7 to 15x15
         h = rng.randint(7, 15)
         w = rng.randint(7, 15)
-        
+
         # Build an outer closed boundary at row 1..h-2, col 1..w-2
         ring_pts: set[tuple[int, int]] = set()
         for r in range(1, h - 1):
@@ -219,7 +216,6 @@ def test_synthetic_1000_random_holed_masks() -> None:
 
 def test_cavity_mask_and_betweenness() -> None:
     """Verifies extract_cavity_mask, extract_exterior_mask, and is_between."""
-    import numpy as np
 
     # 5x5 closed ring
     ring_pts = {
@@ -231,14 +227,14 @@ def test_cavity_mask_and_betweenness() -> None:
 
     cav_mask = extract_cavity_mask(ring, shape=(5, 5))
     assert cav_mask.shape == (5, 5)
-    assert cav_mask[2, 2] == True
+    assert cav_mask[2, 2]
     assert cav_mask.sum() == 1
 
     ext_mask = extract_exterior_mask(ring, shape=(5, 5))
     assert ext_mask.shape == (5, 5)
-    assert ext_mask[0, 0] == True
-    assert ext_mask[2, 2] == False
-    assert ext_mask[1, 1] == False
+    assert ext_mask[0, 0]
+    assert not ext_mask[2, 2]
+    assert not ext_mask[1, 1]
     assert ext_mask.sum() == (25 - 8 - 1)  # 25 total - 8 wall - 1 cavity = 16 exterior
 
     # is_between

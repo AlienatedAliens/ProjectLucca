@@ -1,7 +1,8 @@
 """
 Project Lucca — Constitutional Kernel Fingerprint
 WO-36 Milestone 36.4 & Sovereign Cognitive Unification
-Computes a cryptographic SHA-256 fingerprint over persona.toml configuration and constitutional invariants.
+Computes a cryptographic SHA-256 fingerprint over persona.toml configuration and constitutional
+invariants.
 """
 
 from __future__ import annotations

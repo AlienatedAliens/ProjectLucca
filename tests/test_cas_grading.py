@@ -6,12 +6,10 @@ WO-28 Phase 4: Mathematical Equivalence Grader Recalibration
 from __future__ import annotations
 
 import time
-import pytest
-from scripts.run_modern_2024_benchmarks import (
+
+from scripts.archive.wo01_wo42.run_modern_2024_benchmarks import (
     compare_math_results,
     compare_math_strict,
-    normalize_math_str,
-    clean_latex_for_sympy,
     evaluate_sympy_equivalence_with_timeout,
 )
 

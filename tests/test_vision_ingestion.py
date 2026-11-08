@@ -8,11 +8,8 @@ from __future__ import annotations
 
 import base64
 import io
-import struct
 from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from lucca.brain.llm_client import LLMClient
 from lucca.core.capabilities import MAX_REGISTRY_TOOLS, get_default_native_tools
@@ -240,7 +237,7 @@ def test_capture_screenshot_encoding_constraints() -> None:
         def grab(self, mon: dict) -> FakeScreenshot:
             return FakeScreenshot()
 
-        def __enter__(self) -> "FakeSct":
+        def __enter__(self) -> FakeSct:
             return self
 
         def __exit__(self, *a: Any) -> None:
@@ -491,9 +488,9 @@ def test_stream_llm_speech_strips_screenshot_tool_when_image_present() -> None:
 
 def test_morning_turn_zero_vision_query_no_greeting_hijack() -> None:
     """Morning turn zero vision query must NOT be hijacked by time-greeting-v1 rule."""
-    from lucca.reasoning.lifecycle import RuleLifecycleManager
     from lucca.core.schemas import RuleState
     from lucca.core.trace import TurnTrace
+    from lucca.reasoning.lifecycle import RuleLifecycleManager
 
     rlm = RuleLifecycleManager(skills_dir="config/skills")
     state = RuleState(
@@ -603,6 +600,7 @@ def test_turn_pipeline_run_with_image_input() -> None:
 def test_multiturn_sticky_image_continuity(tmp_path: Any) -> None:
     """WO-37 Phase 1: verifies sticky session image reload on follow-up vision turns."""
     from pathlib import Path
+
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.schemas import RouteAction, RouteDecision, RuleState
     from lucca.core.trace import TurnTrace
@@ -720,6 +718,7 @@ def test_multiturn_sticky_image_continuity(tmp_path: Any) -> None:
 def test_vision_guard_no_image(tmp_path: Any) -> None:
     """WO-37 Phase 1: verifies Epistemic Vision Guard halts turn with refusal if store empty."""
     from pathlib import Path
+
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.trace import TurnTrace
     from lucca.core.turn_pipeline import TurnInput, TurnPipeline

@@ -16,9 +16,6 @@ import structlog
 import ulid
 from pydantic import JsonValue
 
-logger = structlog.get_logger(__name__)
-
-
 from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
 from lucca.core.exceptions import SchemeSyntaxError
@@ -283,7 +280,9 @@ class RuleLifecycleManager:
         max_depth: int = MAX_CHAIN_DEPTH,
         context: object | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1 & 2).
+        """
+        Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1 &
+        2).
 
         After a plan containing AssertFact executes, rebuilds state and re-evaluates,
         bounded by MAX_CHAIN_DEPTH = 8 and gas limit. Halts on fixpoint (no new assertions).
@@ -354,12 +353,8 @@ class RuleLifecycleManager:
         evidence_refs: list[str] | None = None,
     ) -> ExecutionTriple:
         """Emits an S1 execution triple for shadow evaluation per Spec §5 and S1.3."""
-        if plan is None:
-            actions: list[ToolCall | Say] = []
-        elif isinstance(plan, Plan):
-            actions = plan.actions
-        else:
-            actions = list(plan)
+        raw_actions = plan.actions if isinstance(plan, Plan) else (list(plan) if plan else [])
+        actions: list[ToolCall | Say] = [a for a in raw_actions if isinstance(a, (ToolCall, Say))]
 
         refs = list(evidence_refs or [])
         if not refs and state_snapshot and state_snapshot.transcript:
@@ -416,7 +411,8 @@ class RuleLifecycleManager:
         but does NOT automatically demote an `ACTIVE` rule. First-strike demotion
         (`ACTIVE -> QUARANTINE`) is triggered by calling `record_shadow(rule_id, matched=False)`.
         """
-        actions = plan.actions if isinstance(plan, Plan) else list(plan)
+        raw_actions = plan.actions if isinstance(plan, Plan) else list(plan)
+        actions: list[ToolCall | Say] = [a for a in raw_actions if isinstance(a, (ToolCall, Say))]
         proposal = Proposal(
             rule_id=rule_id,
             plan=actions,
@@ -524,6 +520,8 @@ class RuleLifecycleManager:
             if self.db is not None:
                 self.persist(rule_id)
 
+    retire_rule = user_retire
+
     def verify_regression_suite(self, candidate_rule_id: str | None = None) -> RegressionReport:
         """
         Evaluates active rules against all stored regression cases per Spec 05 §9.
@@ -547,7 +545,11 @@ class RuleLifecycleManager:
             if case.rule_id in self.rules:
                 owner = self.rules[case.rule_id]
                 outcome = evaluate_rule(owner.definition, case.state)
-                if not outcome.fired or not plans_match(outcome.plan, case.expected_plan):
+                if (
+                    not outcome.fired
+                    or outcome.plan is None
+                    or not plans_match(outcome.plan, case.expected_plan)
+                ):
                     failures.append(
                         f"Case {case.case_id}: Owning rule '{case.rule_id}' "
                         "failed to reproduce plan"
@@ -712,6 +714,7 @@ class RuleLifecycleManager:
         c_rel = float(core_ok_count) / float(total_turns)
         c_lb, c_ub = wilson_score_interval(core_ok_count, total_turns)
 
+        records_json: list[JsonValue] = [dict(r) for r in records[:20]]
         return {
             "rule_id": rule_id,
             "total_turns": total_turns,
@@ -727,7 +730,7 @@ class RuleLifecycleManager:
             "core_reliability_rate": c_rel,
             "core_reliability_interval": [c_lb, c_ub],
             "rate_label": "Execution-Reliability Rate (S1)",
-            "records": records[:20],
+            "records": records_json,
         }
 
     def promote_if_eligible(self, rule_id: str, require_replay: bool = False) -> PromotionResult:
@@ -766,12 +769,12 @@ class RuleLifecycleManager:
             )
 
         # Run regression suite
-        report = self.verify_regression_suite(candidate_rule_id=rule_id)
-        if not report.passed:
+        reg_report = self.verify_regression_suite(candidate_rule_id=rule_id)
+        if not reg_report.passed:
             return PromotionResult(
                 promoted=False,
                 rule_id=rule_id,
-                reason=f"Regression suite failed: {report.failures}",
+                reason=f"Regression suite failed: {reg_report.failures}",
             )
 
         # Promotion criteria satisfied
@@ -863,12 +866,12 @@ class RuleLifecycleManager:
                 reason=f"Quarantine failures must be 0, got {rule.failure_count}",
             )
 
-        report = self.verify_regression_suite(candidate_rule_id=rule_id)
-        if not report.passed:
+        reg_report = self.verify_regression_suite(candidate_rule_id=rule_id)
+        if not reg_report.passed:
             return PromotionResult(
                 promoted=False,
                 rule_id=rule_id,
-                reason=f"Regression suite failed: {report.failures}",
+                reason=f"Regression suite failed: {reg_report.failures}",
             )
 
         rule.status = "ACTIVE"

@@ -146,7 +146,7 @@ def test_hard_purge_zero_ghost_leak(test_db: DatabaseManager, test_store: Memory
             "memory_sources",
         ]
         for tbl in tables_to_verify:
-            cnt = cur.execute(f"SELECT count(*) FROM {tbl}").fetchone()[0]
+            cnt = cur.execute("SELECT count(*) FROM " + tbl).fetchone()[0]
             assert cnt == 0, f"Table '{tbl}' still contains {cnt} ghost records after hard purge"
 
     # 7. Assert honest calibrated abstention & zero ghost recall

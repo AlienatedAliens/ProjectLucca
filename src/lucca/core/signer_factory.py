@@ -10,9 +10,9 @@ unless explicitly running in development mode (LUCCA_ENV=dev).
 
 from __future__ import annotations
 
-import os
 from typing import Final
 
+from lucca.core.config import resolve_or_create_master_key
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
@@ -40,7 +40,6 @@ class SignerFactory:
     def __init__(self, master_key: bytes | None = None) -> None:
         key = master_key
         if key is None or len(key) < 32:
-            from lucca.core.config import resolve_or_create_master_key
             key = resolve_or_create_master_key()
         self._master_key: bytes = bytes(key)
 

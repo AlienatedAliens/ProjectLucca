@@ -6,8 +6,6 @@ Strict Zero-Any typing enforced per D-AUD-01.
 
 from __future__ import annotations
 
-import ast
-
 from lucca.reasoning.cegis_unshackled import (
     UnshackledCEGISEngine,
     generate_ast_mutants,

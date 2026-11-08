@@ -9,9 +9,10 @@ Exhaustive verification of system behavior under volume and concurrency:
 5. Strict D-REAS-06 promotion guard: 0 induced rules reach ACTIVE without human operator approval.
 """
 
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import time
+
 import pytest
 
 from lucca.core.schemas import Risk, RuleState, ToolParameter, ToolSchema

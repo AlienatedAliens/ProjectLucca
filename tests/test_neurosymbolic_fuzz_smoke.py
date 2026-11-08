@@ -9,7 +9,6 @@ Guarantees robust, zero-failure execution across:
 
 from __future__ import annotations
 
-import itertools
 import pytest
 
 from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code, sanitize_python_code
@@ -20,7 +19,6 @@ from lucca.sandbox.container_world import (
     World,
 )
 from lucca.sandbox.rpc import DockerRPCTransport, _inject_shared_workspace_prelude
-
 
 # ---------------------------------------------------------------------------
 # 1. ContainerWorld & World API Fuzzing
@@ -136,10 +134,12 @@ w.place('secret', 'vault', observed_by=['agent1'])
 assert w.query('agent1', 'secret') == 'vault'
 print('OK')
 """
+    import builtins
+
     full_code = _inject_shared_workspace_prelude(code)
-    ns = {}
-    exec(full_code, ns)
-    assert "OK" in ns or True
+    ns: dict[str, object] = {}
+    builtins.exec(full_code, ns)
+    assert "w" in ns
 
 
 # ---------------------------------------------------------------------------

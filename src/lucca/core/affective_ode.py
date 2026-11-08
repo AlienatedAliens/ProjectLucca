@@ -388,7 +388,8 @@ class AffectiveODEMachine:
         ADR-009, Spec 16 §4, WO-27.
         """
         st = self.get_current_state(now)
-        pitch_shift = round(clamp(0.40 * st.dominance + 0.35 * st.arousal + 0.15 * st.pleasure, -3.0, 3.0), 2)
+        pitch_shift = round(clamp(0.40 * st.dominance + 0.35 * st.arousal + 0.15 * st.pleasure,
+            -3.0, 3.0), 2)
         speed_mult = round(clamp(1.0 + 0.15 * st.arousal + 0.05 * st.dominance, 0.80, 1.25), 3)
         energy_var = round(clamp(1.0 + 0.20 * abs(st.dominance) + 0.15 * st.arousal, 0.80, 1.40), 2)
         breathiness = round(clamp(0.10 - 0.20 * st.dominance - 0.10 * st.pleasure, 0.0, 0.50), 2)
@@ -438,7 +439,8 @@ class AffectiveODEMachine:
         if st.arousal > 0.50 and st.pleasure < -0.35 and st.dominance < -0.30:
             return f"System note: Operating under high alarm/stress due to: {causes_str}."
         if st.arousal > 0.45 and st.pleasure < -0.35 and st.dominance > 0.35:
-            return f"System note: Operating with indignation and sharp boundaries due to: {causes_str}."
+            return f"System note: Operating with indignation and sharp boundaries due to: {
+                causes_str}."
         if st.pleasure < -0.45 and st.dominance > 0.20 and st.arousal < 0.15:
             return f"System note: Operating with critical disdain due to: {causes_str}."
         if st.pleasure < -0.50 and st.arousal < -0.30 and st.dominance < -0.30:
@@ -446,7 +448,8 @@ class AffectiveODEMachine:
         if st.pleasure > 0.35 and st.arousal > 0.35 and st.dominance > 0.30:
             return f"System note: Operating in a playful, spirited stance due to: {causes_str}."
         if st.pleasure > 0.45 and st.arousal > 0.45 and st.dominance < 0.10:
-            return f"System note: Operating with eureka excitement and high curiosity due to: {causes_str}."
+            return f"System note: Operating with eureka excitement and high curiosity due to: {
+                causes_str}."
 
         # Canonical baseline triggers
         if st.arousal > 0.25 and st.pleasure < -0.15:

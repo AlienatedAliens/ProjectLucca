@@ -8,6 +8,7 @@ Strict zero-Any typing per D-AUD-01.
 
 from collections.abc import Generator, Sequence
 from pathlib import Path
+
 import pytest
 
 from lucca.core.schemas import (
@@ -262,6 +263,7 @@ def test_pure_temporal_query_empty_text(
 def test_extract_temporal_constraints_units() -> None:
     """Verifies regex and calendar extraction rules in extract_temporal_constraints."""
     from datetime import UTC, datetime
+
     from lucca.memory.retrieval import extract_temporal_constraints
 
     now = 1735689600.0  # 2025-01-01 00:00:00 UTC

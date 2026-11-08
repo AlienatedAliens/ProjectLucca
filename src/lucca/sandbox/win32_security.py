@@ -17,6 +17,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from ctypes import wintypes
 from pathlib import Path
+from typing import cast
 
 from lucca.core.exceptions import SandboxPathError
 
@@ -40,9 +41,18 @@ FILE_FLAG_BACKUP_SEMANTICS = 0x02000000  # Required to open directory handles
 FILE_ATTRIBUTE_REPARSE_POINT = 0x00000400
 VOLUME_NAME_DOS = 0x0
 
-INVALID_HANDLE_VALUE = wintypes.HANDLE(-1).value
+INVALID_HANDLE_VALUE: int = int(wintypes.HANDLE(-1).value or -1)
 ERROR_FILE_NOT_FOUND = 2
 ERROR_PATH_NOT_FOUND = 3
+
+
+def _is_invalid_handle(h: object) -> bool:
+    if h is None:
+        return True
+    if isinstance(h, int):
+        return h in (INVALID_HANDLE_VALUE, -1)
+    val = getattr(h, "value", None)
+    return val is None or val in (INVALID_HANDLE_VALUE, -1)
 
 
 class BY_HANDLE_FILE_INFORMATION(ctypes.Structure):
@@ -189,7 +199,7 @@ def verify_and_open_workspace_file(
             FILE_ATTRIBUTE_NORMAL,
             None,
         )
-        if h_file == INVALID_HANDLE_VALUE:
+        if _is_invalid_handle(h_file):
             err = ctypes.GetLastError()
             raise FileNotFoundError(
                 f"Cannot open file '{rel_path}' for reading (Win32 error {err})"
@@ -200,7 +210,7 @@ def verify_and_open_workspace_file(
         except Exception:
             CloseHandle(h_file)
             raise
-        return h_file
+        return cast(wintypes.HANDLE, h_file)
 
     elif mode in ("w", "a"):
         # Non-destructive Stage 1 inspection open
@@ -214,7 +224,7 @@ def verify_and_open_workspace_file(
             None,
         )
 
-        if h_inspect != INVALID_HANDLE_VALUE:
+        if not _is_invalid_handle(h_inspect):
             # File already exists: verify containment and hard-link count BEFORE opening for write
             try:
                 _verify_handle_containment(h_inspect, canonical_root)
@@ -241,12 +251,12 @@ def verify_and_open_workspace_file(
                 FILE_ATTRIBUTE_NORMAL,
                 None,
             )
-            if h_write == INVALID_HANDLE_VALUE:
+            if _is_invalid_handle(h_write):
                 err = ctypes.GetLastError()
                 raise SandboxPathError(
                     "write_failed", f"Failed to open verified file for write (Win32 error {err})"
                 )
-            return h_write
+            return cast(wintypes.HANDLE, h_write)
 
         else:
             err = ctypes.GetLastError()
@@ -269,7 +279,7 @@ def verify_and_open_workspace_file(
                 FILE_FLAG_BACKUP_SEMANTICS,
                 None,
             )
-            if h_parent == INVALID_HANDLE_VALUE:
+            if _is_invalid_handle(h_parent):
                 err = ctypes.GetLastError()
                 raise SandboxPathError(
                     "parent_verify_failed", f"Cannot verify parent directory (Win32 error {err})"
@@ -289,12 +299,12 @@ def verify_and_open_workspace_file(
                 FILE_ATTRIBUTE_NORMAL,
                 None,
             )
-            if h_new == INVALID_HANDLE_VALUE:
+            if _is_invalid_handle(h_new):
                 err = ctypes.GetLastError()
                 raise SandboxPathError(
                     "create_failed", f"Failed to create new file (Win32 error {err})"
                 )
-            return h_new
+            return cast(wintypes.HANDLE, h_new)
 
     else:
         raise ValueError(f"Unsupported mode: '{mode}' (expected 'r', 'w', or 'a')")
@@ -310,7 +320,7 @@ def _verify_handle_containment(handle: wintypes.HANDLE, canonical_root: Path) ->
             "handle_resolve_failed", f"GetFinalPathNameByHandleW failed (error {err})"
         )
 
-    path_str = buf.value
+    path_str = str(buf.value)
     # Normalize Win32 device namespace prefixes
     if path_str.startswith("\\\\?\\UNC\\"):
         path_str = "\\\\" + path_str[8:]
@@ -336,7 +346,7 @@ def read_workspace_file_handle(handle: wintypes.HANDLE, max_bytes: int = 1048576
     if not ok:
         err = ctypes.GetLastError()
         raise OSError(f"Win32 ReadFile failed (error code {err})")
-    return buf.raw[: bytes_read.value]
+    return bytes(buf.raw[: bytes_read.value])
 
 
 def write_workspace_file_handle(handle: wintypes.HANDLE, data: bytes) -> int:
@@ -346,12 +356,12 @@ def write_workspace_file_handle(handle: wintypes.HANDLE, data: bytes) -> int:
     if not ok:
         err = ctypes.GetLastError()
         raise OSError(f"Win32 WriteFile failed (error code {err})")
-    return bytes_written.value
+    return int(bytes_written.value)
 
 
 def close_workspace_file_handle(handle: wintypes.HANDLE) -> None:
     """Closes an open Win32 handle."""
-    if handle != INVALID_HANDLE_VALUE:
+    if not _is_invalid_handle(handle):
         CloseHandle(handle)
 
 

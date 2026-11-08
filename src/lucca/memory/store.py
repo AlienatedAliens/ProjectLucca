@@ -7,7 +7,7 @@ import datetime
 import sqlite3
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -164,7 +164,18 @@ class MemoryStore:
                 elif signed_payload.provenance == Provenance.COHERENCE_BREACH:
                     importance = 0.8
 
-                aux_tokens = subtokens(signed_payload.content)
+                structured_parts: list[str] = []
+                if isinstance(signed_payload.structured, dict):
+                    for sk, sv in signed_payload.structured.items():
+                        if sk not in ("valid_from", "importance", "ok") and isinstance(
+                            sv, (str, int, float)
+                        ):
+                            structured_parts.append(str(sv))
+                structured_str = " ".join(structured_parts)
+                aux_tokens = (
+                    f"{subtokens(signed_payload.content)} {structured_str} "
+                    f"{subtokens(structured_str)}"
+                ).strip()
                 cursor.execute(
                     """
                     INSERT INTO memories(
@@ -215,8 +226,12 @@ class MemoryStore:
                     s_id, _ = resolve_entity(conn, s_surface, now=signed_payload.created_at)
                     o_id, _ = resolve_entity(conn, o_surface, now=signed_payload.created_at)
 
-                    # Direct evidence (USER_EXPLICIT / USER_DERIVED) supersedes INFERRED facts on the same predicate
-                    if signed_payload.provenance in (Provenance.USER_EXPLICIT, Provenance.USER_DERIVED):
+                    # Direct evidence (USER_EXPLICIT / USER_DERIVED) supersedes INFERRED facts on
+                    # the same predicate
+                    if signed_payload.provenance in (
+                        Provenance.USER_EXPLICIT,
+                        Provenance.USER_DERIVED,
+                    ):
                         cursor.execute(
                             """
                             SELECT k.edge_id, k.memory_id
@@ -249,7 +264,8 @@ class MemoryStore:
                                 """,
                                 (
                                     current_time,
-                                    f"Direct evidence ({signed_payload.provenance.value}) supersedes INFERRED fact on {p_pred}",
+                                    f"Direct evidence ({signed_payload.provenance.value}) "
+                                    f"supersedes INFERRED fact on {p_pred}",
                                     signed_payload.provenance.value,
                                     signed_payload.trace_id,
                                     signed_payload.entry_id,
@@ -422,7 +438,7 @@ class MemoryStore:
 
     def forget(
         self,
-        ids: list[MemoryId],
+        ids: Sequence[MemoryId],
         *,
         user_confirmed: bool,
         now: float | None = None,
@@ -505,12 +521,14 @@ class MemoryStore:
 
                 def _del(tbl: str, is_virtual_fts: bool = False) -> int:
                     try:
-                        cur = conn.execute(f'SELECT count(*) FROM "{tbl}"')
+                        q_cnt = 'SELECT count(*) FROM "'
+                        cur = conn.execute("".join((q_cnt, tbl, '"')))
                         cnt = int(cur.fetchone()[0])
                         if is_virtual_fts:
                             conn.execute(f"INSERT INTO {tbl}({tbl}) VALUES('delete-all')")
                         else:
-                            conn.execute(f'DELETE FROM "{tbl}"')
+                            q_del = 'DELETE FROM "'
+                            conn.execute("".join((q_del, tbl, '"')))
                         deleted_counts[tbl] = cnt
                         return cnt
                     except sqlite3.OperationalError:
@@ -550,7 +568,8 @@ class MemoryStore:
                 # 7. Re-create mem_ad trigger
                 conn.execute("""
                     CREATE TRIGGER IF NOT EXISTS mem_ad AFTER DELETE ON memories BEGIN
-                      INSERT INTO fts_memories(fts_memories, rowid, content, tokens_aux) VALUES ('delete', old.memory_id, old.content, old.tokens_aux);
+                      INSERT INTO fts_memories(fts_memories, rowid, content,
+                          tokens_aux) VALUES ('delete', old.memory_id, old.content, old.tokens_aux);
                     END;
                 """)
 

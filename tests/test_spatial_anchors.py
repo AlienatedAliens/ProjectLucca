@@ -10,7 +10,6 @@ import numpy as np
 import pytest
 
 from lucca.reasoning.spatial_anchors import (
-    Component,
     bbox,
     canvas,
     centroid,

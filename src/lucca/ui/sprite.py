@@ -4,9 +4,6 @@ import math
 import time
 from collections.abc import Callable
 
-logger = logging.getLogger(__name__)
-
-
 from PyQt6.QtCore import QPoint, QRectF, Qt, QTimer
 from PyQt6.QtGui import (
     QBrush,
@@ -23,6 +20,8 @@ from PyQt6.QtWidgets import QWidget
 
 from lucca.core.config import get_resource_path
 from lucca.ui.states import THEMES, AvatarTheme
+
+logger = logging.getLogger(__name__)
 
 
 class CompanionSprite(QWidget):

@@ -10,6 +10,7 @@ Verifies:
 """
 
 import time
+
 import pytest
 
 from lucca.core.scratchpad import MacroTestCase, ScratchpadFalsifier

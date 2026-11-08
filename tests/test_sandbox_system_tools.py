@@ -3,10 +3,8 @@ Unit tests for lucca.sandbox.system_tools
 Spec 01 §1, Spec 16 §3, ADR-005
 """
 
-import os
 import subprocess
-import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

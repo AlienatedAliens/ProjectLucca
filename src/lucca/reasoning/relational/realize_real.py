@@ -22,7 +22,8 @@ def during_real(a: RealRegion | Interval1D, b: RealRegion | Interval1D) -> bool:
     return relation_1d(inv_a, inv_b) == AllenRelation.DURING
 
 
-def point_in_interval(point: float, interval: RealRegion | Interval1D, inclusive: bool = True) -> bool:
+def point_in_interval(point: float, interval: RealRegion | Interval1D,
+    inclusive: bool = True) -> bool:
     """True iff real point x lies within interval [start, end]."""
     inv = interval.interval if isinstance(interval, RealRegion) else interval
     if inclusive:

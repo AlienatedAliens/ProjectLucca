@@ -126,7 +126,7 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     """Computes cosine similarity between two float vectors."""
     if len(vec_a) != len(vec_b) or not vec_a:
         return 0.0
-    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
     norm_a = sum(a * a for a in vec_a) ** 0.5
     norm_b = sum(b * b for b in vec_b) ** 0.5
     if norm_a <= 1e-9 or norm_b <= 1e-9:
@@ -206,7 +206,8 @@ class UserModel:
         for rec in reversed(self._in_memory_records):
             content = str(rec.get("content", "")).strip()
             prov = str(rec.get("provenance", ""))
-            ts = float(rec.get("created_at", 0.0) or 0.0)
+            raw_ts = rec.get("created_at", 0.0)
+            ts = float(raw_ts) if isinstance(raw_ts, (int, float, str)) and raw_ts else 0.0
             if not content or prov not in ALLOWED_USER_MODEL_PROVENANCES:
                 continue
 
@@ -271,7 +272,7 @@ class UserModel:
                 all_vecs = self.embedder.embed([query_clean, *cand_texts])
                 if all_vecs and len(all_vecs) == len(raw_candidates) + 1:
                     q_vec = all_vecs[0]
-                    for (c_text, _), vec in zip(raw_candidates, all_vecs[1:]):
+                    for (c_text, _), vec in zip(raw_candidates, all_vecs[1:], strict=False):
                         sim = _cosine_similarity(q_vec, vec)
                         dense_scores[c_text.lower()] = sim
             except Exception as exc:  # noqa: BLE001
@@ -324,12 +325,17 @@ class UserModel:
                         continue  # Reject candidate
 
                     is_entailment = (
-                        res.label == VerifierLabel.ENTAILMENT
-                        or getattr(res, "entailment_prob", 0.0) > 0.60
+                        not getattr(res, "degraded", False)
+                        and (
+                            res.label == VerifierLabel.ENTAILMENT
+                            or getattr(res, "entailment_prob", 0.0) > 0.60
+                        )
                     )
                     if is_entailment:
                         boost = 2.0 + float(getattr(res, "entailment_prob", 0.8))
                         final_score += boost
+                    elif getattr(res, "degraded", False) or res.label == VerifierLabel.UNCERTAIN:
+                        final_score *= 0.65
                 except Exception as exc:  # noqa: BLE001
                     logger.debug(
                         "user_model_verifier_eval_error",

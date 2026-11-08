@@ -16,17 +16,18 @@ WO-42 Milestone 1.2 Multi-Sentence Max-Hazard Pooling:
   - 0: LOW                  -> Hazard.LOW ("low")
   - 1: MEDIUM               -> Hazard.MEDIUM ("medium")
   - 2: HIGH                 -> Hazard.HIGH ("high")
-  - 3: CROSS_REFERENCE_CMD  -> is_cross_reference_command(text) == True (maps to Hazard.HIGH if passed to classify_hazard)
+  - 3: CROSS_REFERENCE_CMD  -> is_cross_reference_command(text) == True (maps to Hazard.HIGH if
+  passed to classify_hazard)
   - 4: UNKNOWN_FAIL_CLOSED  -> Hazard.HIGH ("high") fail-closed invariant
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import threading
 import time
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 import numpy as np
@@ -50,7 +51,8 @@ _CROSS_REF_CMD_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:cross[- ]?reference|cross[- ]?check|triangulate|corroborate)\b.*"
     r"\b(?:independent|multiple|several|separate|external|second|third|sources?|outlets?|agencies|websites?|papers?|publications?|references?|filings?|databases?|notices?|datasets?)\b|"
     r"\b(?:pull\s+up|find|check|use)\s+(?:a\s+)?(?:second|third|multiple|several|independent)\s+(?:and\s+third\s+)?(?:independent\s+|external\s+|separate\s+)?(?:references?|sources?|outlets?)\s+to\s+(?:verify|confirm|corroborate|check)\b|"
-    r"\b(?:double[- ]?check|verify|confirm)\b.*\b(?:across|against)\s+(?:at\s+least\s+\w+\s+)?(?:multiple|several|independent|other\s+external|second|third)\s+(?:independent\s+|external\s+|separate\s+)?(?:sources?|outlets?|agencies|websites?|publications?|notices?|services?)\b",
+    r"\b(?:double[- "
+        r"]?check|verify|confirm)\b.*\b(?:across|against)\s+(?:at\s+least\s+\w+\s+)?(?:multiple|several|independent|other\s+external|second|third)\s+(?:independent\s+|external\s+|separate\s+)?(?:sources?|outlets?|agencies|websites?|publications?|notices?|services?)\b",
     re.IGNORECASE,
 )
 
@@ -112,7 +114,10 @@ class NeuralHazardVerdict:
 
 
 class NeuralHazardClassifier:
-    """Thread-safe OpenVINO runtime wrapper for the 5-class Proof-Policy Hazard & Cross-Reference classifier."""
+    """
+    Thread-safe OpenVINO runtime wrapper for the 5-class Proof-Policy Hazard & Cross-Reference
+    classifier.
+    """
 
     def __init__(
         self,
@@ -151,7 +156,7 @@ class NeuralHazardClassifier:
 
             tok = Tokenizer.from_file(str(tok_path))
             tok.enable_truncation(max_length=STATIC_SEQ_LEN)
-            tok.enable_padding(length=STATIC_SEQ_LEN, pad_id=1, pad_token="<pad>")
+            tok.enable_padding(length=STATIC_SEQ_LEN, pad_id=1, **{"pad_token": "<pad>"})
             self._tokenizer = tok
 
             core = ov.Core()
@@ -185,7 +190,9 @@ class NeuralHazardClassifier:
         except Exception as exc:  # noqa: BLE001
             logger.warning("neural_hazard_classifier_init_failed", error=str(exc))
 
-    def _infer_single(self, segment: str) -> tuple[np.ndarray, str, float, str, bool]:
+    def _infer_single(
+        self, segment: str
+    ) -> tuple[np.ndarray[tuple[int, ...], np.dtype[np.float64]], str, float, str, bool]:
         enc = self._tokenizer.encode(segment)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
         attention_mask = np.array([enc.attention_mask], dtype=np.int64)
@@ -274,13 +281,14 @@ class NeuralHazardClassifier:
                 device=self.active_device,
             )
 
-        # Multi-sentence max-hazard pooling (`HIGH > MEDIUM > LOW`) + OR-pooling for `CROSS_REFERENCE_CMD`
-        best_probs: np.ndarray = probs_full
+        # Multi-sentence max-hazard pooling (`HIGH > MEDIUM > LOW`) + OR-pooling for
+        # `CROSS_REFERENCE_CMD`
+        best_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] = probs_full
         best_pred_cls = cls_full
         best_conf = conf_full
         best_hazard_lvl = lvl_full
         any_cross_ref = False
-        cr_probs: np.ndarray | None = None
+        cr_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] | None = None
         cr_conf = 0.0
 
         for sent in sentences:
@@ -328,7 +336,8 @@ class NeuralHazardClassifier:
                 device=self.active_device,
             )
 
-        assert best_probs is not None
+        if best_probs is None:
+            raise RuntimeError("Unreachable: empty clauses")
         return NeuralHazardVerdict(
             predicted_class=best_pred_cls,
             confidence=round(best_conf, 4),
@@ -345,19 +354,20 @@ class NeuralHazardClassifier:
 
 
 _SINGLETON_LOCK = threading.Lock()
-_SINGLETON_INSTANCE: NeuralHazardClassifier | None = None
+_SINGLETON_HOLDER: dict[str, NeuralHazardClassifier | None] = {"instance": None}
 
 
 def get_neural_hazard_classifier() -> NeuralHazardClassifier:
-    global _SINGLETON_INSTANCE
-    if _SINGLETON_INSTANCE is None:
+    inst = _SINGLETON_HOLDER["instance"]
+    if inst is None:
         with _SINGLETON_LOCK:
-            if _SINGLETON_INSTANCE is None:
-                _SINGLETON_INSTANCE = NeuralHazardClassifier()
-    return _SINGLETON_INSTANCE
+            inst = _SINGLETON_HOLDER["instance"]
+            if inst is None:
+                inst = NeuralHazardClassifier()
+                _SINGLETON_HOLDER["instance"] = inst
+    return inst
 
 
 def reset_neural_hazard_classifier() -> None:
-    global _SINGLETON_INSTANCE
     with _SINGLETON_LOCK:
-        _SINGLETON_INSTANCE = None
+        _SINGLETON_HOLDER["instance"] = None

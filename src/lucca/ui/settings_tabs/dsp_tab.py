@@ -28,6 +28,7 @@ from PyQt6.QtWidgets import (
 )
 
 from lucca.senses.dsp_chain import AnimeDSPConfig, AnimeVoiceDSP
+from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
 from lucca.senses.tts import VOICE_ALIASES, parse_voice_blend
 from lucca.ui.theme import CT_GOLD_TEXT
 
@@ -244,7 +245,6 @@ class DSPTab(QWidget):
                     processed = ((padded + echo)[: len(processed)]).astype(np.float32)
 
                 try:
-                    from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
 
                     ring = SharedAudioRing(PLAY_RING_NAME)
                     proc_i16 = (np.clip(processed, -1.0, 1.0) * 32767.0).astype(np.int16)

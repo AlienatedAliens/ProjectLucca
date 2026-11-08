@@ -137,7 +137,7 @@ class SpeechOutputManager:
     def publish_caption(
         self,
         text: str,
-        source: Literal["assistant", "user", "status"] = "assistant",
+        source: Literal["assistant", "user", "status", "system"] = "assistant",
         is_final: bool = False,
         trace_id: str = "",
     ) -> None:

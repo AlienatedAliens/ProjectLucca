@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from lucca.sandbox.ast_sanitizer import (
     extract_python_code_tolerant,
     sanitize_and_repair_python_code,

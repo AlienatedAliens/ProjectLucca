@@ -5,75 +5,50 @@ Spec 01 §3, §4, §6, Spec 10, ADR-008
 
 import base64
 import io
-import json
 import os
-from pathlib import Path
 import queue
 import re
 import sys
 import threading
 import time
-import urllib.parse
 import wave
 from collections import deque
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Literal
 
 import structlog
-
-logger = structlog.get_logger(__name__)
-
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception as exc:  # noqa: BLE001, S110
-        logger.debug("reconfigure_stdout_failed", error=str(exc))
-if sys.stderr and hasattr(sys.stderr, "reconfigure"):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception as exc:  # noqa: BLE001, S110
-        logger.debug("reconfigure_stderr_failed", error=str(exc))
-
 import ulid
 import zmq
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue
 
-from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
+from lucca.brain.chunker import StreamingChunker
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import (
-    build_planning_messages,
-    get_all_tool_definitions,
     set_persona,
 )
+from lucca.core.active_goals import ActiveGoalManager
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.belief_service import BeliefService
-from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.clock import SystemClock
+from lucca.core.code_preflight_service import CodePreflightService
+from lucca.core.cognitive_sink import CognitiveOutcomeSink
 from lucca.core.coherence import (
     ToolReceipt,
-    detect_promised_action_claims,
     detect_ungrounded_action_claims,
 )
-from lucca.core.config import get_config, load_heuristics
+from lucca.core.config import get_config
 from lucca.core.confirmation_manager import ConfirmationManager
 from lucca.core.corroboration import (
-    CQAnswer,
     CriticalQuestionResult,
-    Scheme,
-    adjust_confidence,
-    critical_questions,
-    detect_premise_scheme,
-    extract_receipt_source,
 )
-from lucca.core.cognitive_sink import CognitiveOutcomeSink
+from lucca.core.deduction_runner import DeductionAndPlanningRunner
 from lucca.core.episode_recall import EpisodeRecall
-from lucca.memory.episodic_code_cache import EpisodicCodeCache
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
-    PlayBeginPayload,
     PTTReleasedPayload,
     UIConfigUpdatePayload,
     UIConfirmResultPayload,
@@ -85,12 +60,10 @@ from lucca.core.ipc_schemas import (
 from lucca.core.memory_commit_service import (
     MemoryCommitService,
 )
+from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
 from lucca.core.proof_policy import (
     is_cross_reference_command,
     load_ratification_domains,
-    meets_standard,
-    required_standard,
-    required_threshold,
 )
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
 from lucca.core.schemas import (
@@ -105,45 +78,41 @@ from lucca.core.schemas import (
     Provenance,
     RetrievalQuery,
     RouteAction,
-    RouteDecision,
     RuleOutcome,
     RuleState,
-    Say,
     SignedPayload,
-    TokenDelta,
     ToolCall,
-    ToolCallEnd,
+    ToolDefinition,
     ToolResult,
     TTSChunk,
     UnsignedPayload,
-    canonicalize_predicate,
-    is_valid_predicate,
-    standard_for_confidence,
 )
 from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
-from lucca.core.text_utils import normalize_transcript
+from lucca.core.speech_stream_pipeline import SpeechStreamPipeline
+from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
+from lucca.core.tool_dispatcher import ToolDispatcher
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
-    SubTurnScratchpadBuffer,
     TurnInput,
     TurnPipeline,
-    normalize_spelled_words,
-    synthesize_plan_narration,
 )
-from lucca.core.active_goals import ActiveGoalManager
-from lucca.core.tool_shortlister import check_tool_fit
 from lucca.core.user_model import UserModel
 from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.db import DatabaseManager
+from lucca.memory.episodic_code_cache import EpisodicCodeCache
+from lucca.memory.extraction import FactExtractor
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    InferredAssertionSigner,
+    LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
 )
+from lucca.memory.working import WorkingMemory
 from lucca.ports import (
     ClockPort,
     MemoryStorePort,
@@ -152,15 +121,14 @@ from lucca.ports import (
     STTPort,
     TTSPort,
 )
+from lucca.reasoning.consolidation import ConsolidationEngine
 from lucca.reasoning.lifecycle import RuleLifecycleManager
-from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
 from lucca.router.calibration import fit_guard_from_db
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.sandbox.policy import parse_confirmation_response
-from lucca.sandbox.preflight import extract_python_code
-from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS, PreflightResult
+from lucca.sandbox.schemas import PreflightResult
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
 from lucca.senses.ring_buffer import (
@@ -173,6 +141,17 @@ from lucca.senses.tts import TTSWorker
 from lucca.senses.verifier import VerifierWorker
 
 logger = structlog.get_logger(__name__)
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stdout_failed", error=str(exc))
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stderr_failed", error=str(exc))
 
 TurnState = Literal[
     "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded", "offline"
@@ -209,6 +188,14 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
 class Orchestrator:
     quit_requested: bool = False
     _default_clock: ClockPort = SystemClock()
+    _cancel_token_evt: threading.Event | None = None
+    _early_transcript_commit: tuple[str, str] | None = None
+    current_turn_assistant_reply: str | None = None
+    current_turn_image_b64: str | None = None
+    _last_transcript_signed: SignedPayload | None = None
+    _fact_extractor: FactExtractor | None = None
+    _screenshot_pending_msgs: list[ChatMessage]
+    _working_memory: WorkingMemory | None = None
 
     @property
     def clock(self) -> ClockPort:
@@ -351,6 +338,7 @@ class Orchestrator:
         self.current_turn_tool_ok: bool = True
         self.current_turn_shadow_outcomes: list[RuleOutcome] = []
         self.current_turn_receipts: list[ToolReceipt] = []
+        self.current_turn_historical_receipts: list[ToolReceipt] = []
         self.last_turn_receipts: list[ToolReceipt] = []
         self.current_turn_plan: GoalPlan | None = None
         self.last_spoken_plan_narration: str | None = None
@@ -380,8 +368,9 @@ class Orchestrator:
             if isinstance(store_key, (bytes, bytearray)) and len(store_key) >= 32:
                 key = bytes(store_key)
 
-        if key is None and getattr(self.config, "master_key", None):
-            cfg_k = self.config.master_key.encode("utf-8")
+        raw_mk = getattr(self.config, "master_key", None)
+        if key is None and isinstance(raw_mk, str) and raw_mk:
+            cfg_k = raw_mk.encode("utf-8")
             if len(cfg_k) >= 32:
                 key = cfg_k
 
@@ -494,6 +483,10 @@ class Orchestrator:
 
         # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
         self.ratification_domains: set[str] = load_ratification_domains()
+        try:
+            get_neural_hazard_classifier()
+        except Exception as _nh_exc:  # noqa: BLE001
+            logger.debug("orchestrator_hazard_classifier_warmup_skipped", error=str(_nh_exc))
         self._pending_ratification: PendingRatification | None = None
         self._ratification_offered_this_turn: bool = False
         self._last_ratified_claim: str | None = None
@@ -505,7 +498,9 @@ class Orchestrator:
             self.memory_store.retriever.active_goals = self.active_goals
 
         # WO-21 Phase 4 & WO-36: Semantic Theory of Mind User Model & Goal-Biased CBR Episode Recall
-        embed_port = getattr(self.memory_store, "embedding_port", None) if self.memory_store else None
+        embed_port = (
+            getattr(self.memory_store, "embedding_port", None) if self.memory_store else None
+        )
         self.user_model = UserModel(db=self.db, embedder=embed_port, verifier=verifier_inst)
         self.episode_recall = EpisodeRecall(
             db=self.db,
@@ -618,6 +613,33 @@ class Orchestrator:
         self._diagnosis_engine = value
 
     @property
+    def working_memory(self) -> WorkingMemory | None:
+        wm = getattr(self, "_working_memory", None)
+        if wm is None and getattr(self, "db", None) is not None:
+            wm = WorkingMemory(db=self.db)
+            self._working_memory = wm
+        return wm
+
+    @working_memory.setter
+    def working_memory(self, value: WorkingMemory | None) -> None:
+        self._working_memory = value
+
+    @property
+    def consolidation_engine(self) -> ConsolidationEngine:
+        ce = getattr(self, "_consolidation_engine", None)
+        if ce is None:
+            re_eng = getattr(self, "rule_engine", None)
+            ce = ConsolidationEngine(
+                lifecycle_manager=re_eng if isinstance(re_eng, RuleLifecycleManager) else None,
+            )
+            self._consolidation_engine = ce
+        return ce
+
+    @consolidation_engine.setter
+    def consolidation_engine(self, value: ConsolidationEngine) -> None:
+        self._consolidation_engine = value
+
+    @property
     def _confirm_event(self) -> threading.Event:
         return self.confirmations.confirm_event
 
@@ -676,6 +698,54 @@ class Orchestrator:
     @speech_output.setter
     def speech_output(self, value: SpeechOutputManager) -> None:
         self._speech_output = value
+
+    @property
+    def speech_stream(self) -> SpeechStreamPipeline:
+        pipe = getattr(self, "_speech_stream", None)
+        if pipe is None:
+            pipe = SpeechStreamPipeline(orchestrator=self)
+            self._speech_stream = pipe
+        return pipe
+
+    @speech_stream.setter
+    def speech_stream(self, value: SpeechStreamPipeline) -> None:
+        self._speech_stream = value
+
+    @property
+    def tool_dispatcher(self) -> ToolDispatcher:
+        disp = getattr(self, "_tool_dispatcher", None)
+        if disp is None:
+            disp = ToolDispatcher(orchestrator=self)
+            self._tool_dispatcher = disp
+        return disp
+
+    @tool_dispatcher.setter
+    def tool_dispatcher(self, value: ToolDispatcher) -> None:
+        self._tool_dispatcher = value
+
+    @property
+    def deduction_runner(self) -> DeductionAndPlanningRunner:
+        runner = getattr(self, "_deduction_runner", None)
+        if runner is None:
+            runner = DeductionAndPlanningRunner(orchestrator=self)
+            self._deduction_runner = runner
+        return runner
+
+    @deduction_runner.setter
+    def deduction_runner(self, value: DeductionAndPlanningRunner) -> None:
+        self._deduction_runner = value
+
+    @property
+    def code_preflight(self) -> CodePreflightService:
+        srv = getattr(self, "_code_preflight", None)
+        if srv is None:
+            srv = CodePreflightService(orchestrator=self)
+            self._code_preflight = srv
+        return srv
+
+    @code_preflight.setter
+    def code_preflight(self, value: CodePreflightService) -> None:
+        self._code_preflight = value
 
     @property
     def _tts_queue(
@@ -816,10 +886,6 @@ class Orchestrator:
         except Exception as exc:  # noqa: BLE001
             logger.debug("mem_commit_event_publish_failed", error=str(exc))
 
-    def _emit_tts_overflow(self, trace_id: str = "", chunk_id: int = -1) -> None:
-        """WO-17 Phase 7: emit a tts_queue_overflow telemetry event on the bus."""
-        self.speech_output.emit_tts_overflow(trace_id=trace_id, chunk_id=chunk_id)
-
     def _enqueue_tts_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
         """Enqueues a synthesized voice chunk with drop-oldest overflow policy (WO-17 Phase 7)."""
         self.speech_output.enqueue_tts_chunk(trace=trace, chunk_id=chunk_id, text=text)
@@ -854,7 +920,7 @@ class Orchestrator:
     def _publish_caption(
         self,
         text: str,
-        source: Literal["assistant", "user", "status"] = "assistant",
+        source: Literal["assistant", "user", "status", "system"] = "assistant",
         is_final: bool = False,
     ) -> None:
         self.speech_output.publish_caption(text=text, source=source, is_final=is_final)
@@ -982,9 +1048,8 @@ class Orchestrator:
             # _on_ptt_released can stash the captured slice for the waiting
             # turn worker (F-CORE-015 voice-answer path).
             self._abort_confirmation_prompt_playback()
-        elif (
-            self.state in ("speaking", "thinking")
-            or (self.active_turn_thread is not None and self.active_turn_thread.is_alive())
+        elif self.state in ("speaking", "thinking") or (
+            self.active_turn_thread is not None and self.active_turn_thread.is_alive()
         ):
             # Instant cooperative barge-in / cancellation (WO-26 Phase 2)
             self._abort_turn()
@@ -1015,7 +1080,8 @@ class Orchestrator:
         if self.active_trace:
             self.active_trace.interrupted = True
 
-        # 2. Terminate in-flight LLM streaming request (aborts socket/HTTP generator and releases slot)
+        # 2. Terminate in-flight LLM streaming request (aborts socket/HTTP generator and releases
+        # slot)
         target_trace_id = self.active_trace.trace_id if self.active_trace else None
         self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
@@ -1169,9 +1235,26 @@ class Orchestrator:
         if not self.memory_store or not text.strip():
             return []
         try:
-            q = RetrievalQuery(query_text=text.strip(), k=8)
+            low = text.strip().lower()
+            wants_superseded = bool(
+                re.search(
+                    r"\b(?:change|changed|revision|revised|initial|initially|original|originally|"
+                    r"earlier|previous|previously|before|progression|history|used\s+to|switched|"
+                    r"updated|first|summarize\s+your)\b",
+                    low,
+                )
+            )
+            q = RetrievalQuery(
+                query_text=text.strip(),
+                k=12,
+                include_superseded=wants_superseded,
+            )
             res = self.memory_store.search(q)
             if isinstance(res, list):
+                if getattr(self.memory_store, "db", None) is not None:
+                    from lucca.memory.retrieval import filter_relevant_memory_hits  # noqa: PLC0415
+
+                    return filter_relevant_memory_hits(text, res)
                 return res
             return []
         except Exception as e:  # noqa: BLE001
@@ -1210,6 +1293,7 @@ class Orchestrator:
         """
         if not self.memory_store:
             return None
+        signer: InferredAssertionSigner | LispAssertionSigner
         if llm_inferred:
             signer = self.signer_factory.inferred_assertion()
             provenance = Provenance.LLM_INFERRED_ASSERTION
@@ -1231,6 +1315,7 @@ class Orchestrator:
         self.memory_store.commit(signed, now=now)
         return signed
 
+    # delegate — kept for test/back-compat
     def evaluate_rules_chain(
         self,
         state: RuleState,
@@ -1238,941 +1323,73 @@ class Orchestrator:
         max_depth: int = 8,
         context: ReasoningContext | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Evaluates active rules with bounded re-evaluation loop (WO-20 Phase 1 & 2)."""
-        ctx = context if context is not None else ReasoningContext()
-        self.current_reasoning_context = ctx
-
-        def _exec_assert(
-            action: AssertFact, st: RuleState, rule_id: str | None = None
-        ) -> RuleState:
-            signed = self._commit_lisp_assertion(action, trace)
-            env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-            conf = signed.confidence if signed and signed.confidence is not None else 1.0
-
-            ctx.add_intermediate(
-                envelope_id=env_id,
-                s=action.s,
-                p=action.p,
-                o=action.o,
-                confidence=conf,
-                step_kind="lisp_rule",
-                rule_id=rule_id,
-            )
-            return st.model_copy(
-                update={"asserted_facts": st.asserted_facts | {(action.s, action.p, action.o)}}
-            )
-
-        outcomes, final_state = self.rule_engine.evaluate_chain(
-            state, execute_assert=_exec_assert, max_depth=max_depth, context=ctx
+        return self.deduction_runner.evaluate_rules_chain(
+            state, trace=trace, max_depth=max_depth, context=context
         )
-        if len(ctx) > 0:
-            self.finalize_chain(ctx, trace)
-        return outcomes, final_state
 
+    # delegate — kept for test/back-compat
     def finalize_chain(
         self,
         context: ReasoningContext | None = None,
         trace: TurnTrace | None = None,
     ) -> SignedPayload | None:
-        """Commits the conclusion of a completed chain as INFERRED with its proof trace (WO-20 Phase 4)."""
-        ctx = context if context is not None else getattr(self, "current_reasoning_context", None)
-        if ctx is None or len(ctx) == 0:
-            return None
-        if not self.memory_store:
-            return None
+        return self.deduction_runner.finalize_chain(context=context, trace=trace)
 
-        final_entry = ctx[-1]
-        proof_trace_steps = ctx.proof_trace()
-        proof_trace = [s.to_dict() for s in proof_trace_steps]
-        confidence = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
-
-        # WO-21 Phase 1: Check standard of proof for memory_commit_inferred (CLEAR_AND_CONVINCING = 0.75)
-        if not meets_standard(confidence, "memory_commit_inferred"):
-            logger.info(
-                "finalize_chain_refused_below_standard",
-                confidence=confidence,
-                required=required_threshold("memory_commit_inferred"),
-                standard=required_standard("memory_commit_inferred").value,
-                conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-            )
-            return None
-
-        all_conditions: list[str] = []
-        for s in proof_trace_steps:
-            for cond in s.conditions:
-                if cond not in all_conditions:
-                    all_conditions.append(cond)
-
-        signer = self.signer_factory.inferred_fact()
-        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
-        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
-
-        unsigned = UnsignedPayload(
-            content=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-            provenance=Provenance.INFERRED,
-            kind="fact",
-            confidence=confidence,
-            nonce=os.urandom(16).hex(),
-            created_at=now,
-            trace_id=trace_id,
-            structured={
-                "s": final_entry.s,
-                "p": final_entry.p,
-                "o": final_entry.o,
-                "confidence": confidence,
-                "proof_trace": proof_trace,
-                "conditions": all_conditions,
-                "proof_standard": standard_for_confidence(confidence).value,
-            },
-        )
-        signed = signer.sign(unsigned)
-        self.memory_store.commit(signed, now=now)
-        return signed
-
+    # delegate — kept for test/back-compat
     def proof_trace(self) -> list[ProofTraceStep]:
-        """Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4)."""
-        ctx = getattr(self, "current_reasoning_context", None)
-        if ctx is None:
-            return []
-        return ctx.proof_trace()
+        return self.deduction_runner.proof_trace()
 
+    # delegate — kept for test/back-compat
     def _validate_premise(self, premise: str, context: ReasoningContext) -> tuple[bool, str | None]:
-        """Validates a premise against signed tool receipts, reasoning context, or the signed store.
+        return self.deduction_runner.validate_premise(premise, context)
 
-        (Spec D-REAS-09, WO-20 Phase 3 / Amendment 2026-09-26).
-        """
-        clean = premise.strip()
-
-        # 1. Attributed premise: "<source> asserts <claim>"
-        attr_match = re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE)
-        if attr_match:
-            claim = attr_match.group(2).strip().lower()
-            # Validates against current turn's signed tool receipts
-            receipts = getattr(self, "current_turn_receipts", []) or []
-            executed = getattr(self, "executed_tools", []) or []
-            for r in list(receipts) + list(executed):
-                ok = getattr(r, "ok", True)
-                if not ok:
-                    continue
-                out = (
-                    str(getattr(r, "output", "") or "")
-                    or str(getattr(r, "content", "") or "")
-                    or str(getattr(r, "structured", "") or "")
-                ).lower()
-                if claim in out or all(word in out for word in claim.split() if len(word) > 2):
-                    return (True, None)
-            return (False, "unverified_premise")
-
-        # 2. Direct signed tool receipt check
-        receipts = getattr(self, "current_turn_receipts", []) or []
-        executed = getattr(self, "executed_tools", []) or []
-        clean_lower = clean.lower()
-        for r in list(receipts) + list(executed):
-            ok = getattr(r, "ok", True)
-            if not ok:
-                continue
-            out = (
-                str(getattr(r, "output", "") or "")
-                or str(getattr(r, "content", "") or "")
-                or str(getattr(r, "structured", "") or "")
-            ).lower()
-            if clean_lower in out or all(
-                word in out for word in clean_lower.split() if len(word) > 2
-            ):
-                return (True, None)
-
-        # 3. Reasoning context check (intermediate facts in current chain)
-        if context.resolve_premise(clean) is not None:
-            return (True, None)
-        for intermediate in context.intermediates:
-            if (
-                intermediate.conclusion.lower() == clean.lower()
-                or intermediate.envelope_id == clean
-            ):
-                return (True, None)
-
-        # 3. Signed memory store check
-        if self.db is not None:
-            try:
-                with self.db.read_cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT m.content, e.entry_id, e.provenance
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                          AND (m.content = ? OR e.entry_id = ? OR m.content = ?)
-                        """,
-                        (clean, clean, clean.lower()),
-                    )
-                    if cur.fetchall():
-                        return (True, None)
-
-                    # Structured (s, p, o) triple or multi-token grounded proposition check
-                    cur.execute(
-                        """
-                        SELECT m.content, e.payload_json
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                          AND m.valid_to IS NULL
-                        ORDER BY m.created_at DESC
-                        LIMIT 100
-                        """
-                    )
-                    rows = cur.fetchall()
-                    verifier_inst = getattr(self, "verifier", None)
-                    for row_content, row_payload_json in rows:
-                        mem_text = str(row_content or "").strip()
-                        if not mem_text:
-                            continue
-                        # Structured (s, p, o) triple match
-                        if row_payload_json:
-                            try:
-                                pj = json.loads(str(row_payload_json))
-                                st = pj.get("structured") if isinstance(pj, dict) else None
-                                if isinstance(st, dict) and {"s", "p", "o"} <= set(st.keys()):
-                                    triple_str = f"{st['s']} {st['p']} {st['o']}".strip().lower()
-                                    if triple_str == clean.lower():
-                                        return (True, None)
-                            except Exception as exc:  # noqa: BLE001
-                                logger.debug("premise_struct_json_parse_error", error=str(exc))
-                        # VerifierWorker NLI entailment check (>= 0.75)
-                        if verifier_inst is not None and hasattr(
-                            verifier_inst, "check_consistency"
-                        ):
-                            try:
-                                v_res = verifier_inst.check_consistency(
-                                    premise=mem_text, hypothesis=clean
-                                )
-                                if (
-                                    not getattr(v_res, "degraded", False)
-                                    and str(getattr(v_res, "label", "")).upper().endswith("ENTAILMENT")
-                                    and float(getattr(v_res, "score", 0.0)) >= 0.75
-                                ):
-                                    return (True, None)
-                            except Exception as exc:  # noqa: BLE001
-                                logger.debug("premise_verifier_check_error", error=str(exc))
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("premise_validation_db_error", error=str(exc))
-
-        return (False, "unverified_premise")
-
+    # delegate — kept for test/back-compat
     def _search_memory_for_premise(self, premise: str) -> list[str]:
-        """Runs memory_search for unverified premise (Gather Ladder Step 2)."""
-        clean = premise.strip()
-        hits: list[str] = []
+        return self.deduction_runner.search_memory_for_premise(premise)
 
-        # Attributed premises ("<source> asserts <claim>") verify against current-turn tool receipts,
-        # NOT against the fact store (AMENDMENT 2026-09-26).
-        if re.match(r"^(.+?)\s+asserts\s+(.+)$", clean, re.IGNORECASE):
-            return []
-
-        # 1. Use MemoryStore search if available
-        if self.memory_store is not None and hasattr(self.memory_store, "search"):
-            try:
-                q = RetrievalQuery(query_text=clean, k=5)
-                res = self.memory_store.search(q)
-                for h in res:
-                    if getattr(h, "grounding_eligible", False):
-                        words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
-                        if clean.lower() in h.content.lower() or (
-                            words and all(w in h.content.lower() for w in words)
-                        ):
-                            hits.append(h.content)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("gather_ladder_search_error", error=str(exc))
-
-        # 2. Database search fallback
-        if not hits and self.db is not None:
-            try:
-                words = [w.lower() for w in re.split(r"[\s_]+", clean) if len(w) > 2]
-                if words:
-                    clauses = " AND ".join(["m.content LIKE ?" for _ in words])
-                    params = [f"%{w}%" for w in words]
-                    with self.db.read_cursor() as cur:
-                        cur.execute(
-                            f"""
-                            SELECT m.content
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1 AND {clauses}
-                            """,
-                            tuple(params),
-                        )
-                        for r in cur.fetchall():
-                            hits.append(r[0])
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("gather_ladder_db_search_error", error=str(exc))
-
-        return hits
-
+    # delegate — kept for test/back-compat
     def _parse_inference_steps(self, text: str) -> list[InferenceStep]:
-        """Extracts and validates InferenceStep models from LLM JSON response."""
-        clean_text = text.strip()
-        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
-        if fence_match:
-            clean_text = fence_match.group(1).strip()
+        return self.deduction_runner.parse_inference_steps(text)
 
-        array_match = re.search(r"\[[\s\S]*\]", clean_text)
-        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
-
-        raw_data: object = None
-        if array_match:
-            raw_data = json.loads(array_match.group(0))
-        elif obj_match:
-            raw_data = json.loads(obj_match.group(0))
-        else:
-            raw_data = json.loads(clean_text)
-
-        steps: list[InferenceStep] = []
-        if isinstance(raw_data, list):
-            for item in raw_data:
-                if isinstance(item, dict):
-                    steps.append(InferenceStep.model_validate(item))
-        elif isinstance(raw_data, dict):
-            steps.append(InferenceStep.model_validate(raw_data))
-
-        return steps
-
+    # delegate — kept for test/back-compat
     def _evaluate_step_corroboration(
         self, step: InferenceStep, context: ReasoningContext | None = None
     ) -> list[CriticalQuestionResult]:
-        """Evaluates Walton critical questions for attributed or grounding premises (WO-21/23)."""
-        has_attributed = any(
-            re.match(r"^(.+?)\s+asserts\s+(.+)$", p.strip(), re.IGNORECASE) for p in step.premises
-        )
-        receipts = list(getattr(self, "current_turn_receipts", []) or []) + list(
-            getattr(self, "executed_tools", []) or []
-        )
-        scheme, ambig_note = detect_premise_scheme(step)
+        return self.deduction_runner.evaluate_step_corroboration(step, context=context)
 
-        if has_attributed or scheme != Scheme.AUTHORITY:
-            if ambig_note and ambig_note not in step.conditions and len(step.conditions) < 8:
-                step.conditions.append(ambig_note)
-            try:
-                q_results = critical_questions(
-                    scheme, step, store=self.memory_store, receipts=receipts
-                )
-                eff_conf, new_conditions = adjust_confidence(
-                    step.confidence, q_results, scheme=scheme
-                )
-                step.confidence = eff_conf
-                for cond in new_conditions:
-                    if cond not in step.conditions and len(step.conditions) < 8:
-                        step.conditions.append(cond)
-                return q_results
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "critical_questions_failed", scheme=str(scheme), error=str(exc)
-                )
-                return []
-
-        # Check if supported by >= 2 independent grounding premises (WO-21 Phase 6)
-        effective_ctx = context or getattr(self, "current_reasoning_context", None)
-        ctx_conclusions = {
-            e.conclusion.lower() for e in (effective_ctx.intermediates if effective_ctx else [])
-        }
-        ctx_env_ids = {
-            e.envelope_id for e in (effective_ctx.intermediates if effective_ctx else [])
-        }
-        if len(step.premises) >= 2 and self.db is not None:
-            try:
-                premise_eids: list[str] = []
-                with self.db.read_cursor() as cur:
-                    for prem in step.premises:
-                        clean_prem = prem.strip()
-                        if clean_prem.lower() in ctx_conclusions or clean_prem in ctx_env_ids:
-                            continue
-                        cur.execute(
-                            """
-                            SELECT m.entry_id
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1
-                              AND m.valid_to IS NULL
-                              AND (m.content = ? OR m.content = ? OR m.content LIKE ?)
-                            """,
-                            (clean_prem, clean_prem.lower(), f"%{clean_prem}%"),
-                        )
-                        for r in cur.fetchall():
-                            if str(r[0]) not in premise_eids and str(r[0]) not in ctx_env_ids:
-                                premise_eids.append(str(r[0]))
-                                break
-
-                if len(premise_eids) >= 2:
-                    q_corrob = CriticalQuestionResult(
-                        question=(
-                            "Is the claim corroborated by an independent grounding-eligible fact?"
-                        ),
-                        answer=CQAnswer.SATISFIED,
-                        count=len(premise_eids),
-                        evidence_entry_ids=premise_eids,
-                        sources=["store"],
-                        detail=(
-                            f"Corroborated by {len(premise_eids)} independent "
-                            "grounding premises in store"
-                        ),
-                    )
-                    # Check for conflicting facts in store
-                    dispute_eids: list[str] = []
-                    dispute_details: list[str] = []
-                    if step.s and step.p:
-                        with self.db.read_cursor() as cur:
-                            cur.execute(
-                                """
-                                SELECT m.entry_id, m.content, e.signer_id
-                                FROM memories m
-                                JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                                WHERE e.grounding_eligible = 1
-                                  AND m.valid_to IS NULL
-                                  AND m.content LIKE ?
-                                """,
-                                (f"{step.s} {step.p} %",),
-                            )
-                            for row in cur.fetchall():
-                                eid, content, signer = row
-                                parts = content.strip().split()
-                                if len(parts) >= 3 and parts[2].lower() != step.o.lower():
-                                    dispute_eids.append(str(eid))
-                                    dispute_details.append(
-                                        f"{content} contradicts {step.s} {step.p} {step.o}"
-                                    )
-
-                    if dispute_eids:
-                        q_dispute = CriticalQuestionResult(
-                            question="Is the claim disputed by any grounding-eligible fact?",
-                            answer=CQAnswer.SATISFIED,
-                            count=len(dispute_eids),
-                            evidence_entry_ids=dispute_eids,
-                            sources=["store"],
-                            detail=dispute_details[0],
-                        )
-                    else:
-                        q_dispute = CriticalQuestionResult(
-                            question="Is the claim disputed by any grounding-eligible fact?",
-                            answer=CQAnswer.UNKNOWN,
-                            count=0,
-                            evidence_entry_ids=[],
-                            sources=[],
-                            detail="No disputes found",
-                        )
-
-                    q_results = [q_corrob, q_dispute]
-                    eff_conf, new_conditions = adjust_confidence(step.confidence, q_results)
-                    step.confidence = eff_conf
-                    for cond in new_conditions:
-                        if cond not in step.conditions and len(step.conditions) < 8:
-                            step.conditions.append(cond)
-                    return q_results
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("premise_corroboration_failed", error=str(exc))
-
-        return []
-
+    # delegate — kept for test/back-compat
     def run_deduction_step(
         self,
         goal: str,
         trace: TurnTrace | None = None,
         context: ReasoningContext | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
-        """Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase 3).
+        return self.deduction_runner.run_deduction_step(goal, trace=trace, context=context, llm=llm)
 
-        Proposes InferenceSteps via LLM, validates premises against signed store/receipts,
-        signs valid steps via SignerFactory as LISP_ASSERTION, and executes the Gather Ladder
-        on unverified premises (Revise -> Memory Retry -> User Question -> Abstention).
-        """
-        effective_llm = llm if llm is not None else getattr(self, "llm", None)
-        if effective_llm is None:
-            logger.warning("no_llm_available_for_deduction")
-            return ([], "No language model available for deduction.")
-
-        ctx = (
-            context
-            if context is not None
-            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
-        )
-        self.current_reasoning_context = ctx
-        trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
-
-        # Collect verified fact context
-        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
-        if self.db is not None:
-            try:
-                with self.db.read_cursor() as cur:
-                    cur.execute(
-                        """
-                        SELECT m.content
-                        FROM memories m
-                        JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                        WHERE e.grounding_eligible = 1
-                        ORDER BY m.created_at DESC
-                        LIMIT 20
-                        """
-                    )
-                    for row in cur.fetchall():
-                        if row[0] not in verified_facts:
-                            verified_facts.append(row[0])
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("deduction_context_gather_error", error=str(exc))
-
-        # Collect verified tool receipts
-        attributed_receipts: list[str] = []
-        for r in getattr(self, "current_turn_receipts", []) or []:
-            out = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
-            if out:
-                attributed_receipts.append(f"{getattr(r, 'tool', 'tool')}: {out}")
-
-        # Stream initial LLM turn
-        full_text = ""
-        for event in effective_llm.stream_turn(
-            current_text=goal,
-            memories=[],
-            history=getattr(self, "history", []),
-            trace_id=trace_id,
-        ):
-            if isinstance(event, TokenDelta):
-                full_text += event.delta
-
-        proposed_steps: list[InferenceStep] = []
-        try:
-            proposed_steps = self._parse_inference_steps(full_text)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("deduction_llm_parse_error", error=str(exc), raw=full_text)
-            return ([], f"Failed to parse deduction steps: {exc}")
-
-        accepted_steps: list[InferenceStep] = []
-
-        for step in proposed_steps:
-            # Check attributed premises and ensure presence in conditions
-            for prem in step.premises:
-                if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
-                    if prem not in step.conditions:
-                        if len(step.conditions) < 8:
-                            step.conditions.append(prem)
-
-            # Validate all premises
-            unverified: list[str] = []
-            for prem in step.premises:
-                ok, _ = self._validate_premise(prem, ctx)
-                if not ok:
-                    unverified.append(prem)
-
-            if not unverified:
-                q_results = self._evaluate_step_corroboration(step)
-                # P0 split: LLM-proposed step signs as LLM_INFERRED_ASSERTION
-                # (never grounding-eligible until re-derived deterministically).
-                action = AssertFact(s=step.s, p=step.p, o=step.o)
-                signed = self._commit_lisp_assertion(action, trace, llm_inferred=True)
-                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                ctx.add_intermediate(
-                    envelope_id=env_id,
-                    s=step.s,
-                    p=step.p,
-                    o=step.o,
-                    confidence=step.confidence,
-                    step_kind="llm_abductive",
-                    rule_id="llm",
-                    premises=list(step.premises),
-                    conditions=list(step.conditions),
-                    critical_questions=[q.to_dict() for q in q_results],
-                )
-                accepted_steps.append(step)
-                continue
-
-            # Gather Ladder (bounded to 1 pass per deduction turn)
-            missing_premise = unverified[0]
-            logger.info("gather_ladder_started", missing_premise=missing_premise)
-
-            # 1. Revise once
-            error_payload = json.dumps({"error": "unverified_premise", "premise": missing_premise})
-            revised_text = ""
-            for event in effective_llm.stream_turn(
-                current_text=f"Revise inference step: {error_payload}",
-                trace_id=trace_id,
-            ):
-                if isinstance(event, TokenDelta):
-                    revised_text += event.delta
-
-            revised_step: InferenceStep | None = None
-            try:
-                r_steps = self._parse_inference_steps(revised_text)
-                if r_steps:
-                    revised_step = r_steps[0]
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("gather_ladder_revise_parse_failed", error=str(exc))
-
-            step_to_evaluate = revised_step
-            still_unverified: list[str] = []
-            if step_to_evaluate is not None:
-                for prem in step_to_evaluate.premises:
-                    if re.match(r"^(.+?)\s+asserts\s+(.+)$", prem.strip(), re.IGNORECASE):
-                        if (
-                            prem not in step_to_evaluate.conditions
-                            and len(step_to_evaluate.conditions) < 8
-                        ):
-                            step_to_evaluate.conditions.append(prem)
-                    ok, _ = self._validate_premise(prem, ctx)
-                    if not ok:
-                        still_unverified.append(prem)
-
-                if not still_unverified:
-                    # Revised step accepted!
-                    q_results = self._evaluate_step_corroboration(step_to_evaluate)
-                    action = AssertFact(
-                        s=step_to_evaluate.s, p=step_to_evaluate.p, o=step_to_evaluate.o
-                    )
-                    signed = self._commit_lisp_assertion(
-                        action, trace, llm_inferred=True
-                    )  # P0 split: LLM-proposed step
-                    env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                    ctx.add_intermediate(
-                        envelope_id=env_id,
-                        s=step_to_evaluate.s,
-                        p=step_to_evaluate.p,
-                        o=step_to_evaluate.o,
-                        confidence=step_to_evaluate.confidence,
-                        step_kind="llm_abductive",
-                        rule_id="llm",
-                        premises=list(step_to_evaluate.premises),
-                        conditions=list(step_to_evaluate.conditions),
-                        critical_questions=[q.to_dict() for q in q_results],
-                    )
-                    accepted_steps.append(step_to_evaluate)
-                    continue
-
-            # 2. Memory retry
-            retry_premise = still_unverified[0] if still_unverified else missing_premise
-            recovered = self._search_memory_for_premise(retry_premise)
-            if recovered:
-                target = step_to_evaluate if step_to_evaluate is not None else step
-                q_results = self._evaluate_step_corroboration(target)
-                action = AssertFact(s=target.s, p=target.p, o=target.o)
-                signed = self._commit_lisp_assertion(
-                    action, trace, llm_inferred=True
-                )  # P0 split: LLM-proposed step
-                env_id = signed.entry_id if signed else f"lisp-{ulid.ULID()}"
-                ctx.add_intermediate(
-                    envelope_id=env_id,
-                    s=target.s,
-                    p=target.p,
-                    o=target.o,
-                    confidence=target.confidence,
-                    step_kind="llm_abductive",
-                    rule_id="llm",
-                    premises=list(target.premises),
-                    conditions=list(target.conditions),
-                    critical_questions=[q.to_dict() for q in q_results],
-                )
-                accepted_steps.append(target)
-                continue
-
-            # 3. Ask the user (named-gap question) vs 4. Named-gap abstention
-            is_personal = any(
-                k in retry_premise.lower()
-                for k in ("user", "you", "live", "from", "born", "home", "partner")
-            )
-            if is_personal:
-                spoken = f"I don't have anything verified about {retry_premise} — can you tell me about it?"
-            else:
-                spoken = f"I can't verify {retry_premise}, so I can't deduce that yet."
-
-            logger.info("gather_ladder_terminated", outcome=spoken, missing_premise=retry_premise)
-            if hasattr(self, "_speak_text") and trace:
-                self._speak_text(trace, spoken)
-            return (accepted_steps, spoken)
-
-        if accepted_steps and len(ctx) > 0:
-            committed = self.finalize_chain(ctx, trace)
-            if committed is None:
-                final_entry = ctx[-1]
-                proof_trace_steps = ctx.proof_trace()
-                conf = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
-                if conf < 0.50:
-                    spoken = f"I'm guessing {final_entry.s} {final_entry.p} {final_entry.o}, but that's just speculation."
-                else:
-                    spoken = f"I think {final_entry.s} {final_entry.p} {final_entry.o}, but I'm not sure enough to keep it."
-                logger.info(
-                    "chain_concluded_speculation",
-                    confidence=conf,
-                    spoken=spoken,
-                    conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-                )
-                if hasattr(self, "_speak_text") and trace:
-                    self._speak_text(trace, spoken)
-                return (accepted_steps, spoken)
-            else:
-                final_entry = ctx[-1]
-                conditions = list(final_entry.conditions or [])
-                if conditions:
-                    spoken = self._format_conditioned_speech(final_entry, conditions)
-                    if spoken:
-                        logger.info(
-                            "chain_concluded_conditioned",
-                            confidence=final_entry.confidence,
-                            spoken=spoken,
-                            conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
-                        )
-                        if hasattr(self, "_speak_text") and trace:
-                            self._speak_text(trace, spoken)
-                        return (accepted_steps, spoken)
-        return (accepted_steps, None)
-
+    # delegate — kept for test/back-compat
     def _format_conditioned_speech(
         self, final_entry: ReasoningEntry, conditions: list[str]
     ) -> str | None:
-        """Formats spoken output for a committed chain with carried conditions (WO-21 Phase 6)."""
-        if not conditions:
-            return None
-
-        # Prioritize explicit 'if ...' condition
-        if_cond = next(
-            (
-                c.strip()
-                for c in conditions
-                if re.match(r"^(?:…|\.\.\.)?\s*if\b", c.strip(), re.IGNORECASE)
-            ),
-            None,
-        )
-        if if_cond:
-            clean = if_cond
-            if not clean.startswith("…") and not clean.startswith("..."):
-                clean = f"…{clean}"
-            if not clean.endswith("."):
-                clean = f"{clean}."
-            return clean
-
-        # Otherwise format from attributed premise condition '<source> asserts <claim>'
-        attr_cond = next(
-            (
-                c.strip()
-                for c in conditions
-                if re.match(r"^(.+?)\s+asserts\s+(.+)$", c.strip(), re.IGNORECASE)
-            ),
-            None,
-        )
-        if attr_cond:
-            m = re.match(r"^(.+?)\s+asserts\s+(.+)$", attr_cond, re.IGNORECASE)
-            if m:
-                src, claim = m.group(1).strip(), m.group(2).strip()
-                return f"…if {src} is right about {claim}."
-
-        # Fallback to general condition
-        cond_text = conditions[0].strip()
-        if not cond_text.startswith("…") and not cond_text.startswith("..."):
-            cond_text = f"…{cond_text}"
-        if not cond_text.endswith("."):
-            cond_text = f"{cond_text}."
-        return cond_text
+        return self.deduction_runner.format_conditioned_speech(final_entry, conditions)
 
     run_deduction_loop = run_deduction_step
 
+    # delegate — kept for test/back-compat
     def _parse_and_validate_plan(
         self, text: str, default_goal: str
     ) -> tuple[GoalPlan | None, str | None]:
-        """Parses and validates a GoalPlan from LLM response text (WO-22 Phase 1).
+        return self.deduction_runner.parse_and_validate_plan(text, default_goal)
 
-        Enforces:
-        - JSON extraction and Pydantic GoalPlan schema (order contiguity 1..N, max 8 steps).
-        - Registered tool check against TOOL_ARG_SCHEMAS / EXTRA_TOOL_SCHEMAS.
-        - Tool argument schema validation.
-        - Deontic pre-check via SpeculativeBDIValidator.
-        """
-        clean_text = text.strip()
-        fence_match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", clean_text)
-        if fence_match:
-            clean_text = fence_match.group(1).strip()
-
-        obj_match = re.search(r"\{[\s\S]*\}", clean_text)
-        if not obj_match:
-            return None, f"No JSON object found in response: {text[:100]}"
-
-        try:
-            raw_data = json.loads(obj_match.group(0))
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("plan_json_parse_failed", error=str(exc))
-            return None, f"Malformed JSON in plan: {exc}"
-
-        if not isinstance(raw_data, dict):
-            return None, "Expected a JSON object for GoalPlan, got list or scalar."
-
-        if not raw_data.get("plan_id"):
-            raw_data["plan_id"] = f"plan-{ulid.ULID()}"
-        if not raw_data.get("goal"):
-            raw_data["goal"] = default_goal
-
-        try:
-            plan = GoalPlan.model_validate(raw_data)
-        except ValidationError as exc:
-            return None, f"GoalPlan schema validation failed: {exc}"
-
-        # Central Tool-Arg Validation Registry (WO-19a)
-        for step in plan.steps:
-            schema_cls = TOOL_ARG_SCHEMAS.get(step.tool) or EXTRA_TOOL_SCHEMAS.get(step.tool)
-            if schema_cls is None:
-                return None, f"Step {step.order}: Tool '{step.tool}' is not registered."
-            try:
-                schema_cls.model_validate(step.args)
-            except ValidationError as exc:
-                return (
-                    None,
-                    f"Step {step.order} ({step.tool}) argument schema validation failed: {exc}",
-                )
-
-        # Speculative BDI Invariant Pre-check (Milestone 4 / WO-22 Phase 1)
-        bdi_validator = getattr(self, "bdi_validator", None)
-        if bdi_validator is not None:
-            taint = getattr(self.sandbox, "taint_flags", 0)
-            for step in plan.steps:
-                bdi_res = bdi_validator.validate_tool_call(step.tool, step.args, taint_flags=taint)
-                if not bdi_res.is_valid:
-                    reason = bdi_res.reason or "Action prohibited"
-                    return (
-                        None,
-                        f"Step {step.order} ({step.tool}) deontic violation: {reason}",
-                    )
-
-        return plan, None
-
+    # delegate — kept for test/back-compat
     def run_planning_step(
         self,
         goal: str,
         trace: TurnTrace | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
         context: ReasoningContext | None = None,
     ) -> GoalPlan | None:
-        """Executes a bounded, validated means-ends plan for a goal (WO-22 Phase 1).
-
-        1. Proposes a GoalPlan via LLM using the planning contract.
-        2. Validates plan schema, tool registry, argument schema, and deontic invariants.
-        3. On failure: allows one machine-readable revision attempt; if still invalid,
-           issues an honest refusal and speaks it.
-        4. On success: sets current_turn_plan and disposes steps through existing
-           sandbox dispatch path (confirmations, sequence guard, taint tracking).
-        5. Aggregates multi-action receipts into honest spoken narration (ITEM-017).
-        """
-        effective_llm = llm if llm is not None else getattr(self, "llm", None)
-        if effective_llm is None:
-            logger.warning("no_llm_available_for_planning")
-            return None
-
-        ctx = (
-            context
-            if context is not None
-            else (getattr(self, "current_reasoning_context", None) or ReasoningContext())
-        )
-        self.current_reasoning_context = ctx
-
-        if trace is None:
-            trace = getattr(self, "active_trace", None) or TurnTrace(
-                trace_id=f"plan-{ulid.ULID()}",
-                session_id=getattr(self, "session_id", "session-plan"),
-                origin="text",
-            )
-        trace_id = trace.trace_id
-
-        available_tools = list(TOOL_ARG_SCHEMAS.keys())
-        verified_facts: list[str] = [entry.conclusion for entry in ctx.intermediates]
-
-        planning_msgs = build_planning_messages(
-            goal=goal,
-            available_tools=available_tools,
-            verified_facts=verified_facts,
-            history=getattr(self, "history", []),
-        )
-
-        full_text = ""
-        for event in effective_llm.stream_turn(
-            current_text=goal,
-            memories=[],
-            history=getattr(self, "history", []),
-            trace_id=trace_id,
-            messages=planning_msgs,
-        ):
-            if isinstance(event, TokenDelta):
-                full_text += event.delta
-
-        plan, err = self._parse_and_validate_plan(full_text, default_goal=goal)
-        if plan is None:
-            logger.warning("planning_initial_validation_failed", error=err, raw=full_text)
-            revision_msgs = build_planning_messages(
-                goal=goal,
-                available_tools=available_tools,
-                verified_facts=verified_facts,
-                error_feedback=err,
-                history=getattr(self, "history", []),
-            )
-            revised_text = ""
-            for event in effective_llm.stream_turn(
-                current_text=f"Revise plan to fix error: {err}",
-                memories=[],
-                history=getattr(self, "history", []),
-                trace_id=trace_id,
-                messages=revision_msgs,
-            ):
-                if isinstance(event, TokenDelta):
-                    revised_text += event.delta
-
-            plan, err = self._parse_and_validate_plan(revised_text, default_goal=goal)
-            if plan is None:
-                logger.warning("planning_revision_validation_failed", error=err, raw=revised_text)
-                refusal_msg = f"I can't plan that safely because: {err}"
-                self._speak_text(trace, refusal_msg)
-                self.current_turn_tool_spoken.append(refusal_msg)
-                return None
-
-        # Plan ratified & validated — store on turn
-        self.current_turn_plan = plan
-        executed_tuples: list[tuple[str, dict[str, JsonValue], bool, str]] = []
-        cancelled_tuples: list[tuple[str, dict[str, JsonValue]]] = []
-        failed_step_order: int | None = None
-
-        for i, step in enumerate(plan.steps):
-            resolved_intermediates: list[str] = []
-            if ctx is not None and step.purpose:
-                resolved_entries = ctx.resolve_purpose_intermediates(step.purpose)
-                resolved_intermediates = [e.envelope_id for e in resolved_entries]
-
-            res = self._handle_tool_call(trace, step.tool, dict(step.args), speak=False)
-            ok = (res is None) or getattr(res, "ok", True)
-            raw_out = ""
-            if res is not None:
-                raw_out = str(
-                    getattr(res, "content", "")
-                    or getattr(res, "structured", "")
-                    or getattr(res, "stderr", "")
-                )
-
-            receipt_entry: dict[str, JsonValue] = {
-                "order": step.order,
-                "tool": step.tool,
-                "args": step.args,
-                "ok": ok,
-                "result": raw_out,
-                "resolved_intermediates": resolved_intermediates,
-            }
-            plan.receipts.append(receipt_entry)
-            executed_tuples.append((step.tool, dict(step.args), ok, raw_out))
-
-            if not ok:
-                failed_step_order = step.order
-                for rem_step in plan.steps[i + 1 :]:
-                    cancelled_tuples.append((rem_step.tool, dict(rem_step.args)))
-                break
-
-        # Multi-Action Narration Aggregation (ITEM-017 / D-HON-01)
-        narration = synthesize_plan_narration(
-            executed_steps=executed_tuples,
-            cancelled_steps=cancelled_tuples if failed_step_order is not None else None,
-            failed_step_order=failed_step_order,
-        )
-        plan.narration = narration
-        self.last_spoken_plan_narration = narration
-        self._speak_text(trace, narration)
-        self.current_turn_tool_spoken.append(narration)
-
-        return plan
+        return self.deduction_runner.run_planning_step(goal, trace=trace, llm=llm, context=context)
 
     def run_self_diagnosis(
         self,
@@ -2239,12 +1456,14 @@ class Orchestrator:
             if isinstance(r, ToolReceipt):
                 norm_receipts.append(r)
             elif isinstance(r, dict):
+                raw_args = r.get("args")
+                args_dict: dict[str, JsonValue] = raw_args if isinstance(raw_args, dict) else {}
                 norm_receipts.append(
                     ToolReceipt(
                         tool=str(r.get("tool") or r.get("tool_name") or r.get("action") or ""),
                         ok=bool(r.get("ok", True)),
                         call_id=str(r.get("call_id", "")),
-                        args=r.get("args") if isinstance(r.get("args"), dict) else {},
+                        args=args_dict,
                         output=str(r.get("output")) if r.get("output") is not None else None,
                         error=str(r.get("error")) if r.get("error") is not None else None,
                     )
@@ -2281,7 +1500,7 @@ class Orchestrator:
             user_transcript_text = self.current_turn_transcript
             committed_user_id = self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
-        elif getattr(self, "_early_transcript_commit", None):
+        elif self._early_transcript_commit is not None:
             # WO-9 A2: transcript was committed early to ground a memory_commit
             # in this turn; reuse that commit for contradiction detection.
             committed_user_id, user_transcript_text = self._early_transcript_commit
@@ -2305,9 +1524,12 @@ class Orchestrator:
                 turn_ctx.append({"role": "user", "content": user_transcript_text})
 
             # Functional coherence check (Spec §3.3 / D-MEM-04 / WP-2)
+            coherence_receipts = list(self.current_turn_receipts) + list(
+                getattr(self, "current_turn_historical_receipts", [])
+            )
             breach_msg = self._check_functional_coherence(
                 reply_text,
-                self.current_turn_receipts,
+                coherence_receipts,
                 user_context=turn_ctx if turn_ctx else user_transcript_text,
             )
             if breach_msg:
@@ -2423,6 +1645,10 @@ class Orchestrator:
                         logger.debug("contrastive_shadow_log_failed", error=str(shadow_err))
             self.current_turn_shadow_outcomes = []
 
+        tp = getattr(self, "turn_pipeline", None)
+        if tp is not None and hasattr(tp, "on_turn_finalized"):
+            tp.on_turn_finalized(trace, decision_id)
+
         trace.t_postturn_done = now_ns()
         log_turn_trace(trace)
         if self.active_trace is trace and not trace.interrupted:
@@ -2481,7 +1707,7 @@ class Orchestrator:
         last_pulse = getattr(self, "_last_idle_pulse_ts", 0.0)
         if (current_time - last_turn) >= idle_sec and (current_time - last_pulse) >= idle_sec:
             try:
-                res = pulse_engine.pulse(now=current_time)
+                res: object = pulse_engine.pulse(now=current_time)
                 self._last_idle_pulse_ts = current_time
                 return res
             except Exception as exc:  # noqa: BLE001
@@ -2489,7 +1715,9 @@ class Orchestrator:
         return None
 
     def maybe_run_nightly_rollup(self, now: float | None = None) -> int:
-        """Executes nightly roll-up and DreamRetrospective if due and records persistent timestamp."""
+        """
+        Executes nightly roll-up and DreamRetrospective if due and records persistent timestamp.
+        """
         if not self.reflection_engine:
             return 0
         current_time = now if now is not None else time.time()
@@ -2499,6 +1727,10 @@ class Orchestrator:
             try:
                 compressed = self.reflection_engine.nightly_rollup(now=current_time)
                 self.reflection_engine.record_last_rollup_at(current_time)
+                try:
+                    self.consolidation_engine.run_consolidation_cycle()
+                except Exception as cons_exc:  # noqa: BLE001
+                    logger.debug("consolidation_cycle_failed", error=str(cons_exc))
                 logger.info("nightly_rollup_completed", compressed=compressed, ts=current_time)
                 return int(compressed)
             except Exception as exc:  # noqa: BLE001
@@ -2506,23 +1738,8 @@ class Orchestrator:
         return 0
 
     def _select_verbal_cue(self, tool_name: str) -> str:
-        """Selects a natural verbal thinking cue per Proposal I / Owner Section 6 requirement."""
-        t = tool_name.lower()
-        if "read" in t or "cat" in t or "inspect" in t:
-            return "Checking that file for you..."
-        elif "write" in t or "save" in t:
-            return "Writing that down now..."
-        elif "launch" in t or "open" in t:
-            return "Opening that up..."
-        elif "calc" in t:
-            return "Running that calculation..."
-        elif "query" in t:
-            return "Checking my systems..."
-        elif "fetch" in t or "web" in t:
-            return "Looking that up online..."
-        elif "skill" in t:
-            return "Executing that procedure..."
-        return "On it, working on that now..."
+        """Selects a natural verbal thinking cue (delegates to SpeechStreamPipeline)."""
+        return self.speech_stream.select_verbal_cue(tool_name)
 
     def _stream_llm_speech(
         self,
@@ -2534,7 +1751,7 @@ class Orchestrator:
         current_image_b64: str | None = None,
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
-        tools: list[object] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_rounds: int = 8,
         epistemic_context: str | None = None,
         enable_thinking: bool | None = None,
@@ -2542,792 +1759,35 @@ class Orchestrator:
         episode_hints: list[str] | str | None = None,
         grammar: str | None = None,
     ) -> None:
-        """
-        Executes streaming LLM response generation with multi-step tool re-prompting
-        and verbal thinking cues (Proposals I, J & D-BRAIN-03).
-        """
-        self._maybe_speak_pending_updates(trace)
-
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        """Executes streaming LLM response generation (delegates to SpeechStreamPipeline)."""
+        pipeline = (
+            self.speech_stream
+            if isinstance(getattr(self, "speech_stream", None), SpeechStreamPipeline)
+            else SpeechStreamPipeline(self)
         )
-        self._publish_bus(begin_env)
-
-        chunk_index = 0
-        chunker = StreamingChunker()
-        first_token_seen = False
-        full_response_text: list[str] = []
-        scratchpad_buffer = SubTurnScratchpadBuffer()
-        tool_receipts: list[dict[str, JsonValue]] = []
-        # WO-9 A5: repeated-call guard state
-        call_signatures: list[str] = []
-
-        if tools is None:
-            if self.execute_tools:
-                active_rules = [r for r in self.rule_engine.rules.values() if r.status == "ACTIVE"]
-                tools = get_all_tool_definitions(active_rules)
-            else:
-                tools = []
-
-        # If an image is already attached to this turn, strip screenshot_capture
-        # so the model never attempts to capture screen or trigger confirmation prompts.
-        turn_has_image = bool(
-            current_image_b64
-            or getattr(self, "_pending_image_b64", None)
-            or getattr(self, "current_turn_image_b64", None)
+        pipeline.stream_llm_speech(
+            trace=trace,
+            user_msg=user_msg,
+            decision_id=decision_id,
+            messages=messages,
+            current_audio_b64=current_audio_b64,
+            current_image_b64=current_image_b64,
+            current_text=current_text,
+            memories=memories,
+            tools=tools,
+            max_rounds=max_rounds,
+            epistemic_context=epistemic_context,
+            enable_thinking=enable_thinking,
+            user_model_directive=user_model_directive,
+            episode_hints=episode_hints,
+            grammar=grammar,
         )
-        if turn_has_image and tools:
-            def _is_screenshot_tool(t: object) -> bool:
-                if isinstance(t, dict):
-                    fn = t.get("function")
-                    if isinstance(fn, dict) and fn.get("name") == "screenshot_capture":
-                        return True
-                    if t.get("name") == "screenshot_capture":
-                        return True
-                fn = getattr(t, "function", None)
-                if fn is not None:
-                    if getattr(fn, "name", None) == "screenshot_capture":
-                        return True
-                if getattr(t, "name", None) == "screenshot_capture":
-                    return True
-                return False
 
-            tools = [t for t in tools if not _is_screenshot_tool(t)]
-            logger.info("screenshot_tool_suppressed_image_in_context", remaining_tools=len(tools))
-
-        # Seed session-scoped allowed URLs from conversation history & epistemic context
-        history_urls: list[str] = []
-        for h_msg in self.history:
-            content_val = h_msg.get("content", "")
-            if content_val:
-                history_urls.extend(re.findall(r"https?://[^\s<>\"'()]+", content_val))
-        if epistemic_context:
-            history_urls.extend(re.findall(r"https?://[^\s<>\"'()]+", epistemic_context))
-        # If user query references local dev or ports, seed localhost into allowed URLs
-        local_cues = ("localhost", "127.0.0.1", "ollama", "port", "api server")
-        if user_msg and any(w in user_msg.lower() for w in local_cues):
-            history_urls.extend(["http://localhost", "http://127.0.0.1"])
-        if history_urls and hasattr(self.output_supervisor, "register_allowed_urls"):
-            self.output_supervisor.register_allowed_urls(history_urls)
-        sup_ctx: list[dict[str, str]] = [
-            {"role": str(m.get("role", "")), "content": str(m.get("content", ""))}
-            for m in self.history[-4:]
-            if isinstance(m, dict) and m.get("role") in ("user", "assistant")
-        ]
-        if user_msg:
-            sup_ctx.append({"role": "user", "content": user_msg})
-        if hasattr(self.output_supervisor, "set_turn_context"):
-            self.output_supervisor.set_turn_context(sup_ctx if sup_ctx else user_msg)
-
-        def _trigger_supervisor_abort(
-            reason_msg: str, offending_chunk: str, breach_type: str | None = None
-        ) -> None:
-            nonlocal chunk_index
-            logger.warning(
-                "output_supervisor_tier1_abort",
-                reason=reason_msg,
-                chunk=offending_chunk,
-                breach_type=breach_type,
-                trace_id=trace.trace_id,
-            )
-            trace.interrupted = True
-            self.play_ring.set_flag(FLAG_ABORT)
-            # Drain queued TTS chunks
-            self.speech_output.clear_queue()
-            is_citation_breach = (
-                breach_type == "ungrounded_citation"
-                or "ungrounded" in reason_msg.lower()
-                or "citation" in reason_msg.lower()
-            )
-            if is_citation_breach:
-                refusal = (
-                    "I apologize, but I do not have a verified source for "
-                    "that citation and won't guess."
-                )
-            else:
-                refusal = "I cannot fulfill that request as it violates core safety invariants."
-            self._publish_caption(refusal, source="assistant", is_final=True)
-            self._speak_text(trace, refusal)
-            self.current_turn_assistant_reply = refusal
-            self.history.append({"role": "user", "content": user_msg})
-            self.history.append({"role": "assistant", "content": refusal})
-
-        current_stance = self.affect_tracker.get_prompt_suffix_tag()
-        first_python_err: str | None = None
-        python_turns_taken: int = 0
-        rejected_round_span: tuple[int, int] | None = None
-
-        try:
-            for round_num in range(1, max_rounds + 1):
-                if trace.interrupted or self._cancel_token.is_set():
-                    break
-
-                round_tool_called = False
-                round_response_text: list[str] = []
-                round_failed_tools: list[str] = []
-                pre_round_text_len = len(full_response_text)
-                print(f"[Lucca R{round_num}] " if round_num > 1 else "[Lucca] ", end="", flush=True)
-                if round_num == 1:
-                    trace.t_llm_sent = now_ns()
-
-                # WO-9 A5: convergence loop — tools stay available every round
-                # and the loop terminates when the model stops calling tools.
-                # The hard cap is a runaway guard only: on the final round tools
-                # are withdrawn and the model must summarise honestly.
-                if round_num == max_rounds and tools:
-                    scratchpad_buffer.add_user_directive(
-                        "[Tool Budget Reached: You have used the maximum number "
-                        "of tool rounds. Do not call any more tools. Summarise "
-                        "what you found and what you could NOT verify; never "
-                        "fabricate missing facts.]"
-                    )
-                    trace.cap_hit = True
-                    logger.info("tool_round_cap_reached", max_rounds=max_rounds)
-                round_tools = [] if round_num == max_rounds else tools
-
-                for event in self.llm.stream_turn(
-                    current_audio_b64=current_audio_b64 if round_num == 1 else None,
-                    current_image_b64=current_image_b64 if round_num == 1 else None,
-                    current_text=current_text or user_msg,
-                    history=self.history,
-                    memories=memories,
-                    tools=round_tools,
-                    messages=messages,
-                    tool_messages=scratchpad_buffer.messages if scratchpad_buffer.messages else None,
-                    trace_id=trace.trace_id,
-                    epistemic_context=epistemic_context,
-                    stance_tag=current_stance,
-                    enable_thinking=enable_thinking,
-                    user_model_directive=user_model_directive,
-                    episode_hints=episode_hints,
-                    grammar=grammar if not round_tools else None,
-                ):
-                    if trace.interrupted or self._cancel_token.is_set():
-                        break
-
-                    if isinstance(event, TokenDelta) and event.delta:
-                        if rejected_round_span is not None:
-                            r_start, r_end = rejected_round_span
-                            del full_response_text[r_start:r_end]
-                            pre_round_text_len = len(full_response_text)
-                            rejected_round_span = None
-                            chunker = StreamingChunker()
-                            if hasattr(self, "speech_output") and self.speech_output is not None:
-                                self.speech_output.clear_queue()
-
-                        if not first_token_seen:
-                            first_token_seen = True
-                            trace.t_llm_first_token = now_ns()
-
-                        trace.tokens_out += 1
-                        full_response_text.append(event.delta)
-                        round_response_text.append(event.delta)
-                        print(event.delta, end="", flush=True)
-
-                        accumulated = "".join(full_response_text)
-                        self._publish_caption(accumulated, source="assistant", is_final=False)
-
-                        for chunk in chunker.feed(event.delta):
-                            if trace.interrupted:
-                                break
-
-                            eval_text = (
-                                chunk.raw_text if getattr(chunk, "raw_text", None) else chunk.text
-                            )
-                            emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
-                                chunk, eval_text, verified_receipts=tool_receipts
-                            )
-                            if should_abort:
-                                _trigger_supervisor_abort(
-                                    "Tier 1 Capitulation/Provenance breach", eval_text
-                                )
-                                break
-
-                            for em_chunk, _em_gate in emitted_chunks:
-                                clean_chunk_text = sanitize_for_voice(em_chunk.text)
-                                if not clean_chunk_text:
-                                    continue
-                                if chunk_index == 0:
-                                    trace.t_first_chunk = now_ns()
-                                    self._set_state("speaking")
-
-                                self._enqueue_tts_chunk(trace, em_chunk.chunk_id, clean_chunk_text)
-                                chunk_index += 1
-
-                    elif isinstance(event, ToolCallEnd):
-                        round_tool_called = True
-                        call_id = event.call.call_id
-                        tool_name = event.call.tool
-                        tool_args = dict(event.call.args)
-
-                        # Speculative BDI Validation (Milestone 4)
-                        bdi_res = self.bdi_validator.validate_tool_call(
-                            tool_name,
-                            tool_args,
-                            taint_flags=getattr(self.sandbox, "taint_flags", 0),
-                        )
-                        if not bdi_res.is_valid:
-                            round_failed_tools.append(tool_name)
-                            logger.warning(
-                                "speculative_bdi_call_rejected",
-                                tool=tool_name,
-                                reason=bdi_res.reason,
-                                elapsed_us=bdi_res.elapsed_us,
-                            )
-                            content_str = (
-                                f"Speculative Invariant Violation: {bdi_res.reason}. "
-                                "Action prohibited."
-                            )
-                            scratchpad_buffer.add_assistant_tool_call(
-                                call_id=call_id,
-                                tool_name=tool_name,
-                                tool_args=tool_args,
-                            )
-                            scratchpad_buffer.add_tool_result(
-                                call_id=call_id,
-                                tool_name=tool_name,
-                                raw_output=content_str,
-                                is_error=True,
-                            )
-                            continue
-
-                        # BFCL <tool_fit_check> guard via VerifierWorker (WO-36 §36.5)
-                        verifier_inst = getattr(self, "verifier", None)
-                        if user_msg and verifier_inst is not None:
-                            if not check_tool_fit(tool_name, user_msg, verifier=verifier_inst):
-                                round_failed_tools.append(tool_name)
-                                logger.warning(
-                                    "tool_fit_guard_rejected",
-                                    tool=tool_name,
-                                    query=user_msg[:80],
-                                )
-                                content_str = (
-                                    f"<tool_fit_check> Tool '{tool_name}' rejected: "
-                                    "query does not require this tool."
-                                )
-                                scratchpad_buffer.add_assistant_tool_call(
-                                    call_id=call_id,
-                                    tool_name=tool_name,
-                                    tool_args=tool_args,
-                                )
-                                scratchpad_buffer.add_tool_result(
-                                    call_id=call_id,
-                                    tool_name=tool_name,
-                                    raw_output=content_str,
-                                    is_error=True,
-                                )
-                                continue
-
-                        # Emit verbal thinking cue before tool execution (Proposal I)
-                        cue = self._select_verbal_cue(tool_name)
-                        print(f'\n[Lucca Cue] "{cue}"', flush=True)
-                        self._speak_text(trace, cue)
-
-                        # Execute tool
-                        tool_res = self._handle_tool_call(trace, tool_name, tool_args, speak=False)
-
-                        if tool_res is not None:
-                            if tool_name == "run_python":
-                                python_turns_taken += 1
-                                code_executed = str(tool_args.get("code", ""))
-                                if not tool_res.ok and first_python_err is None:
-                                    first_python_err = str(
-                                        tool_res.stderr or tool_res.content or "ExecutionError"
-                                    )
-                                    self._log_impasse_to_backlog(
-                                        query=user_msg or "run_python execution",
-                                        code=code_executed,
-                                        error_trace=first_python_err,
-                                    )
-                                elif tool_res.ok:
-                                    if getattr(self, "episodic_code_cache", None) is not None and code_executed.strip():
-                                        try:
-                                            self.episodic_code_cache.retain_episode(
-                                                query=user_msg or "run_python execution",
-                                                code=code_executed,
-                                                output=str(tool_res.content or ""),
-                                                method="OrchestratorRunPython",
-                                                turns_taken=python_turns_taken,
-                                            )
-                                        except Exception as cbr_err:  # noqa: BLE001
-                                            logger.debug("run_python_cbr_retain_failed", error=str(cbr_err))
-                                    sink_inst = getattr(self, "cognitive_outcome_sink", None) or getattr(
-                                        self, "cognitive_sink", None
-                                    )
-                                    if sink_inst is not None:
-                                        try:
-                                            sink_inst.record_cegis_outcome(
-                                                task_id=f"turn-{trace.trace_id[:8]}",
-                                                problem_summary=user_msg[:120]
-                                                if user_msg
-                                                else "run_python execution",
-                                                engine_name="OrchestratorRunPython",
-                                                success=True,
-                                                turns_taken=python_turns_taken,
-                                                final_code=code_executed,
-                                                turn_1_error=first_python_err,
-                                                verified_strategy="Multi-round tool loop repair"
-                                                if python_turns_taken >= 2
-                                                else "Direct run_python",
-                                                status_label="VERIFIED_REPAIRED_PROGRAM"
-                                                if python_turns_taken >= 2
-                                                else "CHECKED_FORMALIZATION_AGREED",
-                                            )
-                                        except Exception as sink_err:  # noqa: BLE001
-                                            logger.debug(
-                                                "run_python_outcome_sink_failed", error=str(sink_err)
-                                            )
-                            if not tool_res.ok:
-                                round_failed_tools.append(tool_name)
-                            if tool_res.ok:
-                                tool_target = str(
-                                    tool_args.get("path")
-                                    or tool_args.get("filename")
-                                    or tool_args.get("name")
-                                    or tool_args.get("title")
-                                    or tool_args.get("target")
-                                    or tool_args.get("command")
-                                    or tool_args.get("app_name")
-                                    or tool_args.get("url")
-                                    or tool_args.get("query")
-                                    or tool_args.get("code")
-                                    or ""
-                                )
-                                tool_receipts.append({"action": tool_name, "target": tool_target})
-
-                                # Register allowed URLs from search, fetch, or browse results
-                                if tool_name == "search_web" and getattr(
-                                    tool_res, "structured", None
-                                ):
-                                    search_urls: list[str] = []
-                                    search_items = (
-                                        tool_res.structured.get("results")
-                                        or tool_res.structured.get("sources")
-                                        or []
-                                    )
-                                    for s_item in search_items:
-                                        if isinstance(s_item, dict) and s_item.get("url"):
-                                            search_urls.append(str(s_item["url"]))
-                                    if tool_res.content:
-                                        search_urls.extend(
-                                            re.findall(r"https?://[^\s<>\"'()]+", tool_res.content)
-                                        )
-                                    if hasattr(self.output_supervisor, "register_allowed_urls"):
-                                        self.output_supervisor.register_allowed_urls(search_urls)
-                                elif tool_name in ("fetch_url", "browse_page"):
-                                    target_u = tool_args.get("url")
-                                    to_register: list[str] = []
-                                    if target_u:
-                                        to_register.append(target_u)
-                                    if getattr(tool_res, "structured", None):
-                                        if tool_res.structured.get("url"):
-                                            to_register.append(tool_res.structured["url"])
-                                        if tool_res.structured.get("embedded_links"):
-                                            to_register.extend(
-                                                tool_res.structured["embedded_links"]
-                                            )
-                                    if to_register and hasattr(
-                                        self.output_supervisor, "register_allowed_urls"
-                                    ):
-                                        self.output_supervisor.register_allowed_urls(to_register)
-
-                            if tool_res.content:
-                                content_str = str(tool_res.content)
-                            elif tool_res.structured:
-                                content_str = json.dumps(tool_res.structured)
-                            elif tool_res.stderr and not tool_res.ok:
-                                content_str = f"Error: {tool_res.stderr}"
-                            elif not tool_res.ok:
-                                content_str = f"Error: {tool_name} failed"
-                            else:
-                                content_str = "Success"
-                        else:
-                            content_str = "Action completed."
-
-                        scratchpad_buffer.add_assistant_tool_call(
-                            call_id=call_id,
-                            tool_name=tool_name,
-                            tool_args=tool_args,
-                        )
-                        scratchpad_buffer.add_tool_result(
-                            call_id=call_id,
-                            tool_name=tool_name,
-                            raw_output=content_str,
-                            is_error=not (tool_res is not None and tool_res.ok),
-                        )
-
-                        # WO-9 A5: repeated-call guard — an identical
-                        # (tool, args) call already returned this turn; force
-                        # the model to use the result or change approach.
-                        call_sig = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
-                        call_signatures.append(call_sig)
-                        if call_signatures.count(call_sig) >= 2:
-                            scratchpad_buffer.add_user_directive(
-                                "[Repeat Guard: You already issued this exact "
-                                "call and it returned a result above. Use that "
-                                "result, or try a different approach — do not "
-                                "repeat it.]"
-                            )
-                        # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
-                        if tool_res is not None and tool_res.ok and content_str:
-                            sanity_res = self.turn_pipeline.sanity_guard.validate(
-                                tool_name=tool_name,
-                                tool_args=tool_args,
-                                tool_output=content_str,
-                                user_query=user_msg,
-                            )
-                            if not sanity_res.is_valid and sanity_res.directive:
-                                logger.warning(
-                                    "tool_output_sanity_anomaly_detected",
-                                    round_num=round_num,
-                                    tool=tool_name,
-                                    violation=sanity_res.violation_type,
-                                    reason=sanity_res.reason,
-                                )
-                                scratchpad_buffer.add_user_directive(sanity_res.directive)
-
-                # WO-11.2: G1+G6 unified honesty & register nudge (D-HON-01)
-                # Tank 6b Self-Correction Loop: If a computational code tool failed
-                # with a traceback and rounds remain, inject an execution feedback directive
-                # allowing autonomous self-debug. On final round or non-code failure, inject
-                # the honesty directive barring fabrication.
-                if round_failed_tools:
-                    failed_names = ", ".join(dict.fromkeys(round_failed_tools))
-                    logger.info(
-                        "tool_failure_honesty_nudge_injected",
-                        round_num=round_num,
-                        failed_tools=failed_names,
-                    )
-                    honesty_text = (
-                        f"[Honesty Directive: A tool you called this turn failed "
-                        f"({failed_names}). State the failure plainly. Never guess, "
-                        "estimate, or fabricate the result the tool was supposed to "
-                        "produce — especially numbers. Do not use celebration, "
-                        "confidence, or success register when reporting failed or "
-                        "unverified results. If solving an analytical, logic, or "
-                        "mathematical problem, you may provide your step-by-step "
-                        "chain-of-thought derivation clearly labeled as an analytical "
-                        "derivation rather than claiming tool execution.]"
-                    )
-                    if (
-                        round_num < max_rounds
-                        and any(t in ("run_python", "bash", "execute_code") for t in round_failed_tools)
-                    ):
-                        logger.info(
-                            "tool_failure_feedback_loop_injected",
-                            round_num=round_num,
-                            failed_tools=failed_names,
-                        )
-                        honesty_text += (
-                            f"\n[Execution Feedback Loop: Tool '{failed_names}' produced an execution error or traceback. "
-                            f"Diagnose the error, fix the syntax/logic/attribute mistake, and re-call the tool to verify the result.]"
-                        )
-                    scratchpad_buffer.add_user_directive(honesty_text)
-
-                if not round_tool_called:
-                    # Anti-stalling check:
-                    # If the model evaded research by outputting a rhetorical question
-                    if (
-                        round_num < max_rounds
-                        and tools
-                        and getattr(self.output_supervisor, "turn_has_stalled", False)
-                    ):
-                        logger.info(
-                            "stalling_research_question_intercepted_forcing_tool_execution",
-                            round_num=round_num,
-                        )
-                        scratchpad_buffer.add_user_directive(
-                            "[Autonomous Research Directive: Do not output "
-                            "conversational filler, cheerleading, or empty promises. "
-                            "Do not ask rhetorical permission questions or request "
-                            "clarification. Execute search_web or fetch_url immediately "
-                            "to retrieve and present the verified facts.]"
-                        )
-                        self.output_supervisor.turn_has_stalled = False
-                        rejected_round_span = (pre_round_text_len, len(full_response_text))
-                        continue
-                    # WO-9 A4 (F4): promise-without-action guard. If the model
-                    # promised an action ("I'll go ahead and commit that right
-                    # now") but issued no tool call, inject an honesty directive
-                    # forcing it to either call the tool or state plainly that
-                    # it has not done it.
-                    if round_num < max_rounds and tools:
-                        round_text_str = "".join(round_response_text).strip()
-                        active_receipts = (
-                            list(getattr(self, "current_turn_receipts", [])) or tool_receipts
-                        )
-                        promises = (
-                            detect_promised_action_claims(
-                                round_text_str,
-                                user_context=sup_ctx if sup_ctx else user_msg,
-                            )
-                            if not active_receipts
-                            else []
-                        )
-                        if promises:
-                            logger.info(
-                                "promised_action_without_tool_call_intercepted",
-                                round_num=round_num,
-                                promises=promises[:2],
-                            )
-                            rejected_round_span = (pre_round_text_len, len(full_response_text))
-                            scratchpad_buffer.add_user_directive(
-                                "[Honesty Directive: You stated you would perform "
-                                f"an action ({' ; '.join(promises[:2])}) but issued "
-                                "no tool call. Discard your previous draft response. "
-                                "Either call the appropriate tool now, or state plainly "
-                                "that you have NOT done it and will not pretend otherwise.]"
-                            )
-                            continue
-                        # WO-40 Milestone 2.1: Ungrounded completed/progressive/copular action
-                        # claim guard inside the tool loop. If the model claimed or simulated
-                        # performing/inspecting an action without a matching ToolReceipt,
-                        # reject the draft round and force either a real tool call or an
-                        # honest disclosure.
-                        if round_text_str:
-                            ungrounded_breach = self._check_functional_coherence(
-                                round_text_str,
-                                active_receipts,
-                                user_context=sup_ctx if sup_ctx else user_msg,
-                            )
-                            if ungrounded_breach:
-                                logger.info(
-                                    "ungrounded_action_claim_without_receipt_intercepted",
-                                    round_num=round_num,
-                                    breach=ungrounded_breach,
-                                )
-                                rejected_round_span = (pre_round_text_len, len(full_response_text))
-                                scratchpad_buffer.add_user_directive(
-                                    "[Honesty & Grounding Directive: Your previous draft response "
-                                    f"({round_text_str[:160]!r}) claimed or simulated performing "
-                                    f"an action without a verified tool receipt ({ungrounded_breach}). "
-                                    "Discard that draft completely and respond again from scratch: "
-                                    "either call an available tool now to perform the action for real, "
-                                    "or state plainly and honestly that you cannot perform or inspect "
-                                    "that action directly and have NOT done so.]"
-                                )
-                                continue
-                    break
-
-            # WO-9 A5: convergence telemetry
-            trace.rounds_used = round_num
-
-            # Flush remaining chunker text
-            if not trace.interrupted and not self._cancel_token.is_set():
-                for chunk in chunker.flush():
-                    if trace.interrupted or self._cancel_token.is_set():
-                        break
-                    eval_text = chunk.raw_text if getattr(chunk, "raw_text", None) else chunk.text
-                    emitted_chunks, should_abort = self.output_supervisor.feed_chunk(
-                        chunk, eval_text, verified_receipts=tool_receipts
-                    )
-                    if should_abort:
-                        _trigger_supervisor_abort(
-                            "Tier 1 Capitulation/Provenance breach on flush", eval_text
-                        )
-                        break
-
-                    for em_chunk, _em_gate in emitted_chunks:
-                        clean_chunk_text = sanitize_for_voice(em_chunk.text)
-                        if not clean_chunk_text:
-                            continue
-                        if chunk_index == 0:
-                            trace.t_first_chunk = now_ns()
-                            self._set_state("speaking")
-                        self._enqueue_tts_chunk(trace, em_chunk.chunk_id, clean_chunk_text)
-                        chunk_index += 1
-
-                # Final flush of output supervisor lookahead buffer
-                if not trace.interrupted and not self._cancel_token.is_set():
-                    emitted_final, should_abort = self.output_supervisor.flush()
-                    if should_abort:
-                        _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
-                    else:
-                        for em_chunk, _em_gate in emitted_final:
-                            clean_final_text = sanitize_for_voice(em_chunk.text)
-                            if not clean_final_text:
-                                continue
-                            if chunk_index == 0:
-                                trace.t_first_chunk = now_ns()
-                                self._set_state("speaking")
-                            self._enqueue_tts_chunk(trace, em_chunk.chunk_id, clean_final_text)
-                            chunk_index += 1
-
-                if chunk_index > 0 and not trace.interrupted and not self._cancel_token.is_set():
-                    self.speech_output.wait_for_playback(trace)
-
-                if not trace.interrupted and not self._cancel_token.is_set():
-                    self.play_ring.set_flag(FLAG_EOS)
-
-            trace.t_llm_done = now_ns()
-            print("\n", flush=True)
-
-            # WO-26 Phase 5: Non-Empty Synthesis Guardrail
-            # If tool execution succeeded but the assistant generation produced an empty
-            # or whitespace-only response, trigger a single fallback synthesis pass:
-            # "Summarize the tool output for the user."
-            has_successful_tool = any(r.get("action") for r in tool_receipts) or any(
-                not t.get("is_error", False) for t in scratchpad_buffer._intermediate_traces
-            )
-            synthesized_text = "".join(full_response_text).strip()
-            if (
-                has_successful_tool
-                and not synthesized_text
-                and not trace.interrupted
-                and not self._cancel_token.is_set()
-            ):
-                logger.warning(
-                    "non_empty_synthesis_guardrail_triggered",
-                    trace_id=trace.trace_id,
-                    tools=[r.get("action") for r in tool_receipts],
-                )
-                scratchpad_buffer.add_user_directive(
-                    "[Non-Empty Synthesis Directive: Your tool execution succeeded. "
-                    "Summarize the tool output for the user now in clean spoken prose. "
-                    "Do not emit empty text or whitespace.]"
-                )
-                for event in self.llm.stream_turn(
-                    current_audio_b64=None,
-                    current_text="Summarize the tool output for the user.",
-                    history=self.history,
-                    memories=memories,
-                    tools=[],  # tools withdrawn for synthesis pass
-                    tool_messages=scratchpad_buffer.messages,
-                    trace_id=trace.trace_id,
-                    epistemic_context=epistemic_context,
-                    stance_tag=current_stance,
-                    enable_thinking=False,
-                ):
-                    if trace.interrupted or self._cancel_token.is_set():
-                        break
-                    if isinstance(event, TokenDelta) and event.delta:
-                        if not first_token_seen:
-                            first_token_seen = True
-                            trace.t_llm_first_token = now_ns()
-                        trace.tokens_out += 1
-                        full_response_text.append(event.delta)
-                        for chunk in chunker.feed(event.delta):
-                            if trace.interrupted:
-                                break
-                            clean_chunk_text = sanitize_for_voice(chunk.text)
-                            if not clean_chunk_text:
-                                continue
-                            if chunk_index == 0:
-                                trace.t_first_chunk = now_ns()
-                                self._set_state("speaking")
-                            self._enqueue_tts_chunk(trace, chunk.chunk_id, clean_chunk_text)
-                            chunk_index += 1
-
-                for chunk in chunker.flush():
-                    if trace.interrupted or self._cancel_token.is_set():
-                        break
-                    clean_chunk_text = sanitize_for_voice(chunk.text)
-                    if clean_chunk_text:
-                        if chunk_index == 0:
-                            trace.t_first_chunk = now_ns()
-                            self._set_state("speaking")
-                        self._enqueue_tts_chunk(trace, chunk.chunk_id, clean_chunk_text)
-                        chunk_index += 1
-
-                # Deterministic fallback if stream produced nothing
-                if not "".join(full_response_text).strip():
-                    tool_name_used = (
-                        str(tool_receipts[0].get("action", "the tool"))
-                        if tool_receipts
-                        else "the tool"
-                    )
-                    fallback_msg = (
-                        self._last_unspoken_tool_msg
-                        if isinstance(self._last_unspoken_tool_msg, str) and self._last_unspoken_tool_msg.strip()
-                        else f"I completed the operation using {tool_name_used}."
-                    )
-                    full_response_text.append(fallback_msg)
-                    self._speak_text(trace, fallback_msg)
-                    self._publish_caption(fallback_msg, source="assistant", is_final=True)
-
-                if chunk_index > 0 and not trace.interrupted and not self._cancel_token.is_set():
-                    self.speech_output.wait_for_playback(trace)
-
-                if not trace.interrupted and not self._cancel_token.is_set():
-                    self.play_ring.set_flag(FLAG_EOS)
-
-            elif (
-                not full_response_text
-                and self._last_unspoken_tool_msg
-                and not trace.interrupted
-                and not self._cancel_token.is_set()
-            ):
-                self._speak_text(trace, self._last_unspoken_tool_msg)
-                self.current_turn_tool_spoken.append(self._last_unspoken_tool_msg)
-                self._publish_caption(
-                    self._last_unspoken_tool_msg, source="assistant", is_final=True
-                )
-                self.play_ring.set_flag(FLAG_EOS)
-
-            # WO-21 Phase 3: Proactive Web-Fact Ratification Flow
-            ratification_offer = (
-                self._check_and_offer_ratification(trace)
-                if (not trace.interrupted and not self._cancel_token.is_set())
-                else None
-            )
-
-            # Record turn in history
-            if not trace.interrupted and not self._cancel_token.is_set():
-                reply_parts: list[str] = []
-                if full_response_text:
-                    reply_parts.append("".join(full_response_text))
-                if self.current_turn_tool_spoken:
-                    reply_parts.extend(self.current_turn_tool_spoken)
-                if ratification_offer:
-                    reply_parts.append(ratification_offer)
-                if reply_parts:
-                    reply_str = " ".join(reply_parts)
-                    self.history.append({"role": "user", "content": user_msg})
-                    self.history.append({"role": "assistant", "content": reply_str})
-                    self.current_turn_assistant_reply = reply_str
-                    if full_response_text or ratification_offer:
-                        self._publish_caption(reply_str, source="assistant", is_final=True)
-
-        except Exception as exc:  # noqa: BLE001
-            trace.error = str(exc)
-            if not trace.interrupted:
-                logger.error("turn_execution_error", trace_id=trace.trace_id, error=str(exc))
-                print(f"\n[Error] {exc}", flush=True)
-                self._publish_caption(
-                    "Sorry, I had trouble processing that request.",
-                    source="status",
-                    is_final=True,
-                )
-            trace.interrupted = True
-        finally:
-            self._finalize_turn(trace, decision_id)
-
+    # delegate — kept for test/back-compat
     def _ensure_impasse_backlog_table(self) -> None:
-        if self.db is None or not hasattr(self.db, "write_transaction"):
-            return
-        try:
-            with self.db.write_transaction() as cur:
-                cur.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS impasse_backlog (
-                        id TEXT PRIMARY KEY,
-                        query TEXT NOT NULL,
-                        code TEXT NOT NULL,
-                        error_trace TEXT NOT NULL,
-                        resolved_code TEXT NOT NULL DEFAULT '',
-                        surprise_score REAL NOT NULL DEFAULT 0.85,
-                        created_at TEXT NOT NULL,
-                        processed INTEGER NOT NULL DEFAULT 0
-                    )
-                    """
-                )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("impasse_backlog_table_init_error", error=str(exc))
+        self.code_preflight.ensure_impasse_backlog_table()
 
+    # delegate — kept for test/back-compat
     def _log_impasse_to_backlog(
         self,
         query: str,
@@ -3336,33 +1796,15 @@ class Orchestrator:
         resolved_code: str = "",
         surprise_score: float = 0.85,
     ) -> None:
-        """Records a failed or repaired code synthesis episode into impasse_backlog for offline consolidation."""
-        if self.db is None or not hasattr(self.db, "write_transaction"):
-            return
-        try:
-            self._ensure_impasse_backlog_table()
-            impasse_id = f"imp-{ulid.ULID()}"
-            created_iso = str(time.time())
-            with self.db.write_transaction() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO impasse_backlog (
-                        id, query, code, error_trace, resolved_code, surprise_score, created_at, processed
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
-                    """,
-                    (
-                        impasse_id,
-                        query[:1000],
-                        code[:4000],
-                        error_trace[:2000],
-                        resolved_code[:4000],
-                        float(surprise_score),
-                        created_iso,
-                    ),
-                )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("log_impasse_to_backlog_failed", error=str(exc))
+        self.code_preflight.log_impasse_to_backlog(
+            query=query,
+            code=code,
+            error_trace=error_trace,
+            resolved_code=resolved_code,
+            surprise_score=surprise_score,
+        )
 
+    # delegate — kept for test/back-compat
     def synthesize_code_with_preflight(
         self,
         prompt: str,
@@ -3372,196 +1814,16 @@ class Orchestrator:
         max_repair_rounds: int = 1,
         enable_preflight: bool = True,
     ) -> tuple[str, PreflightResult]:
-        """WO-26 Phase 4 & WO-39 Milestone 2.2: Tier 3 Code Synthesis with Case-Based Reasoning (4 Rs)
-        and Autonomous Docker Pre-Flight Verification Loop.
-
-        1. Retrieve & Reuse: Queries EpisodicCodeCache for a matching precedent and adapts it.
-        2. Revise: Verifies candidate in Docker sandbox; updates precedent (w+, w-) evidence.
-        3. Retain: Stores verified programs in EpisodicCodeCache and logs impasses to impasse_backlog.
-        """
-        t0 = time.perf_counter()
-        code_candidate = initial_code
-        cbr_cache = getattr(self, "episodic_code_cache", None)
-        used_precedent = None
-
-        # CBR Step 1 & 2: Retrieve & Reuse precedent before raw LLM synthesis
-        if code_candidate is None and cbr_cache is not None and prompt.strip():
-            try:
-                precedent = cbr_cache.retrieve_precedent(query=prompt)
-                if precedent is not None:
-                    adapted = cbr_cache.adapt_and_reuse(precedent, prompt)
-                    if adapted and adapted.strip():
-                        if not enable_preflight:
-                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
-                            elapsed = (time.perf_counter() - t0) * 1000.0
-                            return adapted, PreflightResult(
-                                success=True,
-                                error_msg=None,
-                                elapsed_ms=elapsed,
-                                assertions_run=0,
-                                fail_open=False,
-                            )
-                        cbr_check = self.sandbox.preflight_verify_code(
-                            code=adapted, docstring_examples=docstring_examples
-                        )
-                        if cbr_check.success:
-                            cbr_cache.record_reuse_outcome(precedent.task_hash, success=True)
-                            cbr_cache.retain_episode(
-                                query=prompt,
-                                code=adapted,
-                                method="CBR_REUSE",
-                                turns_taken=1,
-                            )
-                            return adapted, cbr_check
-                        cbr_cache.record_reuse_outcome(precedent.task_hash, success=False)
-                        used_precedent = precedent
-            except Exception as cbr_exc:  # noqa: BLE001
-                logger.debug("cbr_retrieve_reuse_failed", error=str(cbr_exc))
-
-        if code_candidate is None:
-            instruction = (
-                "Complete the following Python coding task. Put all Python code inside a ```python ... ``` block.\n\n"
-                f"{prompt}"
-            )
-            if used_precedent is not None:
-                instruction += (
-                    f"\n\nNote: A prior precedent exists but required adaptation:\n"
-                    f"```python\n{used_precedent.code}\n```"
-                )
-            resp_parts: list[str] = []
-            for event in self.llm.stream_turn(
-                current_text=instruction,
-                max_tokens=1024,
-                enable_thinking=False,
-            ):
-                if isinstance(event, TokenDelta) and event.delta:
-                    resp_parts.append(event.delta)
-            raw_resp = "".join(resp_parts)
-            code_candidate = extract_python_code(raw_resp)
-
-        if not enable_preflight:
-            elapsed = (time.perf_counter() - t0) * 1000.0
-            return code_candidate, PreflightResult(
-                success=True, error_msg=None, elapsed_ms=elapsed, assertions_run=0, fail_open=False
-            )
-
-        # CBR Step 3 (Revise): Preflight verification against Docker sandbox
-        preflight_res = self.sandbox.preflight_verify_code(
-            code=code_candidate, docstring_examples=docstring_examples
+        return self.code_preflight.synthesize_code_with_preflight(
+            prompt=prompt,
+            initial_code=initial_code,
+            trace=trace,
+            docstring_examples=docstring_examples,
+            max_repair_rounds=max_repair_rounds,
+            enable_preflight=enable_preflight,
         )
 
-        # If passed or fail-open honored (timeout/unavailable), return candidate
-        if preflight_res.success or preflight_res.fail_open or max_repair_rounds <= 0:
-            if preflight_res.success and cbr_cache is not None and code_candidate.strip():
-                try:
-                    cbr_cache.retain_episode(
-                        query=prompt,
-                        code=code_candidate,
-                        method="PreflightCEGIS",
-                        turns_taken=1,
-                    )
-                except Exception as retain_err:  # noqa: BLE001
-                    logger.debug("cbr_retain_failed", error=str(retain_err))
-            elif not preflight_res.success:
-                self._log_impasse_to_backlog(
-                    query=prompt,
-                    code=code_candidate,
-                    error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-                )
-            sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
-                self, "cognitive_sink", None
-            )
-            if sink is not None:
-                try:
-                    sink.record_cegis_outcome(
-                        task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
-                        problem_summary=prompt.strip()[:120],
-                        engine_name="PreflightCEGIS",
-                        success=preflight_res.success,
-                        turns_taken=1,
-                        final_code=code_candidate,
-                        turn_1_error=preflight_res.error_msg,
-                        status_label="VERIFIED_PROGRAM" if preflight_res.success else "INTERNAL_FALLBACK",
-                        reasoning_context=getattr(self, "current_reasoning_context", None),
-                    )
-                except Exception as sink_err:  # noqa: BLE001
-                    logger.debug("preflight_sink_record_failed", error=str(sink_err))
-            return code_candidate, preflight_res
-
-        # 1-Shot Self-Repair Loop
-        logger.warning(
-            "preflight_verification_failed_triggering_self_repair",
-            error=preflight_res.error_msg,
-            assertions_run=preflight_res.assertions_run,
-        )
-
-        repair_prompt = (
-            "The following Python code failed preflight verification against specification docstrings and test assertions in Docker:\n"
-            f"```python\n{code_candidate}\n```\n\n"
-            f"Preflight Error Details:\n{preflight_res.error_msg}\n\n"
-            "Please fix the bug (check boundary conditions, empty sequences, zero/negative inputs, trailing punctuation, or rounding logic). "
-            "Provide only the corrected complete Python implementation inside a ```python ... ``` block."
-        )
-
-        repair_parts: list[str] = []
-        for event in self.llm.stream_turn(
-            current_text=repair_prompt,
-            max_tokens=1024,
-            enable_thinking=False,
-        ):
-            if isinstance(event, TokenDelta) and event.delta:
-                repair_parts.append(event.delta)
-
-        repaired_raw = "".join(repair_parts)
-        repaired_code = extract_python_code(repaired_raw)
-        if not repaired_code or not repaired_code.strip():
-            self._log_impasse_to_backlog(
-                query=prompt,
-                code=code_candidate,
-                error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-            )
-            return code_candidate, preflight_res
-
-        repaired_res = self.sandbox.preflight_verify_code(
-            code=repaired_code, docstring_examples=docstring_examples
-        )
-        self._log_impasse_to_backlog(
-            query=prompt,
-            code=code_candidate,
-            error_trace=str(preflight_res.error_msg or "PreflightVerificationError"),
-            resolved_code=repaired_code if repaired_res.success else "",
-        )
-        if repaired_res.success and cbr_cache is not None:
-            try:
-                cbr_cache.retain_episode(
-                    query=prompt,
-                    code=repaired_code,
-                    method="PreflightRepair",
-                    turns_taken=2,
-                )
-            except Exception as retain_err:  # noqa: BLE001
-                logger.debug("cbr_repair_retain_failed", error=str(retain_err))
-        sink = getattr(self, "cognitive_outcome_sink", None) or getattr(
-            self, "cognitive_sink", None
-        )
-        if sink is not None:
-            try:
-                sink.record_cegis_outcome(
-                    task_id=trace.trace_id if trace else f"preflight-{ulid.ULID()}",
-                    problem_summary=prompt.strip()[:120],
-                    engine_name="PreflightCEGIS",
-                    success=repaired_res.success,
-                    turns_taken=2,
-                    final_code=repaired_code,
-                    turn_1_error=preflight_res.error_msg,
-                    verified_strategy="Preflight assertion self-repair",
-                    status_label="VERIFIED_REPAIRED_PROGRAM" if repaired_res.success else "INTERNAL_FALLBACK",
-                    reasoning_context=getattr(self, "current_reasoning_context", None),
-                )
-            except Exception as sink_err:  # noqa: BLE001
-                logger.debug("preflight_repair_sink_record_failed", error=str(sink_err))
-        return repaired_code, repaired_res
-
+    # delegate — kept for test/back-compat
     def _stream_code_synthesis(
         self,
         trace: TurnTrace,
@@ -3571,114 +1833,18 @@ class Orchestrator:
         memories: list[MemoryHit] | None = None,
         epistemic_context: str | None = None,
     ) -> None:
-        """WO-26 Phase 4: Tier 3 Code Synthesis Turn Handler.
-
-        Executes preflight code verification loop before presenting code in chat or TTS.
-        """
-        begin_env = Envelope(
-            type="play.begin",
-            trace_id=trace.trace_id,
-            ts_ns=now_ns(),
-            src="core",
-            payload=PlayBeginPayload(trace_id=trace.trace_id).model_dump(),
+        self.code_preflight.stream_code_synthesis(
+            trace=trace,
+            user_msg=user_msg,
+            decision_id=decision_id,
+            current_text=current_text,
+            memories=memories,
+            epistemic_context=epistemic_context,
         )
-        self._publish_bus(begin_env)
-
-        cue = "Testing implementation in the sandbox..."
-        self._speak_text(trace, cue)
-
-        prompt = current_text or user_msg
-        code, preflight_res = self.synthesize_code_with_preflight(prompt=prompt, trace=trace)
-
-        if preflight_res.success:
-            spoken_summary = "I've written and verified the implementation in the sandbox."
-            full_response = f"Here is the verified implementation:\n\n```python\n{code}\n```"
-        else:
-            spoken_summary = "I've generated the function, though an assertion warning was noted."
-            full_response = f"```python\n{code}\n```\n\n*Note: Preflight check reported:* `{preflight_res.error_msg}`"
-
-        self._publish_caption(full_response, source="assistant", is_final=True)
-        self._speak_text(trace, spoken_summary)
-        self.play_ring.set_flag(FLAG_EOS)
-
-        self.history.append({"role": "user", "content": user_msg})
-        self.history.append({"role": "assistant", "content": full_response})
-        self.current_turn_assistant_reply = full_response
-        self._finalize_turn(trace, decision_id)
 
     def _reset_turn_state(self) -> None:
         """Reset per-turn state for sandbox, supervisor, flags, and tool tracking."""
         self.turn_pipeline.reset_turn_state()
-
-    def _execute_reflex(
-        self,
-        trace: TurnTrace,
-        winning_outcome: RuleOutcome | None,
-        user_text: str,
-        decision_id: str | None,
-    ) -> None:
-        """
-        Execute a REFLEX tier turn: run plan or built-in emergency reflex,
-        emit triple, and finalize.
-        """
-        self.turn_pipeline.execute_reflex(
-            trace=trace,
-            winning_outcome=winning_outcome,
-            user_text=user_text,
-            decision_id=decision_id,
-        )
-
-    def _execute_act_then_narrate(
-        self,
-        trace: TurnTrace,
-        winning_outcome: RuleOutcome,
-        user_text: str,
-        decision_id: str | None,
-    ) -> None:
-        """
-        Execute an ACT_THEN_NARRATE tier turn: run plan tools, emit triple,
-        and stream narration.
-        """
-        self.turn_pipeline.execute_act_then_narrate(
-            trace=trace,
-            winning_outcome=winning_outcome,
-            user_text=user_text,
-            decision_id=decision_id,
-        )
-
-    def _build_epistemic_context(
-        self,
-        user_text: str,
-        yielded_context: dict[str, object] | None = None,
-        route_decision: RouteDecision | None = None,
-        spelling_hint: str | None = None,
-        trace: TurnTrace | None = None,
-    ) -> str | None:
-        """
-        Build epistemic context from search cascade, yield signals, F13 clarify hints,
-        and spelling hints.
-        """
-        return self.turn_pipeline.build_epistemic_context(
-            user_text=user_text,
-            yielded_context=yielded_context,
-            route_decision=route_decision,
-            spelling_hint=spelling_hint,
-            trace=trace,
-        )
-
-    def _detect_follow_up_and_gate_tools(
-        self,
-        rule_state: RuleState,
-        text_for_gate: str,
-    ) -> list[object] | None:
-        """
-        Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
-        Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
-        """
-        return self.turn_pipeline.detect_follow_up_and_gate_tools(
-            rule_state=rule_state,
-            text_for_gate=text_for_gate,
-        )
 
     def _run_turn(self, trace: TurnTrace, p: PTTReleasedPayload) -> None:
         """
@@ -3785,9 +1951,6 @@ class Orchestrator:
         )
         self.turn_pipeline.run(turn_input)
 
-    def _synthesize_chunk(self, trace: TurnTrace, chunk_id: int, text: str) -> None:
-        self.speech_output.synthesize_chunk(trace, chunk_id, text)
-
     def _tts_worker(self) -> None:
         """Background worker thread (core-tts) consuming chunks from speech_output."""
         self.speech_output.tts_worker()
@@ -3808,68 +1971,19 @@ class Orchestrator:
             return
         self.speech_output.speak_text(trace, text)
 
+    # delegate — kept for test/back-compat
     def _describe_tool_action(self, name: str, args: dict[str, JsonValue]) -> str:
-        if name == "launch_app":
-            app = str(args.get("app_name", "the application"))
-            return f"launch {app}"
-        if name == "write_file":
-            path = str(args.get("path", "the file"))
-            return f"write to {path}"
-        if name == "delete_file":
-            path = str(args.get("path", "the file"))
-            return f"delete {path}"
-        if name == "run_python":
-            return "run the python script"
-        if name == "fetch_url":
-            url = str(args.get("url", "the web page"))
-            return f"fetch {url}"
-        if name == "memory_commit":
-            # WO-9 A2 (ADR-010): read the fact back so the user confirms what
-            # will actually be saved, not "execute memory_commit".
-            o = str(args.get("o", "")).strip()
-            p = str(args.get("p", "")).strip()
-            if o and p:
-                natural = {
-                    "is_named": f"your name is {o}",
-                    "lives_in": f"you live in {o}",
-                    "works_at": f"you work at {o}",
-                    "works_as": f"you work as {o}",
-                    "born_on": f"you were born on {o}",
-                    "birthday_is": f"your birthday is {o}",
-                    "timezone_is": f"your timezone is {o}",
-                }.get(p, f"{str(args.get('s', 'you')).strip()} {p.replace('_', ' ')} {o}")
-                return f"save that {natural}"
-        if name == "clipboard_read":
-            return "read your clipboard"
-        if name == "inbox_handoff":
-            fname = str(args.get("filename", "the file"))
-            return f"move {fname} into my workspace from your inbox"
-        if name == "schedule_event":
-            ev = str(args.get("event_name", "the event"))
-            return f"schedule reminder for {ev}"
-        if name == "artifact_verify":
-            path = str(args.get("path", "the file"))
-            return f"verify {path}"
-        if name == "screenshot_capture":
-            return "take a screenshot"
-        return f"execute {name}"
+        return self.tool_dispatcher.describe_tool_action(name, args)
 
+    # delegate — kept for test/back-compat
     def _handle_schedule_event(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="schedule_event", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="schedule_event",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_schedule_event(call_id, args)
 
     def maybe_fire_due_events(self, now: float | None = None) -> list[str]:
-        """Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus notifications."""
+        """
+        Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus
+        notifications.
+        """
         if not hasattr(self, "sandbox") or not hasattr(self.sandbox, "claim_due_events"):
             return []
         try:
@@ -3913,200 +2027,27 @@ class Orchestrator:
                     logger.debug("speak_schedule_fired_failed", error=str(exc))
         return fired_messages
 
+    # delegate — kept for test/back-compat
     def _handle_artifact_verify(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="artifact_verify", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="artifact_verify",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_artifact_verify(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_clipboard_read(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="clipboard_read", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="clipboard_read",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_clipboard_read(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_inbox_handoff(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        res = self.sandbox.execute_tool(
-            call_id=call_id, tool_name="inbox_handoff", args=args, confirmed=True
-        )
-        self._record_tool_receipt(
-            name="inbox_handoff",
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=res.stderr,
-        )
-        return res
+        return self.tool_dispatcher.handle_inbox_handoff(call_id, args)
 
+    # delegate — kept for test/back-compat
     def _handle_screenshot_capture(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        """WO-24 Phase 1: capture primary display and stage for multimodal injection.
+        return self.tool_dispatcher.handle_screenshot_capture(call_id, args)
 
-        The base64 JPEG is stored on self._pending_image_b64.  It is injected into the
-        frontier user message of the NEXT LLM call by llm_client.stream_turn() and cleared
-        there unconditionally (including error paths) — so it cannot leak to subsequent turns.
-
-        Policy: this handler is reached only AFTER confirmation gate (Class C, target='shared').
-        Output is stamped TOOL_CONTENT_UNTRUSTED (content= not structured=) per TRAP 2.
-        """
-        already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
-        if already_staged:
-            b64 = already_staged
-            width, height = 1280, 800
-            ocr_text = None
-        else:
-            try:
-                from lucca.sandbox.screenshot_tool import capture_screenshot_with_ocr_fallback  # noqa: PLC0415
-
-                llm_cfg = getattr(getattr(self, "config", None), "llm", None)
-                mmproj_obj = getattr(llm_cfg, "mmproj", None) if llm_cfg else None
-                b64, width, height, ocr_text = capture_screenshot_with_ocr_fallback(mmproj=mmproj_obj)
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("screenshot_capture_failed", error=str(exc))
-                self._record_tool_receipt(
-                    name="screenshot_capture",
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=str(exc),
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    content=None,
-                    stderr=f"screenshot_capture failed: {exc}",
-                    elapsed_ms=0.0,
-                )
-
-        size_kb = round(len(b64) * 3 / 4 / 1024, 1)
-        # Stage the image for the next LLM narration call.
-        # TRAP 3: _pending_image_b64 is read-and-cleared by llm_client on every call.
-        self._pending_image_b64: str | None = b64
-        if hasattr(self, "visual_session") and self.visual_session is not None:
-            self.visual_session.store_image(b64_jpeg=b64, description="screenshot")
-
-        has_real_ocr = bool(ocr_text and "no text detected" not in ocr_text.lower())
-        receipt_output = f"[screenshot captured: {width}x{height}, {size_kb}KB]"
-        if has_real_ocr and ocr_text:
-            receipt_output = f"{receipt_output} {ocr_text}"
-
-        self._record_tool_receipt(
-            name="screenshot_capture",
-            call_id=call_id,
-            args=args,
-            ok=True,
-            output=receipt_output,
-            error=None,
-        )
-        content_msg = (
-            f"[screenshot captured: {ocr_text}]"
-            if (has_real_ocr and ocr_text)
-            else "[screenshot captured]"
-        )
-        struct_data: dict[str, JsonValue] = {"width": width, "height": height, "size_kb": size_kb}
-        if ocr_text:
-            struct_data["ocr_text"] = ocr_text
-
-        # content= (not structured=) guarantees TOOL_CONTENT_UNTRUSTED provenance
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            content=content_msg,
-            structured=struct_data,
-            elapsed_ms=0.0,
-        )
-
+    # delegate — kept for test/back-compat
     def _handle_self_history_search(self, call_id: str, args: dict[str, JsonValue]) -> ToolResult:
-        """WO-9 A14 (F18): expose the SELF_HISTORY substrate as a READ tool.
+        return self.tool_dispatcher.handle_self_history_search(call_id, args)
 
-        Backed by query_substrate_self_history (execution_triples ∪
-        ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH ∪
-        ASSISTANT_BELIEF). Depends on A9 for content worth querying.
-        """
-        from pydantic import ValidationError  # noqa: PLC0415
-
-        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS  # noqa: PLC0415
-
-        schema_cls = TOOL_ARG_SCHEMAS.get("self_history_search")
-        if schema_cls is not None:
-            try:
-                parsed_sh = schema_cls.model_validate(args)
-                query = str(getattr(parsed_sh, "query", "")).strip()
-            except ValidationError as exc:
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    stderr=f"invalid_arguments: {exc}",
-                    elapsed_ms=0.0,
-                )
-        else:
-            query = str(args.get("query", "")).strip()
-            if not query:
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=1,
-                    stderr="invalid_arguments: query is required",
-                    elapsed_ms=0.0,
-                )
-        cascade = getattr(self, "cascade", None)
-        if cascade is None:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr="self-history substrate unavailable",
-                elapsed_ms=0.0,
-            )
-        try:
-            items = cascade.query_substrate_self_history(query)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("self_history_search_failed", error=str(exc))
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=f"self_history_search failed: {exc}",
-                elapsed_ms=0.0,
-            )
-        lines = [f"- [{item.source}] {item.content}" for item in items[:10]]
-        content = "\n".join(lines) if lines else "No self-history records match that query."
-        self._record_tool_receipt(
-            name="self_history_search",
-            call_id=call_id,
-            args=args,
-            ok=True,
-            output=content,
-            error=None,
-        )
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            exit_code=0,
-            content=content,
-            structured={"count": len(items)},
-            elapsed_ms=0.0,
-        )
-
+    # delegate — kept for test/back-compat
     def _handle_memory_commit(
         self,
         trace: TurnTrace,
@@ -4115,330 +2056,45 @@ class Orchestrator:
         args: dict[str, JsonValue],
         speak: bool,
     ) -> ToolResult:
-        """WO-9 A2 (ADR-010): grounded memory_commit.
-
-        The model's {s, p, o, quote} is a CANDIDATE only. The fact is committed
-        iff the quote is verbatim-grounded in the user's own words this turn
-        (FactExtractor -> DerivedFactSigner -> USER_DERIVED, source_entry_ids
-        citing the USER_EXPLICIT transcript). Model-authored prose is never
-        stored (ADR-006); ungrounded candidates are refused with an honest
-        error the model must narrate.
-        """
-        from pydantic import ValidationError  # noqa: PLC0415
-
-        from lucca.memory.extraction import FactExtractor  # noqa: PLC0415
-        from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, MemoryCommitArgs  # noqa: PLC0415
-
-        if not self.memory_store:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr="memory subsystem unavailable",
-                elapsed_ms=0.0,
-            )
-        try:
-            schema_cls = TOOL_ARG_SCHEMAS.get("memory_commit", MemoryCommitArgs)
-            parsed = schema_cls.model_validate(args)
-            if not isinstance(parsed, MemoryCommitArgs):
-                parsed = MemoryCommitArgs.model_validate(args)
-        except ValidationError as exc:
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    f"invalid_arguments: {exc}. Provide s, "
-                    "p (lowercase snake_case slug, 2-41 chars), o, "
-                    "and a verbatim quote from the user's words this turn."
-                ),
-                elapsed_ms=0.0,
-            )
-
-        canon_p = canonicalize_predicate(parsed.p)
-        if not is_valid_predicate(canon_p):
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    f"invalid_predicate: '{parsed.p}' is not a valid "
-                    "lowercase snake_case slug (2-41 chars)"
-                ),
-                elapsed_ms=0.0,
-            )
-
-        # Ensure the user's utterance is committed so the fact can cite it.
-        transcript_payload = getattr(self, "_last_transcript_signed", None)
-        payload_is_current = (
-            transcript_payload is not None
-            and getattr(transcript_payload, "trace_id", None) == trace.trace_id
-        )
-        if not payload_is_current and self.current_turn_transcript:
-            entry_id = self._commit_transcript(self.current_turn_transcript, trace)
-            if entry_id:
-                self._early_transcript_commit = (entry_id, self.current_turn_transcript)
-                self.current_turn_transcript = None
-            transcript_payload = getattr(self, "_last_transcript_signed", None)
-            payload_is_current = (
-                transcript_payload is not None
-                and getattr(transcript_payload, "trace_id", None) == trace.trace_id
-            )
-        if not payload_is_current or transcript_payload is None:
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=False,
-                output=None,
-                error="no user utterance to ground against",
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    "not_grounded: there is no user utterance this turn to ground the fact "
-                    "against. Ask the user to state the fact in their own words first."
-                ),
-                elapsed_ms=0.0,
-            )
-
-        extractor = getattr(self, "_fact_extractor", None)
-        if extractor is None:
-            extractor = FactExtractor(master_key=self.signer_factory.master_key)
-            self._fact_extractor = extractor
-
-        try:
-            signed_facts = extractor.extract_and_sign(
-                transcript_payload,
-                [{"s": parsed.s, "p": parsed.p, "o": parsed.o, "quote": parsed.quote}],
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("extract_and_sign_failed", error=str(exc))
-            self._record_tool_receipt(
-                name=name, call_id=call_id, args=args, ok=False, output=None, error=str(exc)
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=f"memory_commit failed: {exc}",
-                elapsed_ms=0.0,
-            )
-
-        if not signed_facts:
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=False,
-                output=None,
-                error="quote not grounded in user utterance",
-            )
-            return ToolResult(
-                call_id=call_id,
-                ok=False,
-                exit_code=1,
-                stderr=(
-                    "not_grounded: the fact was NOT saved because the quote does not appear "
-                    "verbatim in the user's words this turn. Say plainly that you did not save "
-                    "it, or ask the user to say the fact in their own words."
-                ),
-                structured={"error": "not_grounded", "memory_eligible": False},
-                elapsed_ms=0.0,
-            )
-
-        now = self.clock.now_utc()
-        saved_contents: list[str] = []
-        for signed_fact in signed_facts:
-            self.memory_store.commit(signed_fact, now=now)
-            saved_contents.append(str(signed_fact.content))
-
-        saved_str = "; ".join(saved_contents)
-        self._record_tool_receipt(
-            name=name, call_id=call_id, args=args, ok=True, output=saved_str, error=None
-        )
-        logger.info("grounded_memory_commit", facts=saved_str, trace_id=trace.trace_id)
-        if speak:
-            spoken = "Saved that to memory."
-            self._speak_text(trace, spoken)
-            self.current_turn_tool_spoken.append(spoken)
-        return ToolResult(
-            call_id=call_id,
-            ok=True,
-            exit_code=0,
-            content=f"Saved to long-term memory: {saved_str}",
-            structured={"saved": saved_contents, "provenance": "USER_DERIVED"},
-            elapsed_ms=0.0,
-        )
+        return self.tool_dispatcher.handle_memory_commit(trace, call_id, name, args, speak)
 
     # ------------------------------------------------------------------------
     # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
     # ------------------------------------------------------------------------
 
+    # delegate — kept for test/back-compat
     def _extract_receipt_domain(self, r: ToolReceipt) -> str:
-        args = getattr(r, "args", {}) or {}
-        if isinstance(args, dict):
-            domain_val = args.get("domain", "")
-            if domain_val and isinstance(domain_val, str):
-                return domain_val.strip().lower()
-            url_val = args.get("url", "")
-            if url_val and isinstance(url_val, str):
-                try:
-                    parsed = urllib.parse.urlsplit(url_val)
-                    if parsed.netloc:
-                        return parsed.netloc.lower().split(":")[0]
-                except Exception as exc:  # noqa: BLE001
-                    logger.debug("extract_receipt_domain_urlsplit_failed", error=str(exc))
-        src = extract_receipt_source(r)
-        if "." in src and not src.startswith("tool"):
-            return src.lower()
-        return ""
+        return self.deduction_runner.extract_receipt_domain(r)
 
+    # delegate — kept for test/back-compat
     def _is_domain_whitelisted(self, domain: str) -> bool:
-        if not domain:
-            return False
-        d_clean = domain.strip().lower()
-        whitelist = getattr(self, "ratification_domains", None) or set()
-        if d_clean in whitelist:
-            return True
-        return any(d_clean == w or d_clean.endswith("." + w) for w in whitelist)
+        return self.deduction_runner.is_domain_whitelisted(domain)
 
+    # delegate — kept for test/back-compat
     def _extract_durable_claim(self, r: ToolReceipt) -> str | None:
-        args = getattr(r, "args", {}) or {}
-        if isinstance(args, dict) and "claim" in args and isinstance(args["claim"], str):
-            c = args["claim"].strip()
-            if c:
-                return c
+        return self.deduction_runner.extract_durable_claim(r)
 
-        text = str(getattr(r, "output", "") or getattr(r, "content", "") or "")
-        return self._extract_durable_claim_from_text(text)
-
+    # delegate — kept for test/back-compat
     def _extract_durable_claim_from_text(self, text: str) -> str | None:
-        cleaned = text.strip()
-        if not cleaned or len(cleaned) < 5:
-            return None
-        lower = cleaned.lower()
-        if any(
-            err in lower for err in ("error:", "404 not found", "access denied", "failed to fetch")
-        ):
-            return None
+        return self.deduction_runner.extract_durable_claim_from_text(text)
 
-        sentences = re.split(r"(?<=[.!?])\s+", cleaned)
-        copula_pattern = re.compile(
-            r"\b(?:is|was|are|were|has|have|had|features|released|announced|supports|became|born|won|contains)\b",
-            re.IGNORECASE,
-        )
-        for s in sentences:
-            s_clean = s.strip()
-            s_clean = re.sub(r"^#+\s*", "", s_clean)
-            s_clean = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", s_clean)
-            if 10 <= len(s_clean) <= 150 and not s_clean.endswith("?"):
-                if copula_pattern.search(s_clean):
-                    return s_clean.rstrip(".! ")
-
-        if 10 <= len(cleaned) <= 120 and not cleaned.endswith("?"):
-            return cleaned.rstrip(".! ")
-        return None
-
+    # delegate — kept for test/back-compat
     def _check_and_offer_ratification(self, trace: TurnTrace) -> str | None:
-        if getattr(self, "_ratification_offered_this_turn", False):
-            return None
-        receipts = getattr(self, "current_turn_receipts", []) or []
-        for r in receipts:
-            tool_name = getattr(r, "tool", "") or getattr(r, "tool_name", "")
-            if tool_name not in ("fetch_url", "search_web", "web_search", "browse_page"):
-                continue
-            if not getattr(r, "ok", True):
-                continue
-            domain = self._extract_receipt_domain(r)
-            if not domain or not self._is_domain_whitelisted(domain):
-                continue
-            claim = self._extract_durable_claim(r)
-            if not claim:
-                continue
+        return self.deduction_runner.check_and_offer_ratification(trace)
 
-            args = getattr(r, "args", {}) or {}
-            url = ""
-            if isinstance(args, dict):
-                url = str(args.get("url", "") or args.get("domain", "") or domain)
-
-            offer_text = f"I found on {domain} that {claim} \u2014 want me to remember that?"
-            self._ratification_offered_this_turn = True
-
-            self._pending_ratification = PendingRatification(
-                call_id=getattr(r, "call_id", ""),
-                domain=domain,
-                claim=claim,
-                source_url=url,
-                fetch_receipt_entry_id=getattr(r, "entry_id", "") or getattr(r, "call_id", ""),
-            )
-            self._speak_text(trace, offer_text)
-            self._publish_caption(offer_text, source="assistant", is_final=True)
-            return offer_text
-        return None
-
+    # delegate — kept for test/back-compat
     def _commit_ratified_fact(self, pending: PendingRatification, trace: TurnTrace) -> str | None:
-        if not self.memory_store:
-            return None
-        signer = self.signer_factory.derived_fact()
-        now = self.clock.now_utc() if hasattr(self, "clock") and self.clock else time.time()
-        source_id = pending.fetch_receipt_entry_id or f"fetch-{pending.call_id}"
-        unsigned = UnsignedPayload(
-            content=pending.claim,
-            provenance=Provenance.USER_DERIVED,
-            kind="fact",
-            nonce=os.urandom(16).hex(),
-            created_at=now,
-            trace_id=trace.trace_id,
-            confidence=1.0,
-            source_entry_ids=[source_id],
-            structured={
-                "source_url": pending.source_url,
-                "fetch_receipt_entry_id": source_id,
-                "confirmed_by_user": True,
-            },
-        )
-        signed = signer.sign(unsigned)
-        self.memory_store.commit(signed, now=now)
-        self._last_ratified_claim = pending.claim
-        return signed.entry_id
+        return self.deduction_runner.commit_ratified_fact(pending, trace)
 
+    # delegate — kept for test/back-compat
     def _is_cross_reference_command(self, text: str) -> bool:
         return is_cross_reference_command(text)
 
+    # delegate — kept for test/back-compat
     def _resolve_cross_reference_claim(self, user_text: str) -> str | None:
-        cross_ref_pat = (
-            r"(?:cross[\s-]?reference|find more sources on|check more sources on|verify)"
-            r"\s+(?:that\s+)?(.+)"
-        )
-        m = re.search(cross_ref_pat, user_text, re.IGNORECASE)
-        if m:
-            explicit_claim = m.group(1).strip().rstrip(".!?")
-            if explicit_claim.lower() not in ("that", "this", "it"):
-                return explicit_claim
+        return self.deduction_runner.resolve_cross_reference_claim(user_text)
 
-        if getattr(self, "_pending_ratification", None) is not None:
-            return self._pending_ratification.claim
-
-        if getattr(self, "_last_ratified_claim", None):
-            return self._last_ratified_claim
-
-        for msg in reversed(self.history):
-            if msg.get("role") == "assistant":
-                content = str(msg.get("content", ""))
-                offer_match = re.search(
-                    r"I found on .+? that (.+?) [—\-] want me to remember that\?",
-                    content,
-                )
-                if offer_match:
-                    return offer_match.group(1).strip()
-                c = self._extract_durable_claim_from_text(content)
-                if c:
-                    return c
-        return None
-
+    # delegate — kept for test/back-compat
     @staticmethod
     def _extract_claim_aligned_sentences(
         claim: str,
@@ -4446,205 +2102,28 @@ class Orchestrator:
         fallback_snippet: str,
         max_sentences: int = 2,
     ) -> str:
-        """Extracts the top 1-2 claim-aligned sentences from Scrapling page text.
+        return DeductionAndPlanningRunner.extract_claim_aligned_sentences(
+            claim=claim,
+            page_text=page_text,
+            fallback_snippet=fallback_snippet,
+            max_sentences=max_sentences,
+        )
 
-        Prevents full-page negation/adversative pollution in compute_proposition_alignment
-        (corroboration.py:666) while upgrading 150-char snippets with deep article facts.
-        """
-        if not page_text or not page_text.strip():
-            return fallback_snippet
-        claim_tokens = {
-            tok
-            for tok in re.findall(r"[a-z0-9]+", claim.lower())
-            if len(tok) > 2
-            and tok not in {"the", "and", "for", "that", "with", "from", "this", "what", "when", "where", "who", "was", "are", "is"}
-        }
-        if not claim_tokens:
-            return fallback_snippet
-
-        raw_sentences = [
-            s.strip()
-            for s in re.split(r"(?<=[.!?])\s+|\n+", page_text)
-            if 15 <= len(s.strip()) <= 500
-        ]
-        if not raw_sentences:
-            return fallback_snippet
-
-        scored: list[tuple[float, int, str]] = []
-        for idx, sent in enumerate(raw_sentences):
-            sent_tokens = set(re.findall(r"[a-z0-9]+", sent.lower()))
-            overlap = len(claim_tokens & sent_tokens)
-            if overlap == 0:
-                continue
-            ratio = overlap / max(len(claim_tokens), 1)
-            scored.append((ratio, -idx, sent))
-
-        if not scored:
-            return fallback_snippet
-
-        scored.sort(reverse=True)
-        top_sents = [s for _r, _i, s in scored[:max_sentences]]
-        combined = " ".join(top_sents).strip()
-        if fallback_snippet and fallback_snippet not in combined:
-            return f"{fallback_snippet} {combined}".strip()
-        return combined
-
+    # delegate — kept for test/back-compat
     def _fetch_cross_reference_page(self, url: str) -> str:
-        """Fetches clean article text via Scrapling web_tool for cross-reference corroboration."""
-        if not url:
-            return ""
-        is_mock_sandbox = self.sandbox is not None and type(
-            self.sandbox
-        ).__module__.startswith("unittest.mock")
-        default_enabled = not is_mock_sandbox
-        if not getattr(self, "enable_deep_cross_reference", default_enabled):
-            return ""
-        try:
-            from lucca.sandbox.web_tool import fetch_url
+        return self.deduction_runner.fetch_cross_reference_page(url)
 
-            structured, content = fetch_url(url=url, max_chars=6000)
-            if structured.get("ok") and isinstance(content, str):
-                return content
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("cross_ref_deep_fetch_error", url=url, error=str(exc))
-        return ""
-
+    # delegate — kept for test/back-compat
     def _execute_cross_reference_searches(
         self, claim: str, max_searches: int = 3
     ) -> list[ToolReceipt]:
-        custom_search = getattr(self, "cross_reference_search_fn", None)
-        if custom_search is not None and callable(custom_search):
-            res_list = custom_search(claim, max_searches)
-            if isinstance(res_list, list):
-                return [r for r in res_list if isinstance(r, ToolReceipt)]
+        return self.deduction_runner.execute_cross_reference_searches(
+            claim, max_searches=max_searches
+        )
 
-        receipts: list[ToolReceipt] = []
-        if self.sandbox:
-            call_id = str(ulid.ULID())
-            res = self.sandbox.execute_tool(
-                call_id=call_id,
-                tool_name="search_web",
-                args={"query": claim, "max_results": max_searches},
-                confirmed=True,
-            )
-            if (
-                res.structured
-                and "results" in res.structured
-                and isinstance(res.structured["results"], list)
-            ):
-                for item in res.structured["results"][:max_searches]:
-                    url = item.get("url", "")
-                    domain = ""
-                    if url:
-                        try:
-                            domain = urllib.parse.urlsplit(url).netloc.lower()
-                        except Exception as exc:  # noqa: BLE001
-                            logger.debug("search_receipt_domain_urlsplit_error", error=str(exc))
-                    content = f"{item.get('title', '')} {item.get('snippet', '')}".strip()
-                    page_text = self._fetch_cross_reference_page(url) if url else ""
-                    if page_text:
-                        content = self._extract_claim_aligned_sentences(
-                            claim=claim,
-                            page_text=page_text,
-                            fallback_snippet=content,
-                        )
-                    rcpt = ToolReceipt(
-                        tool="search_web",
-                        tool_name="search_web",
-                        ok=True,
-                        call_id=str(ulid.ULID()),
-                        args={"url": url, "domain": domain, "query": claim},
-                        output=content,
-                        timestamp=time.time(),
-                    )
-                    receipts.append(rcpt)
-                    self.current_turn_receipts.append(rcpt)
-            elif res.content:
-                rcpt = ToolReceipt(
-                    tool="search_web",
-                    tool_name="search_web",
-                    ok=res.ok,
-                    call_id=call_id,
-                    args={"query": claim},
-                    output=str(res.content),
-                    timestamp=time.time(),
-                )
-                receipts.append(rcpt)
-                self.current_turn_receipts.append(rcpt)
-        return receipts
-
+    # delegate — kept for test/back-compat
     def _handle_cross_reference(self, trace: TurnTrace, user_text: str) -> None:
-        claim = self._resolve_cross_reference_claim(user_text)
-        if not claim:
-            msg = "I don't have a recent claim to cross-reference."
-            self._speak_text(trace, msg)
-            self._publish_caption(msg, source="assistant", is_final=True)
-            self.history.append({"role": "user", "content": user_text})
-            self.history.append({"role": "assistant", "content": msg})
-            self.play_ring.set_flag(FLAG_EOS)
-            self._finalize_turn(trace, None)
-            return
-
-        if getattr(self, "_pending_ratification", None) is not None:
-            self._pending_ratification = None
-
-        receipts = self._execute_cross_reference_searches(claim, max_searches=3)
-        step = InferenceStep(
-            s=claim,
-            p="is_verified",
-            o="true",
-            premises=[f"web asserts {claim}"],
-            confidence=0.70,
-            rationale="cross_reference",
-        )
-        q_results = critical_questions(
-            scheme=Scheme.AUTHORITY,
-            step=step,
-            store=self.memory_store,
-            receipts=receipts,
-        )
-        initial_conf = 0.70
-        new_conf, conditions = adjust_confidence(initial_conf, q_results)
-        std = standard_for_confidence(new_conf)
-
-        q2 = next(
-            (
-                q
-                for q in q_results
-                if "corroborated" in q.question.lower() and q.answer == CQAnswer.SATISFIED
-            ),
-            None,
-        )
-        corrob_count = q2.count if q2 else 0
-        disputes = [
-            q
-            for q in q_results
-            if "disputed" in q.question.lower() and q.answer == CQAnswer.SATISFIED
-        ]
-
-        if disputes:
-            report = (
-                f"Cross-reference found disputing evidence. "
-                f"Confidence docked to {new_conf:.2f} \u2014 {std.value}."
-            )
-        elif corrob_count > 0:
-            sources_str = f"{corrob_count} independent source{'s' if corrob_count != 1 else ''}"
-            report = (
-                f"Cross-referenced across {sources_str}: "
-                f"confidence {new_conf:.2f} \u2014 {std.value}."
-            )
-        else:
-            report = (
-                f"Cross-reference found no independent corroboration. "
-                f"Confidence remains {new_conf:.2f} \u2014 {std.value}."
-            )
-
-        self._speak_text(trace, report)
-        self._publish_caption(report, source="assistant", is_final=True)
-        self.history.append({"role": "user", "content": user_text})
-        self.history.append({"role": "assistant", "content": report})
-        self.play_ring.set_flag(FLAG_EOS)
-        self._finalize_turn(trace, None)
+        self.deduction_runner.handle_cross_reference(trace, user_text)
 
     # delegate — kept for test/back-compat
     def _request_confirmation(
@@ -4656,6 +2135,7 @@ class Orchestrator:
     ) -> bool:
         return self.confirmations.request_confirmation(trace, name, args, timeout_s=timeout_s)
 
+    # delegate — kept for test/back-compat
     def _handle_tool_call(
         self,
         trace: TurnTrace,
@@ -4663,535 +2143,7 @@ class Orchestrator:
         args: dict[str, JsonValue],
         speak: bool = True,
     ) -> ToolResult | None:
-        # Semantic repair: if model invoked calc_math with Python code or equation solving, route to run_python
-        if name == "calc_math":
-            expr_val = args.get("expr")
-            code_val = args.get("code")
-            raw_content = str(code_val if code_val is not None else (expr_val or ""))
-            solve_match = re.search(r"^(.*?)=(.*?)(?:[;,]\s*|\s+)solve\s+for\s+([a-zA-Z_]\w*)$", raw_content.strip(), re.IGNORECASE)
-            if solve_match:
-                lhs = solve_match.group(1).strip().rstrip(";,")
-                rhs = solve_match.group(2).strip().rstrip(";,")
-                var = solve_match.group(3).strip()
-                sympy_code = (
-                    f"import sympy as sp\n"
-                    f"{var} = sp.Symbol('{var}')\n"
-                    f"eq = sp.Eq({lhs}, {rhs})\n"
-                    f"sol = sp.solve(eq, {var})\n"
-                    f"print(f'{var} = {{sol}}')\n"
-                )
-                logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python", fix="equation_to_sympy")
-                name = "run_python"
-                args = {"code": sympy_code}
-            else:
-                is_python_code = (
-                    "code" in args
-                    or "\n" in raw_content
-                    or ";" in raw_content
-                    or "import " in raw_content
-                    or "def " in raw_content
-                    or "print(" in raw_content
-                    or len(raw_content) > 300
-                )
-                if is_python_code:
-                    logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python")
-                    name = "run_python"
-                    args = {"code": raw_content}
-        elif name == "run_python":
-            if "expr" in args and "code" not in args:
-                logger.info("tool_semantic_reroute", from_tool="run_python", fix="expr_to_code")
-                args = {"code": str(args["expr"])}
-
-        self.executed_tools.append((name, args))
-        call_id = str(ulid.ULID())
-        self.current_turn_tool_calls.append(ToolCall(tool=name, args=dict(args), call_id=call_id))
-        if not self.execute_tools:
-            return None
-
-        # Speculative BDI Invariant Validation (Milestone 4)
-        bdi_validator = getattr(self, "bdi_validator", None)
-        if bdi_validator is not None:
-            bdi_res = bdi_validator.validate_tool_call(
-                name,
-                args,
-                taint_flags=getattr(self.sandbox, "taint_flags", 0),
-            )
-            if not bdi_res.is_valid:
-                logger.warning(
-                    "bdi_invariant_violation",
-                    tool=name,
-                    reason=bdi_res.reason,
-                    elapsed_us=bdi_res.elapsed_us,
-                )
-                self.current_turn_tool_ok = False
-                affect_tracker = getattr(self, "affect_tracker", None)
-                if affect_tracker is not None:
-                    affect_tracker.record_signal(
-                        AffectSignal.DEONTIC_REJECTION, custom_cause=bdi_res.reason
-                    )
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-4,
-                    stderr=f"Speculative Invariant Violation: {bdi_res.reason}. Action prohibited.",
-                    elapsed_ms=bdi_res.elapsed_us / 1000.0,
-                )
-
-        # invoke_skill dispatch tool (T1.2)
-        if name == "invoke_skill":
-            from pydantic import ValidationError  # noqa: PLC0415
-
-            from lucca.sandbox.schemas import TOOL_ARG_SCHEMAS, InvokeSkillArgs  # noqa: PLC0415
-
-            schema_cls = TOOL_ARG_SCHEMAS.get("invoke_skill", InvokeSkillArgs)
-            try:
-                parsed_is = schema_cls.model_validate(args)
-                skill_id = str(getattr(parsed_is, "skill_id", ""))
-                raw_skill_args = getattr(parsed_is, "args", {})
-                skill_args: dict[str, JsonValue] = (
-                    dict(raw_skill_args) if isinstance(raw_skill_args, dict) else {}
-                )
-            except ValidationError as exc:
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"invalid_arguments: {exc}",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-1,
-                    stderr=f"invalid_arguments: {exc}",
-                    elapsed_ms=0.0,
-                )
-
-            manifest_ids = getattr(self, "current_manifest_skill_ids", None)
-            ok, reason, payload = dispatch_invoke_skill(
-                skill_id=skill_id,
-                args=skill_args,
-                rule_engine=self.rule_engine,
-                manifest_skill_ids=manifest_ids,
-            )
-            if not ok:
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=reason,
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    exit_code=-1,
-                    stderr=reason,
-                    structured=payload,
-                    elapsed_ms=0.0,
-                )
-
-            # Contract step 4: Execute the rule's plan through existing plan executor
-            rule_entry = self.rule_engine.rules[skill_id]
-            rule_state = self._build_rule_state(
-                str(skill_args.get("query") or self.current_turn_transcript or "")
-            )
-            for k, v in skill_args.items():
-                if k != "query" and isinstance(v, str):
-                    rule_state.entities.setdefault(k, []).append(v)
-            outcome = evaluate_plan(rule_entry.definition, rule_state)
-            if outcome.plan:
-                sub_results: list[str] = []
-                for sub_action in outcome.plan.actions:
-                    if isinstance(sub_action, ToolCall):
-                        sub_res = self._handle_tool_call(
-                            trace, sub_action.tool, dict(sub_action.args), speak=False
-                        )
-                        sub_status = (
-                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
-                        )
-                        sub_results.append(f"{sub_action.tool}->{sub_status}")
-                    elif isinstance(sub_action, Say) and speak:
-                        self._speak_text(trace, sub_action.text)
-                    elif isinstance(sub_action, AssertFact):
-                        self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(
-                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
-                        )
-                has_failures = any("->failed" in s for s in sub_results)
-                skill_signal: Literal["tool_exit_zero", "pydantic_valid"] = (
-                    "pydantic_valid" if has_failures else "tool_exit_zero"
-                )
-                self.rule_engine.emit_execution_triple(
-                    rule_id=skill_id,
-                    plan=outcome.plan,
-                    signal=skill_signal,
-                    detail=f"invoke_skill {', '.join(sub_results)}",
-                )
-                res_content = (
-                    f"Skill '{skill_id}' fired. "
-                    f"Rationale: {outcome.plan.rationale or 'completed'}. "
-                    f"Actions: {', '.join(sub_results) or 'none'}"
-                )
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=True,
-                    output=res_content,
-                    error=None,
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=True,
-                    content=res_content,
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            else:
-                err_msg = outcome.error or "conditions not met"
-                self.current_turn_tool_ok = False
-                self._record_tool_receipt(
-                    name=name,
-                    call_id=call_id,
-                    args=args,
-                    ok=False,
-                    output=None,
-                    error=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
-                )
-                return ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    stderr=f"Skill '{skill_id}' evaluated but did not fire: {err_msg}",
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-
-        # Check if this is a MicroScheme skill invocation (Proposal A / D-REAS-04)
-        target_rule_id = None
-        if name.startswith("skill_"):
-            target_rule_id = name[6:].replace("_", "-")
-        elif name in self.rule_engine.rules:
-            target_rule_id = name
-
-        if target_rule_id and target_rule_id in self.rule_engine.rules:
-            rule_entry = self.rule_engine.rules[target_rule_id]
-            rule_state = self._build_rule_state(
-                str(args.get("query") or self.current_turn_transcript or "")
-            )
-            outcome = evaluate_rule(rule_entry.definition, rule_state)
-            if outcome.plan:
-                sub_results: list[str] = []
-                for sub_action in outcome.plan.actions:
-                    if isinstance(sub_action, ToolCall):
-                        sub_res = self._handle_tool_call(
-                            trace, sub_action.tool, dict(sub_action.args), speak=False
-                        )
-                        sub_status = (
-                            "ok" if (sub_res is None or getattr(sub_res, "ok", True)) else "failed"
-                        )
-                        sub_results.append(f"{sub_action.tool}->{sub_status}")
-                    elif isinstance(sub_action, Say) and speak:
-                        self._speak_text(trace, sub_action.text)
-                    elif isinstance(sub_action, AssertFact):
-                        self._commit_lisp_assertion(sub_action, trace)
-                        sub_results.append(
-                            f"assert({sub_action.s} {sub_action.p} {sub_action.o})->ok"
-                        )
-                res = ToolResult(
-                    call_id=call_id,
-                    ok=True,
-                    content=(
-                        f"Skill '{target_rule_id}' fired. "
-                        f"Rationale: {outcome.plan.rationale or 'completed'}. "
-                        f"Actions: {', '.join(sub_results) or 'none'}"
-                    ),
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            else:
-                err_msg = outcome.error or "conditions not met"
-                res = ToolResult(
-                    call_id=call_id,
-                    ok=False,
-                    stderr=f"Skill '{target_rule_id}' evaluated but did not fire: {err_msg}",
-                    elapsed_ms=float(outcome.elapsed_us) / 1000.0,
-                )
-            if not res.ok:
-                self.current_turn_tool_ok = False
-            self._record_tool_receipt(
-                name=name,
-                call_id=call_id,
-                args=args,
-                ok=res.ok,
-                output=res.content,
-                error=res.stderr,
-            )
-            return res
-
-        # Check confirmation requirement (WRITE / LAUNCH)
-        human_confirmed = False
-        if self.sandbox.check_confirmation_needed(name):
-            already_staged = getattr(self, "_pending_image_b64", None) or getattr(self, "current_turn_image_b64", None)
-            if name == "screenshot_capture" and already_staged:
-                logger.info("screenshot_confirmation_bypassed_user_pre_attached")
-                human_confirmed = True
-            else:
-                confirmed = self._request_confirmation(trace, name, args)
-                if not confirmed:
-                    logger.info("tool_execution_cancelled_by_user", tool=name)
-                    cancel_msg = "Cancelled."
-                    print(f"[Lucca] {cancel_msg}", flush=True)
-                    if speak:
-                        self._speak_text(trace, cancel_msg)
-                        self.current_turn_tool_spoken.append(cancel_msg)
-                    self.current_turn_tool_ok = False
-                    self._record_tool_receipt(
-                        name=name,
-                        call_id=call_id,
-                        args=args,
-                        ok=False,
-                        output=None,
-                        error="cancelled by user",
-                    )
-                    return ToolResult(
-                        call_id=call_id,
-                        ok=False,
-                        exit_code=-3,
-                        stderr="cancelled by user",
-                        elapsed_ms=0.0,
-                    )
-                human_confirmed = True
-
-        # WO-9 A2 (ADR-010): grounded memory_commit — orchestrator-side dispatch
-        # because it must cite the current-turn USER_EXPLICIT transcript payload.
-        if name == "memory_commit":
-            return self._handle_memory_commit(trace, call_id, name, args, speak)
-
-        # WO-9 A14 (F18): model-callable self-history — "did you actually do X?"
-        # answered from persisted records, never confabulated.
-        if name == "self_history_search":
-            return self._handle_self_history_search(call_id, args)
-
-        if name == "schedule_event":
-            res = self._handle_schedule_event(call_id, args)
-            if speak and res.ok:
-                ev = str(args.get("event_name", "the event"))
-                spoken_msg = f"I've noted that reminder for {ev}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "artifact_verify":
-            res = self._handle_artifact_verify(call_id, args)
-            if speak and res.ok:
-                path = str(args.get("path", "file"))
-                sha = str((res.structured or {}).get("sha256", ""))[:8]
-                spoken_msg = f"Verified {path}: checksum is {sha}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "clipboard_read":
-            res = self._handle_clipboard_read(call_id, args)
-            if speak and res.ok:
-                spoken_msg = "I read your clipboard."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "inbox_handoff":
-            res = self._handle_inbox_handoff(call_id, args)
-            if speak and res.ok:
-                fname = str(args.get("filename", "file"))
-                spoken_msg = f"Imported {fname} from inbox into workspace."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        if name == "screenshot_capture":
-            res = self._handle_screenshot_capture(call_id, args)
-            if speak and res.ok:
-                spoken_msg = "I took a screenshot."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-                # Inject the pending image into the narration tool_messages list so the
-                # next LLM call (narration or full-loop) receives the image token.
-                # _pending_image_b64 is consumed-and-cleared by llm_client.stream_turn()
-                # on the first LLM call after this — TRAP 3 guarantee.
-                pending_img = getattr(self, "_pending_image_b64", None)
-                if pending_img is not None:
-                    img_msg = ChatMessage(
-                        role="user",
-                        content="[Screenshot attached — describe what you see in spoken prose, no markdown.]",
-                        image_b64=pending_img,
-                    )
-                    current_tool_messages = getattr(self, "_current_tool_messages", None)
-                    if current_tool_messages is not None:
-                        current_tool_messages.append(img_msg)
-                    else:
-                        # Fallback: store on the turn context for the caller to pick up
-                        if not hasattr(self, "_screenshot_pending_msgs"):
-                            self._screenshot_pending_msgs = []
-                        self._screenshot_pending_msgs.append(img_msg)
-            elif speak and not res.ok:
-                spoken_msg = f"Error: {res.stderr or 'action failed'}."
-                print(f"[Lucca] {spoken_msg}", flush=True)
-                self._speak_text(trace, spoken_msg)
-                self.current_turn_tool_spoken.append(spoken_msg)
-            return res
-
-        # Corrective Search Query Injection & Category Grounding
-        if name == "search_web" and "query" in args and isinstance(args["query"], str):
-            q = str(args["query"])
-            detected = getattr(self, "active_detected_words", [])
-            for target_w in detected:
-                for tok in re.findall(r"\b[a-zA-Z]{3,}\b", q):
-                    if (
-                        tok.lower() != target_w.lower()
-                        and _levenshtein_distance(tok.lower(), target_w.lower()) <= 2
-                    ):
-                        q = re.sub(rf"\b{re.escape(tok)}\b", target_w, q)
-                if target_w.lower() not in q.lower():
-                    q = f'"{target_w}" {q}'.strip()
-
-            # Preserve category & location keywords from transcript or context if missing from query
-            # (WO-10.6: config-driven via heuristics.toml)
-            recent_ctx = " ".join(
-                m.get("content", "") for m in self.history[-2:] if isinstance(m, dict)
-            )
-            context_text = f"{self.current_turn_transcript or ''} {recent_ctx}".lower()
-            category_keywords = load_heuristics("search_category_keywords")
-            for kw in category_keywords:
-                if kw in context_text and kw not in q.lower():
-                    q = f"{q} {kw}".strip()
-            args["query"] = q
-
-        res = self.sandbox.execute_tool(
-            call_id=call_id,
-            tool_name=name,
-            args=args,
-            confirmed=True,
-            human_confirmed=human_confirmed,
-        )
-        affect_tracker = getattr(self, "affect_tracker", None)
-        if not res.ok:
-            self.current_turn_tool_ok = False
-            if affect_tracker is not None:
-                affect_tracker.record_signal(
-                    AffectSignal.TOOL_FAILURE, custom_cause=res.stderr or f"{name} failed"
-                )
-        elif affect_tracker is not None:
-            affect_tracker.record_signal(
-                AffectSignal.TASK_SUCCESS, custom_cause=f"{name} completed successfully"
-            )
-        err_val = res.stderr if res.stderr else (res.content if not res.ok else None)
-        self._record_tool_receipt(
-            name=name,
-            call_id=call_id,
-            args=args,
-            ok=res.ok,
-            output=res.content,
-            error=err_val,
-        )
-        logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
-        spoken_msg: str | None = None
-        if res.ok:
-            if name == "launch_app":
-                app_name = str(args.get("app_name", "app"))
-                spoken_msg = f"Launched {app_name}."
-            elif name == "write_file":
-                path = str(args.get("path", "file"))
-                spoken_msg = f"Saved {path}."
-            elif name == "delete_file":
-                path = str(args.get("path", "file"))
-                spoken_msg = f"Deleted {path}."
-            elif name == "run_python":
-                spoken_msg = "Python script executed."
-            elif name == "query_capabilities":
-                cat = str(args.get("category", "all")).lower()
-                if cat in ("applications", "apps", "whitelisted_apps"):
-                    spoken_msg = (
-                        "I can launch desktop applications including Calculator, Notepad, and Edge."
-                    )
-                elif cat in ("hardware", "hardware_substrates"):
-                    spoken_msg = (
-                        "I run locally across a CUDA dGPU, Intel AI Boost NPU, "
-                        "and multi-core host CPU."
-                    )
-                elif cat in ("memory", "memory_subsystem"):
-                    spoken_msg = (
-                        "I have persistent episodic and semantic memory backed by "
-                        "SQLite and vector embeddings."
-                    )
-                else:
-                    spoken_msg = (
-                        "I can launch desktop applications like Calculator, Notepad, and Edge, "
-                        "read and write files in your workspace, and remember our conversations "
-                        "with persistent memory."
-                    )
-            elif name == "read_file":
-                path = str(args.get("path", "file"))
-                content = str(res.content or "").strip()
-                if 0 < len(content) <= 150:
-                    spoken_msg = f"Here is what's in {path}: {content}"
-                else:
-                    spoken_msg = f"I read {path}."
-            elif name == "fetch_url":
-                url = str(args.get("url", "the page"))
-                spoken_msg = f"I fetched {url}."
-            elif name == "inbox_handoff":
-                spoken_msg = str(res.content or "Imported from inbox.")
-            elif name == "list_dir":
-                spoken_msg = str(res.content or "Checked directory.")
-            else:
-                spoken_msg = f"Executed {name}."
-        elif res.exit_code == -2 or "sandbox unavailable" in (res.stderr or ""):
-            spoken_msg = "My file sandbox isn't available — Docker isn't reachable."
-        else:
-            spoken_msg = f"Error: {res.stderr or 'action failed'}."
-
-        if speak and spoken_msg:
-            print(f"[Lucca] {spoken_msg}", flush=True)
-            self._speak_text(trace, spoken_msg)
-            self.current_turn_tool_spoken.append(spoken_msg)
-        elif spoken_msg:
-            self._last_unspoken_tool_msg = spoken_msg
-        return res
+        return self.tool_dispatcher.handle_tool_call(trace, name, args, speak=speak)
 
     def _heartbeat_loop(self) -> None:
         while self.running:

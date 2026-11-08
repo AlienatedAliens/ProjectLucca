@@ -1,44 +1,64 @@
 """
 Project Lucca — 5-Substrate Epistemic Search Cascade & Belnap Bilattice Orchestration
-Spec 10 §4, Milestone 3 Architecture
-Implements deterministic multi-tier evidence search, Belnap FOUR bilattice synthesis,
-acoustic floor-holding reflex cues, and calibrated honest abstention.
+Spec 10 §4, Milestone 3 Architecture, WO-43 Phase 3.3
 """
 
 from __future__ import annotations
 
 import enum
-import json
-import platform
 import re
 import time
 from collections.abc import Sequence
-from datetime import datetime
-from pathlib import Path
-from typing import Final, Literal
 
 import structlog
-import ulid
 from pydantic import BaseModel, Field, JsonValue, model_validator
 
-from lucca.core.schemas import (
-    MemoryHit,
-    RetrievalQuery,
-    ToolResult,
-    VerifierLabel,
-    standard_for_confidence,
+from lucca.core.cascade_intent import (
+    CULINARY_WORDS,
+    RECENT_CONTEXT_PATTERN,
+    REGIONAL_OR_CULTURE_WORDS,
+    SLANG_OR_DIALECT_WORDS,
+    _any_term_matches,
+    _extract_target_entity,
+    _term_matches,
+    classify_epistemic_intent,
+    extract_clean_topic,
+    matches_slang_or_world_definition,
+    select_floor_cue,
 )
+from lucca.core.cascade_substrates import CascadeSubstrateAdapters
+from lucca.core.schemas import VerifierLabel, standard_for_confidence
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
+from lucca.memory.latent_probe import (
+    BelnapLatentInvestigator,
+    BelnapValue,
+    belnap_join_k,
+    belnap_join_t,
+    belnap_meet_k,
+    belnap_meet_t,
+    belnap_negation,
+    information_join,
+    information_meet,
+    pool_evidence,
+    truth_join,
+    truth_meet,
+)
 from lucca.ports import MemoryStorePort, SemanticVerifierPort
 from lucca.reasoning.recall import recall_past_episodes, tokenize_query
 
 logger = structlog.get_logger(__name__)
 
 
-# ============================================================================
-# 1. Epistemic Substrates, Trust Tiers & Belnap FOUR Bilattice Enums
-# ============================================================================
+def _as_float(v: object, default: float = 0.0) -> float:
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            return default
+    return default
 
 
 class EpistemicSubstrate(enum.IntEnum):
@@ -74,99 +94,6 @@ class TrustTier(enum.IntEnum):
     TIER_2_WORKSPACE = 2  # Bounded container filesystem / source AST
     TIER_3_MEMORY = 3  # HMAC-signed episodic memory & user preferences
     TIER_4_WEB = 4  # External untrusted network content (tainted)
-
-
-class BelnapValue(enum.StrEnum):
-    """
-    Belnap's 4-valued evidential bilattice FOUR:
-    T: Supported True (positive evidence without refutation)
-    F: Supported False (refuted / negative evidence)
-    BOT: Epistemic Gap (\bot, Unknown / Neither true nor false)
-    TOP: Contradiction / Conflict (\top, Both true and false supported)
-    """
-
-    TRUE = "T"
-    FALSE = "F"
-    UNKNOWN = "BOT"
-    CONFLICT = "TOP"
-
-
-# ============================================================================
-# 2. Belnap Bilattice Algebraic Operations
-# ============================================================================
-
-
-def belnap_meet_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Logical conjunction (meet in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if BelnapValue.FALSE in (a, b):
-        return BelnapValue.FALSE
-    if a == BelnapValue.TRUE:
-        return b
-    if b == BelnapValue.TRUE:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.FALSE
-
-
-def belnap_join_t(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Logical disjunction (join in truth ordering <=_t: F <= {BOT, TOP} <= T)."""
-    if BelnapValue.TRUE in (a, b):
-        return BelnapValue.TRUE
-    if a == BelnapValue.FALSE:
-        return b
-    if b == BelnapValue.FALSE:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.TRUE
-
-
-def belnap_negation(a: BelnapValue) -> BelnapValue:
-    """Truth negation (~). Swaps T and F, fixes BOT and TOP."""
-    if a == BelnapValue.TRUE:
-        return BelnapValue.FALSE
-    if a == BelnapValue.FALSE:
-        return BelnapValue.TRUE
-    return a
-
-
-def belnap_meet_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Consensus / information meet (meet in knowledge ordering <=_k: BOT <= {T, F} <= TOP)."""
-    if BelnapValue.UNKNOWN in (a, b):
-        return BelnapValue.UNKNOWN
-    if a == BelnapValue.CONFLICT:
-        return b
-    if b == BelnapValue.CONFLICT:
-        return a
-    if a == b:
-        return a
-    return BelnapValue.UNKNOWN
-
-
-def belnap_join_k(a: BelnapValue, b: BelnapValue) -> BelnapValue:
-    """Evidential pooling / information join (join in knowledge ordering <=_k).
-
-    Ordering: BOT <= {T, F} <= TOP.
-    """
-    if BelnapValue.CONFLICT in (a, b):
-        return BelnapValue.CONFLICT
-    if a == BelnapValue.UNKNOWN:
-        return b
-    if b == BelnapValue.UNKNOWN:
-        return a
-    if a == b:
-        return a
-    # T and F pooled together yields conflict (\top)
-    return BelnapValue.CONFLICT
-
-
-def pool_evidence(values: Sequence[BelnapValue]) -> BelnapValue:
-    """Pools multiple evidence items using Belnap information join (sum of knowledge)."""
-    res = BelnapValue.UNKNOWN
-    for v in values:
-        res = belnap_join_k(res, v)
-    return res
 
 
 # ============================================================================
@@ -211,25 +138,15 @@ class EvidenceItem(BaseModel):
         if pol is not None and not has_explicit_bits and not has_explicit_counts:
             pol_str = pol.value if hasattr(pol, "value") else str(pol).upper()
             if pol_str in ("TOP", "CONFLICT"):
-                d["told_true"] = True
-                d["told_false"] = True
-                d["positive_evidence"] = 1
-                d["negative_evidence"] = 1
+                d.update(told_true=True, told_false=True, positive_evidence=1, negative_evidence=1)
             elif pol_str in ("F", "FALSE"):
-                d["told_true"] = False
-                d["told_false"] = True
-                d["positive_evidence"] = 0
-                d["negative_evidence"] = 1
+                d.update(told_true=False, told_false=True, positive_evidence=0, negative_evidence=1)
             elif pol_str in ("BOT", "UNKNOWN"):
-                d["told_true"] = False
-                d["told_false"] = False
-                d["positive_evidence"] = 0
-                d["negative_evidence"] = 0
+                d.update(
+                    told_true=False, told_false=False, positive_evidence=0, negative_evidence=0
+                )
             else:
-                d["told_true"] = True
-                d["told_false"] = False
-                d["positive_evidence"] = 1
-                d["negative_evidence"] = 0
+                d.update(told_true=True, told_false=False, positive_evidence=1, negative_evidence=0)
         elif has_explicit_counts and not has_explicit_bits:
             w_pos = int(d.get("positive_evidence", 0) or 0)
             w_neg = int(d.get("negative_evidence", 0) or 0)
@@ -238,10 +155,8 @@ class EvidenceItem(BaseModel):
         else:
             tt = bool(d.get("told_true", True))
             tf = bool(d.get("told_false", False))
-            if "positive_evidence" not in d:
-                d["positive_evidence"] = 1 if tt else 0
-            if "negative_evidence" not in d:
-                d["negative_evidence"] = 1 if tf else 0
+            d.setdefault("positive_evidence", 1 if tt else 0)
+            d.setdefault("negative_evidence", 1 if tf else 0)
         return d
 
     @property
@@ -320,621 +235,8 @@ class SearchCascadeResult(BaseModel):
     recollections: list[str] = Field(default_factory=list)
 
 
-# ============================================================================
-# 4. Floor-Holding Cues & Intent Classifier
-# ============================================================================
-
-
-def select_floor_cue(query_text: str, target_substrate: EpistemicSubstrate | None = None) -> str:
-    """
-    Selects an acoustic floor-holding reflex cue within < 1ms to claim
-    the conversational floor before multi-substrate search execution.
-    """
-    lower = query_text.lower()
-    if target_substrate == EpistemicSubstrate.SELF:
-        return "Reflecting on my design..."
-    if target_substrate == EpistemicSubstrate.CAPABILITIES:
-        return "Checking my capabilities..."
-    if target_substrate == EpistemicSubstrate.TELEMETRY or any(
-        w in lower
-        for w in ("gpu", "vram", "cpu", "ram", "hardware", "specs", "load", "utilization")
-    ):
-        return "Checking system telemetry..."
-    if target_substrate == EpistemicSubstrate.WORKSPACE or any(
-        w in lower
-        for w in (
-            "file",
-            "code",
-            "directory",
-            "workspace",
-            "script",
-            "folder",
-            "repo",
-            "inbox",
-        )
-    ):
-        return "Searching the workspace files..."
-    if target_substrate == EpistemicSubstrate.MEMORY or any(
-        w in lower for w in ("remember", "memory", "preference", "last time", "we talked", "who is")
-    ):
-        return "Checking my memory records..."
-    if target_substrate == EpistemicSubstrate.SELF_HISTORY or any(
-        w in lower
-        for w in (
-            "what did you do",
-            "did you do",
-            "did you run",
-            "did you tell me",
-            "did you say",
-            "have you ever been wrong",
-            "what did you say",
-            "what tools did you use",
-            "past actions",
-        )
-    ):
-        return "Reviewing my execution and conversation history..."
-    if target_substrate == EpistemicSubstrate.WEB or any(
-        w in lower for w in ("http", "https", "url", "website", "online", "fetch")
-    ):
-        return "Looking that up online..."
-    return "Checking that for you..."
-
-
-def extract_clean_topic(query_text: str) -> str:
-    """
-    Extracts a clean, normalized noun-phrase topic from an epistemic question.
-    Strips question prefixes, internal question marks, compound sentence tails,
-    and performs pronoun alignment for assistant voice ("I have no record of [topic]").
-    """
-    clean = query_text.strip()
-    if not clean:
-        return "that"
-
-    # 1. Take primary inquiry clause if compound (split on punctuation)
-    clauses = [c.strip() for c in re.split(r"[?!;]+", clean) if c.strip()]
-    first_clause = clauses[0] if clauses else clean
-
-    # 2. Strip leading question starters and conversational framing
-    lower_clause = first_clause.lower()
-    prefixes = (
-        "what can you tell me about",
-        "what can you tell me",
-        "what can you",
-        "can you tell me about",
-        "can you tell me",
-        "tell me about",
-        "tell me",
-        "do you know who is",
-        "do you know what is",
-        "do you know",
-        "do you remember",
-        "can you check",
-        "check",
-        "search for",
-        "find",
-        "who is",
-        "who was",
-        "who are",
-        "who were",
-        "what did i have for",
-        "what did i",
-        "what did we",
-        "what did",
-        "what do",
-        "what is the definition of",
-        "what is",
-        "what was",
-        "what are",
-        "what were",
-        "where is",
-        "where was",
-        "where are",
-        "why is",
-        "how is",
-    )
-    stripped = first_clause
-    for p in sorted(prefixes, key=len, reverse=True):
-        if lower_clause.startswith(p):
-            stripped = first_clause[len(p) :].strip()
-            break
-
-    stripped = stripped.strip("?.!, \t\n\r")
-    if not stripped:
-        return "that"
-
-    # 3. Pronoun alignment for assistant voice
-    tokens = stripped.split()
-    shifted: list[str] = []
-    subject_preceders = frozenset(
-        {
-            "have",
-            "has",
-            "had",
-            "did",
-            "do",
-            "does",
-            "can",
-            "could",
-            "will",
-            "would",
-            "should",
-            "if",
-        }
-    )
-    for i, t in enumerate(tokens):
-        tl = t.lower()
-        if tl == "your":
-            shifted.append("my")
-        elif tl == "you":
-            if i > 0 and tokens[i - 1].lower() in subject_preceders:
-                shifted.append("I")
-            elif i == 0 and len(tokens) > 1:
-                shifted.append("I")
-            else:
-                shifted.append("me")
-        elif tl == "my":
-            shifted.append("your")
-        elif tl == "me":
-            shifted.append("you")
-        elif tl == "i":
-            shifted.append("you")
-        else:
-            shifted.append(t)
-
-    res = " ".join(shifted).strip()
-    return res if res else "that"
-
-
-RECENT_CONTEXT_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"\b("
-    r"what did (?:i|you) (?:just|last) (?:say|tell|ask|do|search|look\s*up|find)|"
-    r"repeat (?:that|what)|what was that|"
-    r"which (?:sites?|websites?|sources?|urls?|pages?|links?) "
-    r"(?:did|have) you (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
-    r"what (?:sites?|websites?|sources?|urls?|pages?|links?) "
-    r"(?:did you|have you) (?:search(?:ed)?|check(?:ed)?|look(?:ed)?\s+at|visit(?:ed)?|use[d]?)|"
-    r"where did you (?:search|look|check)"
-    r")\b",
-    re.IGNORECASE,
-)
-
-
-def _term_matches(text: str, term: str) -> bool:
-    """Matches a term against text, honoring word boundaries for alphanumeric tokens."""
-    left_b = r"\b" if term and term[0].isalnum() else ""
-    right_b = r"\b" if term and term[-1].isalnum() else ""
-    pattern = f"{left_b}{re.escape(term)}{right_b}"
-    return bool(re.search(pattern, text))
-
-
-def _any_term_matches(text: str, terms: tuple[str, ...]) -> bool:
-    return any(_term_matches(text, t) for t in terms)
-
-
-REGIONAL_OR_CULTURE_WORDS: tuple[str, ...] = (
-    "australia", "australian", "aussie", "uk", "british", "britain", "england",
-    "scotland", "scottish", "ireland", "irish", "new zealand", "kiwi",
-    "philippines", "filipino", "singapore", "singaporean", "malaysia", "malaysian",
-    "new york", "nyc", "chicago", "texas", "southern", "canada", "canadian",
-    "south africa", "japan", "japanese",
-)
-
-SLANG_OR_DIALECT_WORDS: tuple[str, ...] = (
-    "slang", "colloquial", "colloquialism", "dialect", "idiom", "vernacular",
-    "lingo", "jargon", "local term", "street term",
-)
-
-CULINARY_WORDS: tuple[str, ...] = (
-    "food", "dish", "snack", "fish", "meat", "pastry", "cuisine", "grub",
-    "cheese", "sandwich", "dessert", "bread", "roll", "pie", "stew",
-    "beverage", "drink", "street food", "recipe", "barm",
-)
-
-
-def matches_slang_or_world_definition(lower: str) -> bool:
-    """Conformal uncertainty gating: detect cultural, culinary, regional slang or unfamiliar entity inquiries."""
-    # 1. Direct slang/dialect keywords
-    if any(re.search(rf"\b{re.escape(w)}\b", lower) for w in SLANG_OR_DIALECT_WORDS):
-        return True
-
-    # 2. Regional definitional phrasing: 'what is X in [region]' or 'what X is in [region]'
-    for reg in REGIONAL_OR_CULTURE_WORDS:
-        if re.search(rf"\bwhat\s+.+?\bin\s+{re.escape(reg)}\b", lower):
-            return True
-
-    # 3. Cultural/culinary entity definition: 'what is a/an ...' or 'what [a/an] ... is'
-    if re.search(r"\bwhat\s+(?:(?:is|are)\s+(?:a|an)\s+|a\s+|an\s+)[a-z0-9\s'-]+", lower):
-        return True
-
-    # 'what does ... mean'
-    if re.search(r"\bwhat\s+does\s+[a-z0-9\s'-]+?\s+mean\b", lower):
-        return True
-
-    # 'what is ...' where query contains culinary words
-    has_culinary = any(re.search(rf"\b{re.escape(w)}\b", lower) for w in CULINARY_WORDS)
-    if has_culinary and re.search(r"\bwhat\s+(?:is|are|[a-z0-9\s'-]+\s+is)\b", lower):
-        return True
-
-    # 'what is X and Y' (classic dishes like 'bubble and squeak', 'bangers and mash')
-    if re.search(r"\bwhat\s+(?:is|are)\s+[a-z0-9'-]+\s+and\s+[a-z0-9'-]+", lower):
-        return True
-
-    return False
-
-
-def _extract_target_entity(query_text: str) -> str | None:
-    """Extracts candidate target entity from definitional or slang query for snippet filtering."""
-    patterns = (
-        r"\bwhat\s+(?:is|are|does|was)\s+(?:a|an|the)?\s*([a-zA-Z0-9\s'-]+?)(?:\s+mean|\s+in\b|\s+slang|\s+dialect|\?|$)",
-        r"\bslang\s+(?:for|meaning)\s+([a-zA-Z0-9\s'-]+?)(?:\?|$)",
-    )
-    for p in patterns:
-        m = re.search(p, query_text, re.IGNORECASE)
-        if m:
-            cand = m.group(1).strip()
-            if cand and len(cand) < 60:
-                return cand
-    return None
-
-
-def classify_epistemic_intent(
-    query_text: str,
-) -> tuple[bool, list[EpistemicSubstrate], str | None]:
-    """
-    Classifies whether query_text is an epistemic factual query, selects candidate
-    substrates to query in priority order, and extracts the target topic.
-    """
-    clean = query_text.strip()
-    if not clean:
-        return False, [], None
-
-    lower = clean.lower()
-
-    # Non-epistemic conversational commands or pure acknowledgments
-    non_epistemic_exact = {
-        "hello",
-        "hi",
-        "hey",
-        "good morning",
-        "good evening",
-        "good afternoon",
-        "thanks",
-        "thank you",
-        "bye",
-        "goodbye",
-        "stop",
-        "pause",
-        "shut down",
-        "turn off",
-        "exit",
-        "quit",
-        "mute",
-        "unmute",
-    }
-    clean_punct = re.sub(r"[^\w\s]", "", lower).strip()
-    if clean_punct in non_epistemic_exact:
-        return False, [], None
-
-    # Conversational small talk / pure banter (without factual inquiry)
-    pure_banter = (
-        r"^(?:how\s+are\s+you|how(?:'re|\s+are)\s+you\s+doing"
-        r"|what(?:'s|\s+is)\s+up|how(?:'s|\s+is)\s+it\s+going)[.?!]?$"
-    )
-    if re.search(pure_banter, lower):
-        return False, [], None
-
-    # Conversational context queries (WO-17 Phase 6: do not query Substrate 2 memory)
-    if RECENT_CONTEXT_PATTERN.search(lower):
-        return False, [], None
-
-    # Closed-world puzzles, hypothetical premises, and deductive math reasoning
-    # MUST NOT trigger open-world file search, telemetry, or Belnap abstention refusal.
-    # Detected structurally via formal problem framing, premise enumeration, or equations.
-    closed_world_framing_pattern = re.compile(
-        r"(?:^(?:consider\s+the\s+following|assume\s+a\s+counterfactual|suppose\s+that|"
-        r"given\s+(?:the\s+)?(?:following\s+)?(?:clauses|premises|constraints|equations)|"
-        r"scenario:|observations:|premises?:|clues?:|rule\s+\d+:)|"
-        r"\b(?:step-by-step\s+deductive\s+proof|solve\s+(?:this\s+)?(?:logic\s+)?puzzle|"
-        r"logic\s+puzzle|cryptarithmetic|satisfiable|truth-tellers?\s+and\s+liars?|"
-        r"knights?\s+and\s+knaves?|solve\s+for\s+[a-z]\b))",
-        re.IGNORECASE,
-    )
-    if closed_world_framing_pattern.search(lower):
-        return False, [], None
-
-    # Structural detection of self-contained math/constraint word problems:
-    # Multiple numbered premises/rules or algebraic equations without personal/system inquiry.
-    has_personal_or_system_ref = bool(
-        re.search(
-            r"\b(?:my|your|our|lucca|workspace|file|directory|gpu|cpu|ram|memory|session)\b",
-            lower,
-        )
-    )
-    if not has_personal_or_system_ref:
-        has_numbered_premises = len(re.findall(r"(?:^|\n)\s*\d+\.\s+[A-Z]", clean)) >= 2
-        has_algebraic_relations = bool(
-            re.search(r"\b[a-z]\s*[+\-*/=<>]+\s*[a-z0-9]", lower)
-            or re.search(r"\b(?:premise|clause|constraint|hypothesis|interval)\s+[a-z0-9]+\b", lower)
-        )
-        if has_numbered_premises or has_algebraic_relations:
-            return False, [], None
-
-    # Substrate SELF: Companion identity, persona, creator, and design (Tier 0 Axiomatic)
-    self_pattern = (
-        r"\b(who\s+are\s+you|what\s+are\s+you|tell\s+me\s+about\s+yourself|"
-        r"what\s+can\s+you\s+tell\s+me\s+about\s+yourself|who\s+made\s+you|who\s+built\s+you|"
-        r"are\s+you\s+an?\s+(?:ai|human|robot|assistant|companion)|what(?:'s|\s+is)\s+your\s+name|"
-        r"introduce\s+yourself|your\s+(?:personality|archetype|creator|lore))\b"
-    )
-
-    # Substrate CAPABILITIES: Available tools, desktop apps, and LISP pathways (Tier 0 Axiomatic)
-    capability_pattern = (
-        r"\b(what\s+tools|what\s+can\s+you\s+do|available\s+(?:tools|functions|skills)|"
-        r"what\s+applications|what\s+apps|can\s+you\s+(?:launch|open|edit|run|execute)|"
-        r"list\s+(?:your\s+)?(?:tools|functions|capabilities)|installed\s+tools|"
-        r"reasoning\s+pathways|lisp\s+rules|microscheme|what\s+functions|access\s+to\s+(?:python|lisp))\b"
-    )
-
-    # Substrate TELEMETRY: System & Hardware Metrics
-    telemetry_words = (
-        "gpu",
-        "vram",
-        "cpu",
-        "ram",
-        "memory usage",
-        "hardware",
-        "specs",
-        "workstation",
-        "processor",
-        "utilization",
-        "load",
-        "temperature",
-        "telemetry",
-        "substrate configuration",
-        "nvidia",
-        "intel",
-        "overheating",
-        "motherboard",
-        "serial number",
-        "chassis",
-        "laptop specs",
-    )
-
-    # Substrate WORKSPACE: Filesystem & Code AST
-    workspace_words = (
-        "read the file",
-        "read_file",
-        "workspace",
-        "directory",
-        "folder",
-        "config/",
-        "src/",
-        "data/",
-        "scripts/",
-        "repo",
-        "main.py",
-        "persona.toml",
-        "files in",
-        "list files",
-        "grep",
-        "ast",
-        "contents of",
-        "inbox",
-        "drop folder",
-        "incoming files",
-        "any files",
-        "what files",
-        "have any files",
-        "do you have files",
-        "files do you have",
-        "document",
-        "documents",
-    )
-    has_file_name = bool(
-        re.search(
-            r"\b[a-zA-Z0-9_\-./\\]+\.(?:md|py|txt|toml|json|sql|csv|pdf|docx|yaml|yml)\b",
-            lower,
-        )
-    )
-
-    # Substrate MEMORY: Episodic Memory & Personal/User Facts
-    memory_words = (
-        "what did i",
-        "what did we",
-        "do you remember",
-        "in memory",
-        "what is my",
-        "what's my",
-        "what was my",
-        "what are my",
-        "who is my",
-        "where is my",
-        "my favorite",
-        "my preference",
-        "prefer",
-        "recall",
-        "last session",
-        "notes on my",
-        "talked about",
-        "where do i",
-        "where i live",
-        "where do i live",
-        "where am i living",
-        "my location",
-        "my city",
-        "my town",
-        "my address",
-        "my home",
-    )
-    # Structural detection of personal/private user or creator fact inquiries:
-    # First-person possessive ("my <noun>", "creator's <noun>", "what did I <verb>")
-    has_personal_fact_inquiry = bool(
-        re.search(
-            r"\b(?:what|who|where|when|which|tell\s+me|do\s+you\s+(?:know|remember|recall))\b"
-            r".*\b(?:my|mine|i\s+(?:have|had|ate|own|live|prefer|like|use|told|said|set|chose)|"
-            r"creator(?:'s)?|user(?:'s)?)\b",
-            lower,
-        )
-        or re.search(
-            r"\b(?:my|creator(?:'s)?|user(?:'s)?)\s+(?:[a-z]+\s+){0,2}"
-            r"(?:name|pet|password|passkey|secret|key|code|pin|birthday|age|job|occupation|"
-            r"family|friend|partner|sibling|allergy|diet|meal|car|phone|email|account)\b",
-            lower,
-        )
-    )
-
-    # Substrate WEB: External World / Web Search
-    web_words = (
-        "fetch_url",
-        "http://",
-        "https://",
-        "fetch url",
-        "browse",
-        "website",
-        "look up",
-        "lookup",
-        "search for",
-        "search google",
-        "check google",
-        "google",
-        "find out about",
-        "check wikipedia",
-        "wikipedia",
-        "headlines",
-        "online",
-    )
-
-    # Substrate TEMPORAL / TELEMETRY: Clock, Date, Time & Physical Geolocation
-    temporal_words = (
-        "what time",
-        "current time",
-        "time is it",
-        "time right now",
-        "what day is it",
-        "what day it is",
-        "what is the date",
-        "what's the date",
-        "today's date",
-        "todays date",
-        "current date",
-        "what month",
-        "what year",
-        "exact time",
-        "local time",
-        "clock",
-        "time in",
-        "time for",
-        "timezone",
-        "time zone",
-        "timezones",
-        "time zones",
-        "utc offset",
-        "gmt offset",
-        "daylight saving",
-        "daylight savings",
-        "daylight-saving",
-        "dst",
-        "standard time",
-    )
-    location_words = (
-        "where are you located",
-        "where you are located",
-        "where are we located",
-        "where you're located",
-        "your location",
-        "my location",
-        "physical location",
-        "machine located",
-        "computer located",
-        "pc located",
-        "where are you",
-        "where am i",
-        "public ip",
-        "ip address",
-        "geolocation",
-    )
-
-    substrates: list[EpistemicSubstrate] = []
-    # Inquiries about private user/creator facts must query MEMORY rather than axiomatic SELF
-    is_private_memory = has_personal_fact_inquiry and not bool(
-        re.search(
-            r"\b(?:who\s+are\s+you|what\s+is\s+your\s+name|introduce\s+yourself|"
-            r"tell\s+me\s+about\s+yourself|what\s+are\s+you)\b",
-            lower,
-        )
-    )
-    if re.search(self_pattern, lower) and not is_private_memory:
-        substrates.append(EpistemicSubstrate.SELF)
-    if re.search(capability_pattern, lower):
-        substrates.append(EpistemicSubstrate.CAPABILITIES)
-    if _any_term_matches(lower, telemetry_words):
-        substrates.append(EpistemicSubstrate.TELEMETRY)
-    if _any_term_matches(lower, temporal_words):
-        substrates.append(EpistemicSubstrate.TELEMETRY)
-        if EpistemicSubstrate.SELF not in substrates:
-            substrates.append(EpistemicSubstrate.SELF)
-    if _any_term_matches(lower, location_words):
-        substrates.append(EpistemicSubstrate.TELEMETRY)
-        if EpistemicSubstrate.SELF not in substrates:
-            substrates.append(EpistemicSubstrate.SELF)
-    if _any_term_matches(lower, workspace_words) or has_file_name:
-        substrates.append(EpistemicSubstrate.WORKSPACE)
-    self_history_words = (
-        "what did you do",
-        "what were you doing",
-        "what did we do",
-        "what tools did you use",
-        "did you run",
-        "did you save",
-        "did you execute",
-        "did you tell me",
-        "did you say",
-        "have you ever been wrong",
-        "have you ever made a mistake",
-        "you said yesterday",
-        "you said earlier",
-        "what did you tell me",
-        "what did you say",
-        "past actions",
-        "execution history",
-        "did you claim",
-    )
-    if _any_term_matches(lower, self_history_words):
-        substrates.append(EpistemicSubstrate.SELF_HISTORY)
-    if _any_term_matches(lower, memory_words) or is_private_memory or has_personal_fact_inquiry:
-        substrates.append(EpistemicSubstrate.MEMORY)
-    has_slang_intent = (
-        matches_slang_or_world_definition(lower)
-        and not _any_term_matches(lower, self_history_words)
-        and not re.search(self_pattern, lower)
-        and not re.search(capability_pattern, lower)
-        and not _any_term_matches(lower, temporal_words)
-    )
-    if (
-        _any_term_matches(lower, web_words)
-        or has_slang_intent
-    ) and not _any_term_matches(lower, self_history_words):
-        if EpistemicSubstrate.WEB not in substrates:
-            substrates.append(EpistemicSubstrate.WEB)
-
-    is_epistemic = len(substrates) > 0
-
-    # Extract clean normalized topic string
-    topic = extract_clean_topic(clean)
-
-    return is_epistemic, substrates, topic
-
-
-# ============================================================================
-# 5. Epistemic Search Cascade Implementation
-# ============================================================================
-
-
-class EpistemicSearchCascade:
-    """
-    Executes multi-tier epistemic search across Substrates 0 to 4,
-    computes Belnap FOUR evidential synthesis, and enforces calibrated honest abstention.
-    """
+class EpistemicSearchCascade(CascadeSubstrateAdapters):
+    """Executes multi-tier epistemic search across Substrates 0 to 7 and Belnap FOUR synthesis."""
 
     def __init__(
         self,
@@ -956,589 +258,6 @@ class EpistemicSearchCascade:
     ) -> str:
         return select_floor_cue(query_text, target_substrate)
 
-    def _execute_sandbox(
-        self,
-        tool_name: str,
-        args: dict[str, JsonValue],
-        confirmed: bool = True,
-    ) -> ToolResult | None:
-        """Invokes a sandbox tool polymorphically (SandboxService or PersistentDockerWorker)."""
-        if not self.sandbox:
-            return None
-        if hasattr(self.sandbox, "execute"):
-            return self.sandbox.execute(tool_name=tool_name, args=args, confirmed=confirmed)
-        if hasattr(self.sandbox, "execute_tool"):
-            cid = f"call-casc-{ulid.ULID()}"
-            return self.sandbox.execute_tool(
-                call_id=cid, tool_name=tool_name, args=args, confirmed=confirmed
-            )
-        return None
-
-    # ------------------------------------------------------------------------
-    # Substrate SELF: Axiomatic Persona & Self-Model (0ms, Tier 0)
-    # ------------------------------------------------------------------------
-    def query_substrate_self(self, query_text: str) -> list[EvidenceItem]:
-        """
-        Queries live persona, identity, and runtime truth (Substrate SELF - Axiomatic Tier 0).
-
-        Runtime facts (which LLM / ASR / TTS are loaded) are read from LuccaConfig at
-        query time, never hard-coded, so a brain swap is a config change and Lucca's
-        self-description stays truthful.
-        """
-        # Lazy imports: brain.prompt_builder / core.config import the cascade indirectly
-        # (orchestrator -> cascade); importing at module top would form a cycle.
-        from lucca.brain.prompt_builder import get_persona_config  # noqa: PLC0415
-        from lucca.core.config import get_config  # noqa: PLC0415
-
-        try:
-            cfg = get_persona_config()
-            rt = get_config()
-            now_local = datetime.now().astimezone()
-            time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
-            active_voice = cfg.voice or rt.tts.voice
-            from lucca.speech.engines import ENGINE_CATALOG, parse_engine_from_spec
-            eng_id, _ = parse_engine_from_spec(str(active_voice))
-            eng_desc = ENGINE_CATALOG.get(eng_id)
-            eng_name = eng_desc.name if eng_desc else "Kokoro-82M"
-            tts_info = f"speech synthesis '{eng_name}' (voice: '{active_voice}')"
-            mmproj_name = (
-                Path(rt.llm.mmproj).name if getattr(rt.llm, "mmproj", None) else "sovereign-ocr"
-            )
-            vision_info = (
-                f"; multimodal vision projector '{mmproj_name}' active (mode: {rt.llm.mode})"
-                if (rt.llm.mode == "vision" or getattr(rt.llm, "mmproj", None))
-                else ""
-            )
-            content = (
-                f"Agent Identity: Lucca, local AI engineer companion. "
-                f"Current Local Time: {time_str}. "
-                f"Archetype: {cfg.archetype}. Voice: {active_voice}. "
-                f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
-                f"llama-server on the dGPU (context {rt.llm.ctx} tokens){vision_info}; "
-                f"speech recognition '{Path(rt.asr.model).name}' on the dGPU (CUDA float16, CPU fallback); "
-                f"{tts_info}. "
-                f"Host Workstation: {platform.node()} ({platform.platform()}). "
-                f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
-                f"Created locally for this workstation. "
-                f"Admits uncertainty: {cfg.admits_uncertainty}."
-            )
-        except Exception as exc:  # noqa: BLE001 — degrade to static identity, never crash a turn
-            logger.warning("cascade_self_substrate_fallback", error=str(exc))
-            content = (
-                "Lucca: local AI engineer companion for pair programming and systems engineering."
-            )
-
-        return [
-            EvidenceItem(
-                substrate=EpistemicSubstrate.SELF,
-                trust_tier=TrustTier.TIER_0_AXIOMATIC,
-                source="config/persona.toml",
-                content=content,
-                belnap_val=BelnapValue.TRUE,
-                confidence=1.0,
-                latency_ms=0.01,
-            )
-        ]
-
-    # ------------------------------------------------------------------------
-    # Substrate CAPABILITIES: Authoritative Capability Registry (0ms, Tier 0)
-    # ------------------------------------------------------------------------
-    def query_substrate_capabilities(self, query_text: str) -> list[EvidenceItem]:
-        """Queries registered capabilities and tools (Substrate CAPABILITIES, Tier 0).
-
-        The tool list is always derived from the live registry. If the registry cannot be
-        read, this substrate returns **no evidence** rather than a hard-coded list — a stale
-        list stamped TIER_0 / confidence 1.0 would itself be a confabulated self-description.
-        """
-        try:
-            # Lazy import: capabilities imports the orchestrator's schemas; avoid a cycle.
-            from lucca.core.capabilities import get_capability_registry  # noqa: PLC0415
-
-            reg = get_capability_registry()
-            apps = [a["key"] for a in reg.get_whitelisted_apps() if a.get("status") != "Disabled"]
-            pathways = list(reg.get_reasoning_pathways().keys())
-            tools = [t.function.name for t in reg.get_tool_definitions()]
-            content = (
-                f"Available Core Tools: {', '.join(tools)}. "
-                f"Whitelisted Desktop Applications (Tool Studio): {', '.join(apps)}. "
-                f"Active MicroScheme Reasoning Pathways (LISP Studio): {', '.join(pathways)}."
-            )
-        except Exception as exc:  # noqa: BLE001 — registry failure must yield abstention, not a crash
-            logger.warning("cascade_capabilities_substrate_unavailable", error=str(exc))
-            return []
-
-        return [
-            EvidenceItem(
-                substrate=EpistemicSubstrate.CAPABILITIES,
-                trust_tier=TrustTier.TIER_0_AXIOMATIC,
-                source="CapabilityRegistry",
-                content=content,
-                belnap_val=BelnapValue.TRUE,
-                confidence=1.0,
-                latency_ms=0.01,
-            )
-        ]
-
-    # ------------------------------------------------------------------------
-    # Substrate 0: System & Hardware Telemetry (< 1ms target)
-    # ------------------------------------------------------------------------
-    def query_substrate_0_telemetry(self, query_text: str) -> list[EvidenceItem]:
-        """Queries live hardware telemetry (GPU, CPU, RAM, NPU, Time, Location) via system_tools."""
-        lower = query_text.lower()
-        items: list[EvidenceItem] = []
-
-        try:
-            # Lazy import: system_tools pulls pynvml/psutil; keep cascade import cheap.
-            from lucca.sandbox.system_tools import get_system_metrics  # noqa: PLC0415
-
-            metrics = get_system_metrics()
-            gpu = metrics.get("gpu", {})
-            cpu = metrics.get("cpu", {})
-            ram = metrics.get("ram", {})
-
-            wants_gpu = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("gpu", "vram", "nvidia", "graphics", "video memory")
-            )
-            wants_cpu = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("cpu", "processor", "core", "intel", "ultra 9")
-            )
-            wants_ram = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("ram", "physical memory", "system memory")
-            )
-            is_clock_freq = bool(
-                re.search(r"\b(?:core|gpu|cpu|bus|memory)\s+clock\b", lower)
-                or re.search(r"\bclock\s+(?:speed|rate|freq|frequency|multiplier)\b", lower)
-            )
-            wants_time = not is_clock_freq and any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in (
-                    "what time",
-                    "current time",
-                    "local time",
-                    "exact time",
-                    "time is it",
-                    "today",
-                    "what day",
-                    "what month",
-                    "what year",
-                    "wall clock",
-                    "system clock",
-                    "clock",
-                )
-            )
-            wants_location = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("location", "where", "located", "ip", "network", "city", "country", "place")
-            )
-            general_hw = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("hardware", "specs", "telemetry", "substrate configuration", "system")
-            )
-
-            timezone_inquiry = any(
-                re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in (
-                    "timezone",
-                    "time zone",
-                    "timezones",
-                    "time zones",
-                    "utc offset",
-                    "gmt offset",
-                    "daylight saving",
-                    "daylight savings",
-                    "daylight-saving",
-                    "dst",
-                    "standard time",
-                    "awst",
-                    "aest",
-                    "acst",
-                    "pst",
-                    "pdt",
-                    "est",
-                    "edt",
-                    "cst",
-                    "cdt",
-                    "mst",
-                    "mdt",
-                    "sgt",
-                    "jst",
-                    "gmt",
-                    "utc",
-                )
-            )
-            wants_time = wants_time or timezone_inquiry
-
-            if wants_time or general_hw:
-                from lucca.sandbox.service import resolve_target_timezone  # noqa: PLC0415
-
-                target_tz = resolve_target_timezone(query_text)
-                if target_tz is not None:
-                    now_tz = datetime.now(target_tz)
-                    iana_name = target_tz.key
-                    tz_abbr = now_tz.strftime("%Z")
-                    utc_offset = now_tz.strftime("%z")
-                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
-                    time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
-                    content = (
-                        f"Grounded Timezone: {iana_name} ({tz_abbr}, UTC{utc_offset}) | "
-                        f"DST Active: {is_dst} | Time: {time_str}"
-                    )
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.TELEMETRY,
-                            trust_tier=TrustTier.TIER_1_HARDWARE,
-                            source="system_tools:zoneinfo",
-                            content=content,
-                            polarity=BelnapValue.TRUE,
-                            confidence=1.0,
-                            metadata={
-                                "iana_name": iana_name,
-                                "abbreviation": tz_abbr,
-                                "utc_offset": utc_offset,
-                                "is_dst": is_dst,
-                                "local_time": time_str,
-                            },
-                        )
-                    )
-                else:
-                    now_local = datetime.now().astimezone()
-                    time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
-                    iana_name = getattr(now_local.tzinfo, "key", None) or now_local.tzname() or "UTC"
-                    tz_abbr = now_local.strftime("%Z")
-                    utc_offset = now_local.strftime("%z")
-                    is_dst = bool(now_local.dst() and now_local.dst().total_seconds() != 0)
-                    content = (
-                        f"Host Local Time: {time_str} | Timezone: {iana_name} "
-                        f"({tz_abbr}, UTC{utc_offset}) | DST: {is_dst}"
-                    )
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.TELEMETRY,
-                            trust_tier=TrustTier.TIER_1_HARDWARE,
-                            source="system_tools:local_clock",
-                            content=content,
-                            polarity=BelnapValue.TRUE,
-                            confidence=1.0,
-                            metadata={
-                                "timestamp": metrics.get("timestamp"),
-                                "iana_name": iana_name,
-                                "abbreviation": tz_abbr,
-                                "utc_offset": utc_offset,
-                                "is_dst": is_dst,
-                            },
-                        )
-                    )
-
-            if wants_location:
-                from lucca.sandbox.service import get_host_network_and_location  # noqa: PLC0415
-
-                net_geo = get_host_network_and_location()
-                if net_geo.get("public_ip"):
-                    loc_content = (
-                        f"Physical Host Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
-                        f"{net_geo.get('country')} (Coordinates: {net_geo.get('coordinates')}, "
-                        f"ISP: {net_geo.get('isp')}, Public IP: {net_geo.get('public_ip')})"
-                    )
-                else:
-                    local_ips = (
-                        ", ".join(str(x) for x in net_geo.get("local_ips", []))  # type: ignore[union-attr]
-                        or "local only"
-                    )
-                    loc_content = f"Host Network: Local IPs [{local_ips}]"
-
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.TELEMETRY,
-                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                        source="system_tools:network_geo",
-                        content=loc_content,
-                        polarity=BelnapValue.TRUE,
-                        confidence=1.0,
-                        metadata=net_geo,
-                    )
-                )
-
-            if wants_gpu or general_hw:
-                content = (
-                    f"GPU: {gpu.get('name', 'NVIDIA GPU')} | "
-                    f"Total VRAM: {gpu.get('total_gb', 16.0)} GB | "
-                    f"Free VRAM: {gpu.get('free_gb', 16.0)} GB | "
-                    f"Used VRAM: {gpu.get('used_gb', 0.0)} GB | "
-                    f"Utilization: {gpu.get('utilization_pct', 0.0)}%"
-                )
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.TELEMETRY,
-                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                        source="system_tools:nvidia-smi",
-                        content=content,
-                        polarity=BelnapValue.TRUE,
-                        confidence=1.0,
-                        metadata=gpu,
-                    )
-                )
-
-            if wants_cpu or general_hw:
-                content = (
-                    f"CPU: {cpu.get('name', 'Host Multi-Core CPU')} | "
-                    f"Cores: {cpu.get('cores_logical', 24)} logical | "
-                    f"System Load: {cpu.get('percent', 0.0)}% | "
-                    f"Lucca Load: {cpu.get('lucca_percent', 0.0)}%"
-                )
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.TELEMETRY,
-                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                        source="system_tools:psutil_cpu",
-                        content=content,
-                        polarity=BelnapValue.TRUE,
-                        confidence=1.0,
-                        metadata=cpu,
-                    )
-                )
-
-            if wants_ram or general_hw:
-                content = (
-                    f"System RAM: {ram.get('total_gb', 64.0)} GB total | "
-                    f"Free: {ram.get('free_gb', 40.0)} GB | "
-                    f"Used: {ram.get('used_gb', 24.0)} GB ({ram.get('percent', 0.0)}%) | "
-                    f"Lucca RSS: {ram.get('lucca_used_mb', 0.0)} MB"
-                )
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.TELEMETRY,
-                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                        source="system_tools:psutil_ram",
-                        content=content,
-                        polarity=BelnapValue.TRUE,
-                        confidence=1.0,
-                        metadata=ram,
-                    )
-                )
-
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_0_telemetry_query_error", error=str(exc))
-
-        return items
-
-    # ------------------------------------------------------------------------
-    # Substrate 1: Workspace Filesystem & AST (5–20ms target)
-    # ------------------------------------------------------------------------
-    def query_substrate_1_workspace(self, query_text: str) -> list[EvidenceItem]:
-        """Queries workspace files via SandboxService or PersistentDockerWorker."""
-        items: list[EvidenceItem] = []
-        if not self.sandbox:
-            return items
-
-        try:
-            lower = query_text.lower()
-
-            # 1. Inbox inquiries
-            if any(w in lower for w in ("inbox", "drop folder", "incoming")):
-                res = self._execute_sandbox(
-                    tool_name="list_dir",
-                    args={"path": "inbox"},
-                    confirmed=True,
-                )
-                if res and res.ok:
-                    entries = (
-                        (res.structured or {}).get("entries", [])
-                        if isinstance(res.structured, dict)
-                        else []
-                    )
-                    names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
-                    if names:
-                        content_str = (
-                            f"Inbox drop folder contains {len(names)} file(s) waiting to be imported: "
-                            f"{', '.join(names)}. (Location: host inbox/)"
-                        )
-                    else:
-                        content_str = "Inbox drop folder is currently empty (0 files waiting)."
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.WORKSPACE,
-                            trust_tier=TrustTier.TIER_2_WORKSPACE,
-                            source="workspace:inbox",
-                            content=content_str,
-                            polarity=BelnapValue.TRUE,
-                            confidence=1.0,
-                            metadata={"path": "inbox", "files": names, "count": len(names)},
-                        )
-                    )
-                return items
-
-            # 2. Specific file read inquiries (e.g. "Read config/persona.toml in the workspace")
-            file_match = re.search(
-                r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml|url))", query_text
-            )
-            is_explicit_listing = any(
-                w in lower for w in ("list files", "directory", "folder", "all files", "what files")
-            )
-            if file_match and not is_explicit_listing:
-                rel_path = file_match.group(1).replace("\\", "/")
-                res = self._execute_sandbox(
-                    tool_name="read_file",
-                    args={"path": rel_path},
-                    confirmed=True,
-                )
-                if res and res.ok and res.content:
-                    snippet = res.content[:500]
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.WORKSPACE,
-                            trust_tier=TrustTier.TIER_2_WORKSPACE,
-                            source=f"workspace:{rel_path}",
-                            content=snippet,
-                            polarity=BelnapValue.TRUE,
-                            confidence=1.0,
-                            metadata={"path": rel_path, "truncated": len(res.content) > 500},
-                        )
-                    )
-                return items
-
-            # 3. General workspace file listing inquiries
-            is_workspace_listing = (
-                any(
-                    w in lower
-                    for w in (
-                        "list files",
-                        "directory",
-                        "workspace files",
-                        "folder",
-                        "files at all",
-                        "any files",
-                        "what files",
-                        "have any files",
-                        "do you have files",
-                        "files do you have",
-                        "in your workspace",
-                        "in the workspace",
-                        "files in workspace",
-                        "show files",
-                        "show me files",
-                        "contents of workspace",
-                        "what's in your workspace",
-                        "what is in your workspace",
-                        "all files",
-                    )
-                )
-                or ("files" in lower and "workspace" in lower)
-                or ("files" in lower and any(v in lower for v in ("have", "see", "show", "list", "any")))
-            )
-
-            if is_workspace_listing:
-                res = self._execute_sandbox(
-                    tool_name="list_dir",
-                    args={"path": "."},
-                    confirmed=True,
-                )
-                if res and res.ok:
-                    entries = (
-                        (res.structured or {}).get("entries", [])
-                        if isinstance(res.structured, dict)
-                        else []
-                    )
-                    names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
-                    if names:
-                        content_str = (
-                            f"Workspace directory contains {len(names)} item(s): "
-                            f"{', '.join(names)}."
-                        )
-                    else:
-                        content_str = "Workspace directory is currently empty (0 files)."
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.WORKSPACE,
-                            trust_tier=TrustTier.TIER_2_WORKSPACE,
-                            source="workspace:list_dir",
-                            content=content_str,
-                            polarity=BelnapValue.TRUE,
-                            confidence=1.0,
-                            metadata={"path": ".", "files": names, "count": len(names)},
-                        )
-                    )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_1_workspace_query_error", error=str(exc))
-
-        return items
-
-    # ------------------------------------------------------------------------
-    # Substrate 2: Cryptographic Episodic Memory (15–40ms target)
-    # ------------------------------------------------------------------------
-    def query_substrate_2_memory(
-        self,
-        query_text: str,
-        temporal_anchor: tuple[float, float] | None = None,
-        temporal_relation: Literal["before", "after", "during", "overlaps"] | None = None,
-        temporal_clock: Literal["created_at", "valid_time"] = "created_at",
-    ) -> list[EvidenceItem]:
-        """Queries memory store for semantic/episodic facts with provenance."""
-        items: list[EvidenceItem] = []
-        if not self.memory_store or not query_text.strip():
-            return items
-
-        self._last_recollections: list[str] = []
-        try:
-            q = RetrievalQuery(
-                query_text=query_text.strip(),
-                k=8,
-                include_superseded=True,
-                temporal_anchor=temporal_anchor,
-                temporal_relation=temporal_relation,
-                temporal_clock=temporal_clock,
-            )
-            res = self.memory_store.search(q)
-            raw_hits: list[MemoryHit] = res if isinstance(res, list) else []
-
-            for hit in raw_hits:
-                # Invariant D-MEM-04: Non-grounding rows MUST NOT enter Belnap evidence fusion!
-                if not getattr(hit, "grounding_eligible", True):
-                    self._last_recollections.append(f'[{hit.provenance.value}] "{hit.content}"')
-                    continue
-
-                prov_val = (
-                    hit.provenance.value
-                    if hasattr(hit.provenance, "value")
-                    else str(hit.provenance)
-                )
-                is_sup = hit.valid_to is not None or bool(getattr(hit, "superseded_by", None))
-                told_true, told_false = self._evaluate_polarity(hit.content, query_text)
-                w_pos = 1 if told_true else 0
-                w_neg = 1 if told_false else 0
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.MEMORY,
-                        trust_tier=TrustTier.TIER_3_MEMORY,
-                        source=f"memory:{hit.memory_id or hit.source_turn_id}",
-                        content=hit.content,
-                        told_true=told_true,
-                        told_false=told_false,
-                        positive_evidence=w_pos,
-                        negative_evidence=w_neg,
-                        confidence=hit.score,
-                        metadata={
-                            "kind": hit.kind,
-                            "provenance": prov_val,
-                            "created_at": hit.created_at,
-                            "valid_from": getattr(hit, "valid_from", hit.created_at),
-                            "valid_to": getattr(hit, "valid_to", None),
-                            "superseded_by": getattr(hit, "superseded_by", None),
-                            "is_superseded": is_sup,
-                            "confidence": getattr(hit, "confidence", None),
-                        },
-                    )
-                )
-
-            # Evaluate pairwise consistency across active (non-superseded) memory items
-            self._annotate_active_memory_conflicts(items)
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_2_memory_query_error", error=str(exc))
-
-        return items
-
     def _annotate_active_memory_conflicts(self, items: list[EvidenceItem]) -> None:
         """Detects contradictions between active (non-superseded) memory items in Substrate 2.
         When two active items contradict each other without D-HON-01 temporal supersession,
@@ -1551,9 +270,11 @@ class EpistemicSearchCascade:
             """Returns True if (a, b) is a canonical FUNCTIONAL_PREDICATES pair with distinct
             precedence/valid_from timestamps handled by _detect_memory_supersession."""
             for pred in FUNCTIONAL_PREDICATES:
-                if f" {pred} " in f" {a.content.strip()} " and f" {pred} " in f" {b.content.strip()} ":
-                    vf_a = float(a.metadata.get("valid_from", 0.0) or 0.0)
-                    vf_b = float(b.metadata.get("valid_from", 0.0) or 0.0)
+                if f" {pred} " in f" {a.content.strip()} " and (
+                    f" {pred} " in f" {b.content.strip()} "
+                ):
+                    vf_a = _as_float(a.metadata.get("valid_from", 0.0))
+                    vf_b = _as_float(b.metadata.get("valid_from", 0.0))
                     prov_a = str(a.metadata.get("provenance", "")).upper()
                     prov_b = str(b.metadata.get("provenance", "")).upper()
                     if vf_a != vf_b or prov_a != prov_b:
@@ -1562,8 +283,8 @@ class EpistemicSearchCascade:
 
         neg_tokens = {"not", "never", "no", "false", "disabled", "cannot", "none", "unsupported"}
         stop_tokens = {
-            "the", "a", "an", "is", "are", "was", "were", "to", "of", "in", "on", "at", "for",
-            "with", "by", "from", "that", "this", "it", "be", "as", "or", "and",
+            "the", "a", "an", "is", "are", "was", "were", "to", "of", "in", "on", "at",
+            "for", "with", "by", "from", "that", "this", "it", "be", "as", "or", "and",
         }
 
         for i in range(len(active)):
@@ -1576,40 +297,49 @@ class EpistemicSearchCascade:
                     continue
 
                 is_conflict = False
+                is_uncertain_nli = False
                 if self.verifier is not None:
                     try:
                         v_res = self.verifier.check_consistency(
                             premise=it_a.content, hypothesis=it_b.content
                         )
+                        mapped_val = BelnapLatentInvestigator.evaluate_nli_verdict(
+                            v_res, has_lexical_conflict=False
+                        )
                         if not v_res.degraded and v_res.label == VerifierLabel.CONTRADICTION:
                             is_conflict = True
+                        elif mapped_val == BelnapValue.NEITHER and (
+                            v_res.degraded or v_res.label == VerifierLabel.UNCERTAIN
+                        ):
+                            is_uncertain_nli = True
                     except Exception as exc:  # noqa: BLE001
                         logger.debug("cascade_verifier_consistency_error", error=str(exc))
+                        is_uncertain_nli = True
 
-                if not is_conflict:
-                    words_a = re.findall(r"[a-z0-9_.-]+", it_a.content.lower())
-                    words_b = re.findall(r"[a-z0-9_.-]+", it_b.content.lower())
-                    content_a = set(words_a) - stop_tokens - neg_tokens
-                    content_b = set(words_b) - stop_tokens - neg_tokens
-                    shared = content_a & content_b
-                    if len(shared) >= 2:
-                        neg_a = bool(set(words_a) & neg_tokens)
-                        neg_b = bool(set(words_b) & neg_tokens)
-                        if neg_a != neg_b:
+                words_a = re.findall(r"[a-z0-9_.-]+", it_a.content.lower())
+                words_b = re.findall(r"[a-z0-9_.-]+", it_b.content.lower())
+                content_a = set(words_a) - stop_tokens - neg_tokens
+                content_b = set(words_b) - stop_tokens - neg_tokens
+                shared = content_a & content_b
+
+                if not is_conflict and len(shared) >= 2:
+                    neg_a = bool(set(words_a) & neg_tokens)
+                    neg_b = bool(set(words_b) & neg_tokens)
+                    if neg_a != neg_b:
+                        is_conflict = True
+                    else:
+                        nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_a.content))
+                        nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_b.content))
+                        if nums_a and nums_b and nums_a != nums_b:
                             is_conflict = True
-                        else:
-                            nums_a = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_a.content))
-                            nums_b = set(re.findall(r"\b\d+(?:\.\d+)?\b", it_b.content))
-                            if nums_a and nums_b and nums_a != nums_b:
+                        elif len(words_a) == len(words_b) and len(words_a) >= 3:
+                            diffs = [
+                                (wa, wb)
+                                for wa, wb in zip(words_a, words_b, strict=False)
+                                if wa != wb
+                            ]
+                            if len(diffs) == 1:
                                 is_conflict = True
-                            elif len(words_a) == len(words_b) and len(words_a) >= 3:
-                                diffs = [
-                                    (wa, wb)
-                                    for wa, wb in zip(words_a, words_b, strict=False)
-                                    if wa != wb
-                                ]
-                                if len(diffs) == 1:
-                                    is_conflict = True
 
                 if is_conflict:
                     for it in (it_a, it_b):
@@ -1617,6 +347,13 @@ class EpistemicSearchCascade:
                         it.told_false = True
                         it.positive_evidence = max(1, it.positive_evidence)
                         it.negative_evidence = max(1, it.negative_evidence)
+                        it.metadata["belnap_state"] = "BOTH"
+                elif is_uncertain_nli and len(shared) >= 2:
+                    for it in (it_a, it_b):
+                        if not it.metadata.get("nli_uncertain"):
+                            it.confidence = round(it.confidence * 0.65, 4)
+                            it.metadata["belnap_state"] = "NEITHER"
+                            it.metadata["nli_uncertain"] = True
 
     def _evaluate_polarity(
         self,
@@ -1631,8 +368,8 @@ class EpistemicSearchCascade:
         unbound class calls `EpistemicSearchCascade._evaluate_polarity(content, query)`.
         """
         if isinstance(self, str):
-            actual_content = self
-            actual_query = content if isinstance(content, str) else query_text
+            actual_content: str = self
+            actual_query: str = content if isinstance(content, str) else query_text
             verifier = None
         else:
             actual_content = content
@@ -1641,9 +378,7 @@ class EpistemicSearchCascade:
 
         if verifier is not None and actual_query.strip():
             try:
-                v_res = verifier.check_consistency(
-                    premise=actual_content, hypothesis=actual_query
-                )
+                v_res = verifier.check_consistency(premise=actual_content, hypothesis=actual_query)
                 if not v_res.degraded:
                     if v_res.label == VerifierLabel.ENTAILMENT:
                         return True, False
@@ -1675,223 +410,6 @@ class EpistemicSearchCascade:
 
         return True, False
 
-    def query_substrate_self_history(self, query_text: str) -> list[EvidenceItem]:
-        """
-        Queries self-history (Substrate 7: SELF_HISTORY, Tier 1).
-        Entailed by execution_triples ∪ ASSISTANT_ACTION ∪ ASSISTANT_UTTERANCE ∪ COHERENCE_BREACH.
-        Abstains (returns empty list) if the record is empty.
-        """
-        items: list[EvidenceItem] = []
-        db = getattr(self.memory_store, "db", None)
-        if not db or not query_text.strip():
-            return items
-
-        try:
-            tokens = tokenize_query(query_text)
-            candidates: list[tuple[int, float, EvidenceItem]] = []
-
-            episodes = recall_past_episodes(db, query_text, limit=10)
-            for ep in episodes:
-                ev = EvidenceItem(
-                    substrate=EpistemicSubstrate.SELF_HISTORY,
-                    trust_tier=TrustTier.TIER_1_HARDWARE,
-                    source=f"history:{ep.source}:{ep.record_id}",
-                    content=ep.summary,
-                    polarity=BelnapValue.TRUE,
-                    confidence=min(1.0, ep.match_score / max(1, ep.tokens_total)),
-                    metadata={
-                        "match_score": ep.match_score,
-                        "tokens_total": ep.tokens_total,
-                        **ep.payload,
-                    },
-                )
-                items.append(ev)
-                candidates.append((ep.match_score, ep.ts, ev))
-
-            with db.read_cursor() as cur:
-                # 2. Query memories for autobiographical classes
-                cur.execute(
-                    """
-                    SELECT m.memory_id, m.content, p.provenance, p.trace_id,
-                           m.created_at, m.superseded_by, p.grounding_eligible
-                    FROM memories m
-                    JOIN provenance_envelopes p ON m.entry_id = p.entry_id
-                    WHERE p.provenance IN (
-                        'ASSISTANT_ACTION', 'ASSISTANT_UTTERANCE',
-                        'COHERENCE_BREACH', 'ASSISTANT_BELIEF'
-                    )
-                    ORDER BY m.created_at DESC LIMIT 100
-                    """
-                )
-                mem_rows = cur.fetchall()
-                for mid, content, prov, tr_id, cat_ts, sup_by, gr_elig in mem_rows:
-                    content_str = str(content)
-                    is_wrong_query = "wrong" in query_text.lower() or "error" in query_text.lower()
-                    if is_wrong_query and (prov == "COHERENCE_BREACH" or sup_by is not None):
-                        told_true, told_false = self._evaluate_polarity(
-                            content_str, query_text
-                        )
-                        candidates.append(
-                            (
-                                10,  # Highest priority for explicit error/breach retrospection
-                                float(cat_ts),
-                                EvidenceItem(
-                                    substrate=EpistemicSubstrate.SELF_HISTORY,
-                                    trust_tier=TrustTier.TIER_1_HARDWARE,
-                                    source=f"history:breach:{mid}",
-                                    content=(
-                                        f"Historical revision / breach: {content_str} "
-                                        f"(superseded_by={sup_by})"
-                                    ),
-                                    told_true=told_true,
-                                    told_false=told_false,
-                                    confidence=1.0,
-                                    metadata={"provenance": str(prov), "superseded_by": sup_by},
-                                ),
-                            )
-                        )
-                    elif not is_wrong_query and tokens:
-                        score = sum(1 for t in tokens if t in content_str.lower())
-                        if score > 0:
-                            told_true, told_false = self._evaluate_polarity(
-                                content_str, query_text
-                            )
-                            candidates.append(
-                                (
-                                    score,
-                                    float(cat_ts),
-                                    EvidenceItem(
-                                        substrate=EpistemicSubstrate.SELF_HISTORY,
-                                        trust_tier=TrustTier.TIER_1_HARDWARE,
-                                        source=f"history:{str(prov).lower()}:{mid}",
-                                        content=content_str,
-                                        told_true=told_true,
-                                        told_false=told_false,
-                                        confidence=1.0,
-                                        metadata={
-                                            "provenance": str(prov),
-                                            "trace_id": str(tr_id),
-                                            "grounding_eligible": int(gr_elig),
-                                        },
-                                    ),
-                                )
-                            )
-
-                # Sort by (match_score DESC, created_at DESC) and cap at 5 items
-                candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
-                seen_sources = set()
-                deduped: list[EvidenceItem] = []
-                for _, _, item in candidates:
-                    if item.source not in seen_sources:
-                        seen_sources.add(item.source)
-                        deduped.append(item)
-                    if len(deduped) >= 5:
-                        break
-                return deduped
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("self_history_recall_error", error=str(exc))
-
-        return items
-
-    # ------------------------------------------------------------------------
-    # Substrate 3: SSRF-Hardened Sandboxed Web (300–1500ms target)
-    # ------------------------------------------------------------------------
-    def query_substrate_3_web(self, query_text: str) -> list[EvidenceItem]:
-        """Queries external web when explicit URL is supplied or via web search fallback."""
-        items: list[EvidenceItem] = []
-        if not self.sandbox:
-            return items
-
-        url_match = re.search(r"(https?://[^\s\"'>]+)", query_text)
-        if url_match:
-            target_url = url_match.group(1)
-            try:
-                # Propagate untrusted web taint to active session guard (Spec 09 / D-SEC-04)
-                if (
-                    self.sandbox
-                    and hasattr(self.sandbox, "guard")
-                    and hasattr(self.sandbox.guard, "mark_taint")
-                ):
-                    # Lazy import: avoids a sandbox <-> core import cycle.
-                    from lucca.sandbox.policy import TaintFlags  # noqa: PLC0415
-
-                    self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
-
-                res = self._execute_sandbox(
-                    tool_name="fetch_url",
-                    args={"url": target_url},
-                    confirmed=True,
-                )
-                if res and res.ok and res.content:
-                    told_true, told_false = self._evaluate_polarity(
-                        res.content[:600], query_text
-                    )
-                    items.append(
-                        EvidenceItem(
-                            substrate=EpistemicSubstrate.WEB,
-                            trust_tier=TrustTier.TIER_4_WEB,
-                            source=f"web:{target_url}",
-                            content=res.content[:600],
-                            proposition=f"web_content({target_url})",
-                            told_true=told_true,
-                            told_false=told_false,
-                            confidence=0.85,
-                            metadata={"url": target_url},
-                        )
-                    )
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("substrate_3_web_query_error", error=str(exc))
-            return items
-
-        # Fallback to search_web when no explicit URL is supplied
-        try:
-            if (
-                self.sandbox
-                and hasattr(self.sandbox, "guard")
-                and hasattr(self.sandbox.guard, "mark_taint")
-            ):
-                from lucca.sandbox.policy import TaintFlags  # noqa: PLC0415
-
-                self.sandbox.guard.mark_taint(TaintFlags.UNTRUSTED_WEB)
-
-            topic = extract_clean_topic(query_text)
-            search_query = topic if topic and topic != "that" else query_text
-            target_entity = _extract_target_entity(query_text)
-
-            search_args: dict[str, JsonValue] = {"query": search_query}
-            if target_entity:
-                search_args["target_entity"] = target_entity
-
-            res = self._execute_sandbox(
-                tool_name="search_web",
-                args=search_args,
-                confirmed=True,
-            )
-            if res and res.ok and res.content:
-                told_true, told_false = self._evaluate_polarity(
-                    res.content[:1500], query_text
-                )
-                items.append(
-                    EvidenceItem(
-                        substrate=EpistemicSubstrate.WEB,
-                        trust_tier=TrustTier.TIER_4_WEB,
-                        source=f"web_search:{search_query}",
-                        content=res.content[:1500],
-                        proposition=f"web_search_results({search_query})",
-                        told_true=told_true,
-                        told_false=told_false,
-                        confidence=0.85,
-                        metadata=res.structured if isinstance(res.structured, dict) else {"query": search_query},
-                    )
-                )
-        except Exception as exc:  # noqa: BLE001
-            logger.debug("substrate_3_web_search_error", error=str(exc))
-
-        return items
-
-    # ------------------------------------------------------------------------
-    # Synthesis & Belnap Evidential Valuation
-    # ------------------------------------------------------------------------
     def _detect_memory_supersession(
         self,
         evidence: list[EvidenceItem],
@@ -1914,7 +432,9 @@ class EpistemicSearchCascade:
         # 1. Group by functional predicate (s, p)
         pred_groups: dict[tuple[str, str], list[tuple[EvidenceItem, float, str]]] = {}
         for item in mem_items:
-            vf = float(item.metadata.get("valid_from", 0.0) or item.timestamp_ns / 1e9)
+            vf = _as_float(item.metadata.get("valid_from"), default=item.timestamp_ns / 1e9)
+            if vf == 0.0:
+                vf = item.timestamp_ns / 1e9
             content = item.content.strip()
             parts = content.split(maxsplit=2)
             if len(parts) >= 3 and parts[1] in FUNCTIONAL_PREDICATES:
@@ -1975,7 +495,7 @@ class EpistemicSearchCascade:
                     ]
                     if active_candidates:
                         active_candidates.sort(
-                            key=lambda e: float(e.metadata.get("valid_from", 0.0) or 0.0),
+                            key=lambda e: _as_float(e.metadata.get("valid_from", 0.0)),
                             reverse=True,
                         )
                         best = active_candidates[0]
@@ -2092,7 +612,7 @@ class EpistemicSearchCascade:
         # Sort evidence by Trust Tier, active before superseded, then confidence, valid_from
         def _evidence_sort_key(e: EvidenceItem) -> tuple[int, int, float, float]:
             is_sup = 1 if bool(e.metadata.get("is_superseded")) else 0
-            vf = float(e.metadata.get("valid_from", 0.0) or 0.0)
+            vf = _as_float(e.metadata.get("valid_from", 0.0))
             return (e.trust_tier.value, is_sup, -e.confidence, -vf)
 
         sorted_evidence = sorted(evidence, key=_evidence_sort_key)
@@ -2106,7 +626,11 @@ class EpistemicSearchCascade:
                 polarity_tag = "[superseded]"
             elif item.metadata.get("provenance") == "INFERRED":
                 meta_conf = item.metadata.get("confidence")
-                conf_val = float(meta_conf) if meta_conf is not None else float(item.confidence)
+                conf_val = (
+                    _as_float(meta_conf, default=float(item.confidence))
+                    if meta_conf is not None
+                    else float(item.confidence)
+                )
                 std_label = standard_for_confidence(conf_val).value
                 polarity_tag = f"[inferred, confidence {conf_val:.2f} — {std_label}]"
             else:
@@ -2134,9 +658,7 @@ class EpistemicSearchCascade:
         context_str = "\n".join(lines)
         return belnap_status, context_str, None
 
-    # ------------------------------------------------------------------------
     # Master Cascade Query Loop
-    # ------------------------------------------------------------------------
     def query(
         self,
         query_text: str,
@@ -2239,3 +761,15 @@ class EpistemicSearchCascade:
             queried_substrates=active_substrates,
             recollections=recollections,
         )
+
+
+__all__ = [
+    "BelnapLatentInvestigator", "BelnapValue", "CULINARY_WORDS", "CascadeSubstrateAdapters",
+    "EpistemicSearchCascade", "EpistemicSubstrate", "EvidenceItem", "RECENT_CONTEXT_PATTERN",
+    "REGIONAL_OR_CULTURE_WORDS", "SLANG_OR_DIALECT_WORDS", "SearchCascadeResult", "TrustTier",
+    "_any_term_matches", "_extract_target_entity", "_term_matches", "belnap_join_k",
+    "belnap_join_t", "belnap_meet_k", "belnap_meet_t", "belnap_negation",
+    "build_calibrated_refusal", "classify_epistemic_intent", "extract_clean_topic",
+    "information_join", "information_meet", "matches_slang_or_world_definition", "pool_evidence",
+    "recall_past_episodes", "select_floor_cue", "tokenize_query", "truth_join", "truth_meet",
+]

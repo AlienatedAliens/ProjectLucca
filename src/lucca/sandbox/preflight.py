@@ -10,9 +10,15 @@ from __future__ import annotations
 import ast
 import doctest
 import re
+import textwrap
 from typing import Final
 
 import structlog
+
+from lucca.sandbox.ast_sanitizer import (
+    extract_python_code_tolerant,
+    sanitize_and_repair_python_code,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -23,11 +29,12 @@ _ARROW_OR_EQ_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 
 def extract_python_code(text: str) -> str:
-    """Extracts executable Python code from markdown blocks or raw text using tolerant AST fallback."""
+    """
+    Extracts executable Python code from markdown blocks or raw text using tolerant AST fallback.
+    """
     if not text:
         return ""
-    import textwrap
-    from lucca.sandbox.ast_sanitizer import extract_python_code_tolerant, sanitize_and_repair_python_code
+
     code, stage = extract_python_code_tolerant(text)
     if not code:
         return ""
@@ -107,9 +114,9 @@ def extract_docstring_assertions(
         for doc in docstrings:
             try:
                 parsed_examples = doctest.DocTestParser().get_examples(doc)
-                for ex in parsed_examples:
-                    src = re.sub(r"#.*$", "", ex.source.strip()).strip()
-                    want = ex.want.strip()
+                for ex_item in parsed_examples:
+                    src = re.sub(r"#.*$", "", ex_item.source.strip()).strip()
+                    want = ex_item.want.strip()
                     if not src:
                         continue
                     if want:
@@ -128,10 +135,10 @@ def extract_docstring_assertions(
                 logger.debug("preflight_doctest_parse_failed", error=str(exc))
 
             for line in doc.splitlines():
-                line = line.strip()
-                if ">>>" in line:
+                trimmed = line.strip()
+                if ">>>" in trimmed:
                     continue
-                m = _ARROW_OR_EQ_PATTERN.match(line)
+                m = _ARROW_OR_EQ_PATTERN.match(trimmed)
                 if m:
                     lhs = m.group(1).strip()
                     rhs = m.group(2).strip()
@@ -185,7 +192,8 @@ def build_preflight_runner_code(code: str, assertions: list[str]) -> str:
                     f"    assert __val == __exp\n"
                     f"except AssertionError:\n"
                     f"    import sys\n"
-                    f'    sys.stderr.write(f"AssertionError: {lhs} == {rhs} failed.\\nGot: {{__val!r}}\\nExpected: {{__exp!r}}\\n")\n'
+                    f'    sys.stderr.write(f"AssertionError: {
+                        lhs} == {rhs} failed.\\nGot: {{__val!r}}\\nExpected: {{__exp!r}}\\n")\n'
                     f"    sys.exit(1)\n"
                 )
                 continue

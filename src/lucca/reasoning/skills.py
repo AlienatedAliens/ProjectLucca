@@ -14,10 +14,10 @@ import math
 import re
 import shutil
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Final
+from typing import Final, cast
 
 import structlog
 from pydantic import JsonValue
@@ -38,6 +38,7 @@ from lucca.reasoning.scheme.parser import (
     Keyword,
     RuleDefinition,
     SchemeNode,
+    SchemeValue,
     Symbol,
     parse_expr,
 )
@@ -311,23 +312,34 @@ class SkillPackage:
         for t_idx, trace in enumerate(traces, 1):
             trace_id = str(trace.get("id", f"trace-{t_idx}"))
             raw_entities = trace.get("entities")
-            entities: dict[str, JsonValue] = raw_entities if isinstance(raw_entities, dict) else {}
+            entities: dict[str, list[str]] = (
+                {
+                    str(k): [str(x) for x in v] if isinstance(v, list) else [str(v)]
+                    for k, v in raw_entities.items()
+                }
+                if isinstance(raw_entities, dict)
+                else {}
+            )
             raw_transcript = str(trace.get("transcript", ""))
             raw_apps = trace.get("apps_running")
             apps_list: list[str] = [str(a) for a in raw_apps] if isinstance(raw_apps, list) else []
+            raw_conf = trace.get("intent_conf", 1.0)
+            raw_hour = trace.get("hour_local", 12)
+            raw_wd = trace.get("weekday", 0)
+            raw_turns = trace.get("session_turns", 1)
 
             state = RuleState(
                 transcript=raw_transcript,
                 transcript_lower=raw_transcript.lower(),
                 intent=str(trace.get("intent", "")),
-                intent_conf=float(trace.get("intent_conf", 1.0)),
+                intent_conf=float(raw_conf) if isinstance(raw_conf, (int, float, str)) else 1.0,
                 entities=entities,
-                hour_local=int(trace.get("hour_local", 12)),
-                weekday=int(trace.get("weekday", 0)),
-                apps_running=apps_list,
+                hour_local=int(raw_hour) if isinstance(raw_hour, (int, float, str)) else 12,
+                weekday=int(raw_wd) if isinstance(raw_wd, (int, float, str)) else 0,
+                apps_running=frozenset(apps_list),
                 last_tool=str(trace["last_tool"]) if trace.get("last_tool") is not None else None,
                 last_tool_ok=bool(trace.get("last_tool_ok", True)),
-                session_turns=int(trace.get("session_turns", 1)),
+                session_turns=int(raw_turns) if isinstance(raw_turns, (int, float, str)) else 1,
                 mode="transcript" if trace.get("mode") == "transcript" else "audio",
                 interrupted=bool(trace.get("interrupted", False)),
             )
@@ -424,7 +436,8 @@ class SkillManager:
                         if meta.status == "ACTIVE":
                             active_ids.add(meta.id)
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("count_active_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("count_active_skills_meta_pa"
+                            "rse_failed", path=str(meta_file), error=str(exc))
 
         if self.rule_engine is not None:
             for r in self.rule_engine.rules.values():
@@ -581,7 +594,8 @@ class SkillManager:
                             "failures": 0,
                         }
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("list_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("list_skills_meta_parse_failed", path=str(meta_file),
+                            error=str(exc))
 
         # 2. Retired packages
         if self.retired_dir.exists() and self.retired_dir.is_dir():
@@ -601,7 +615,8 @@ class SkillManager:
                             "failures": 0,
                         }
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("list_retired_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("list_retired_skills_meta_pa"
+                            "rse_failed", path=str(meta_file), error=str(exc))
 
         # 3. Merge telemetry from rule engine
         if self.rule_engine is not None:
@@ -704,7 +719,8 @@ class SkillManager:
 
         query_tokens = {
             t
-            for t in re.sub(r"[^\w\s]", " ", context_query.lower().replace("-", " ").replace("_", " ")).split()
+            for t in re.sub(r"[^\w\s]", " ", context_query.lower().replace("-", " ").replace("_",
+                " ")).split()
             if len(t) > 1
         }
 
@@ -742,7 +758,10 @@ class SkillManager:
         bound_vars: set[str],
         grounded_primitives: set[str],
     ) -> tuple[bool, str]:
-        """Recursively verifies that all operators and leaf tool symbols in an S-expression are grounded."""
+        """
+        Recursively verifies that all operators and leaf tool symbols in an S-expression are
+        grounded.
+        """
         if isinstance(expr, (int, float, bool, Keyword)):
             return (True, "")
         if isinstance(expr, Symbol):
@@ -856,13 +875,17 @@ class SkillManager:
 
     @staticmethod
     def _normalize_list_ast(node: SExpr, bound_vars: set[str]) -> SchemeNode:
-        """Converts raw string symbols in list-based S-expressions into Symbol nodes for SchemeEvaluator."""
+        """
+        Converts raw string symbols in list-based S-expressions into Symbol nodes for
+        SchemeEvaluator.
+        """
         if isinstance(node, list):
             if not node:
                 return []
             head = node[0]
             norm_head: SchemeNode = (
-                Symbol(head) if isinstance(head, str) else SkillManager._normalize_list_ast(head, bound_vars)
+                Symbol(head) if isinstance(head, str) else SkillManager._normalize_list_ast(head,
+                    bound_vars)
             )
             rest = [SkillManager._normalize_list_ast(child, bound_vars) for child in node[1:]]
             return [norm_head, *rest]
@@ -942,20 +965,26 @@ class SkillManager:
             evaluator = SchemeEvaluator(gas_limit=1000, timeout_ms=50.0)
             env = dict(PURE_PRIMITIVES)
 
+            def _const_prim(val: object) -> Callable[[list[SchemeValue]], SchemeValue]:
+                def _fn(_args: list[SchemeValue]) -> SchemeValue:
+                    return cast(SchemeValue, val)
+
+                return _fn
+
             # Bind episode inputs in env as zero-arg callables for Symbol lookup
             if isinstance(raw_inputs, dict):
                 for k, v in raw_inputs.items():
-                    env[str(k)] = lambda _args, _v=v: _v  # type: ignore[assignment]
+                    env[str(k)] = _const_prim(v)
             elif isinstance(raw_inputs, (list, tuple)):
                 for i, v in enumerate(raw_inputs):
-                    env[f"arg{i}"] = lambda _args, _v=v: _v  # type: ignore[assignment]
+                    env[f"arg{i}"] = _const_prim(v)
                 if len(raw_inputs) == 1:
-                    env["x"] = lambda _args, _v=raw_inputs[0]: _v  # type: ignore[assignment]
-                    env["n"] = lambda _args, _v=raw_inputs[0]: _v  # type: ignore[assignment]
+                    env["x"] = _const_prim(raw_inputs[0])
+                    env["n"] = _const_prim(raw_inputs[0])
             else:
-                env["x"] = lambda _args, _v=raw_inputs: _v  # type: ignore[assignment]
-                env["n"] = lambda _args, _v=raw_inputs: _v  # type: ignore[assignment]
-                env["input"] = lambda _args, _v=raw_inputs: _v  # type: ignore[assignment]
+                env["x"] = _const_prim(raw_inputs)
+                env["n"] = _const_prim(raw_inputs)
+                env["input"] = _const_prim(raw_inputs)
 
             try:
                 eval_node = parsed
@@ -986,7 +1015,9 @@ class SkillManager:
         episodes: Sequence[dict[str, object]],
         grounded_primitives: set[str] | None = None,
     ) -> tuple[bool, str]:
-        """Verifies a newly induced skill in the Shadow Sandbox and registers it only if verified."""
+        """
+        Verifies a newly induced skill in the Shadow Sandbox and registers it only if verified.
+        """
         ok, msg = self.verify_in_shadow_sandbox(
             skill, episodes=episodes, grounded_primitives=grounded_primitives
         )

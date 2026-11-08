@@ -11,23 +11,15 @@ Tests:
 6. Preflight On vs. Off ablation.
 """
 
-import math
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
-from lucca.core.orchestrator import Orchestrator
-from lucca.core.schemas import TokenDelta, TurnTrace
 from lucca.core.turn_pipeline import is_code_synthesis_request
 from lucca.sandbox.preflight import (
-    build_preflight_runner_code,
     extract_docstring_assertions,
-    extract_python_code,
 )
-from lucca.sandbox.schemas import PreflightResult
 from lucca.sandbox.service import SandboxService
-
 
 # ===========================================================================
 # 1. Assertion Extraction Suite
@@ -517,7 +509,7 @@ def sort_array(arr):
 
     # Preflight OFF: Raw implementations fail assertions
     off_failures = 0
-    for name, code in flawed_tasks:
+    for _name, code in flawed_tasks:
         res = docker_sandbox.preflight_verify_code(code)
         if not res.success:
             off_failures += 1

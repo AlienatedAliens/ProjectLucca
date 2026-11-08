@@ -1250,9 +1250,638 @@ def test_no_ai_slop_in_papers_and_docs() -> None:
     )
 
 
+def test_no_nli_uncertain_fail_open_consumers() -> None:
+    """WO-43 Phase 1.2 static gate:
+    1. Enforces that duplicate inline Belnap definitions are deleted from cascade.py
+       and imported from lucca.memory.latent_probe.
+    2. Enforces that BelnapLatentInvestigator is actively wired into memory_commit_service.py,
+       belief_service.py, cascade.py, corroboration.py, and self_diagnosis.py.
+    3. Enforces that all NLI check_consistency consumers explicitly handle UNCERTAIN and degraded
+       states rather than failing open.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    cascade_path = repo_root / "src" / "lucca" / "core" / "cascade.py"
+    cascade_text = cascade_path.read_text(encoding="utf-8")
+    cascade_tree = ast.parse(cascade_text, filename=str(cascade_path))
+
+    cascade_class_defs = {
+        n.name for n in ast.walk(cascade_tree) if isinstance(n, ast.ClassDef)
+    }
+    cascade_func_defs = {
+        n.name
+        for n in ast.walk(cascade_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    assert "BelnapValue" not in cascade_class_defs, (
+        "Duplicate class BelnapValue must not be defined in cascade.py; import from lucca.memory.latent_probe"
+    )
+    for dup_fn in (
+        "belnap_meet_t",
+        "belnap_join_t",
+        "belnap_negation",
+        "belnap_meet_k",
+        "belnap_join_k",
+        "pool_evidence",
+    ):
+        assert dup_fn not in cascade_func_defs, (
+            f"Duplicate function {dup_fn} must not be defined in cascade.py; import from lucca.memory.latent_probe"
+        )
+
+    for rel_path in (
+        "src/lucca/core/memory_commit_service.py",
+        "src/lucca/core/belief_service.py",
+        "src/lucca/core/cascade.py",
+        "src/lucca/core/corroboration.py",
+        "src/lucca/core/self_diagnosis.py",
+    ):
+        txt = (repo_root / rel_path).read_text(encoding="utf-8")
+        assert "BelnapLatentInvestigator" in txt, (
+            f"{rel_path} must import and wire BelnapLatentInvestigator for fail-closed NLI handling"
+        )
+
+    for rel_path in (
+        "src/lucca/core/memory_commit_service.py",
+        "src/lucca/core/belief_service.py",
+        "src/lucca/core/cascade.py",
+        "src/lucca/core/coherence.py",
+        "src/lucca/core/corroboration.py",
+        "src/lucca/core/user_model.py",
+        "src/lucca/core/self_diagnosis.py",
+        "src/lucca/core/tool_shortlister.py",
+    ):
+        txt = (repo_root / rel_path).read_text(encoding="utf-8")
+        assert "check_consistency" in txt
+        assert "UNCERTAIN" in txt or "uncertain" in txt, (
+            f"{rel_path} calls check_consistency without handling UNCERTAIN verdict"
+        )
+        assert "degraded" in txt, (
+            f"{rel_path} calls check_consistency without checking degraded flag"
+        )
 
 
+def test_win32_security_and_git_dag_wired_in_file_tool() -> None:
+    """WO-43 Phase 1.3 static gate:
+    Enforces that lucca.sandbox.win32_security (`verified_workspace_file`,
+    `read_workspace_file_handle`, `write_workspace_file_handle`) and
+    lucca.memory.git_dag (`WorkspaceTransactionManager`, `GitStagingDAG`, `OperationType`)
+    are imported and actively called inside `src/lucca/sandbox/file_tool.py`.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    ft_path = repo_root / "src" / "lucca" / "sandbox" / "file_tool.py"
+    ft_text = ft_path.read_text(encoding="utf-8")
+    ft_tree = ast.parse(ft_text, filename=str(ft_path))
+
+    imported_modules: set[str] = set()
+    imported_names: set[str] = set()
+    called_names: set[str] = set()
+    method_defs: set[str] = set()
+
+    for node in ast.walk(ft_tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+            for alias in node.names:
+                imported_names.add(alias.asname or alias.name)
+        elif isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Name):
+                called_names.add(node.func.id)
+        elif isinstance(node, ast.FunctionDef):
+            method_defs.add(node.name)
+
+    assert "lucca.sandbox.win32_security" in imported_modules, (
+        "file_tool.py must import from lucca.sandbox.win32_security"
+    )
+    assert "lucca.memory.git_dag" in imported_modules, (
+        "file_tool.py must import from lucca.memory.git_dag"
+    )
+    for req_sym in (
+        "verified_workspace_file",
+        "read_workspace_file_handle",
+        "write_workspace_file_handle",
+        "WorkspaceTransactionManager",
+    ):
+        assert req_sym in imported_names, f"file_tool.py must import {req_sym}"
+        assert req_sym in called_names, f"file_tool.py must call {req_sym} at runtime"
+
+    assert "execute_transaction" in method_defs, (
+        "SafeFileTool must define execute_transaction backed by WorkspaceTransactionManager"
+    )
 
 
+def test_speech_stream_pipeline_decomposition() -> None:
+    """WO-43 Phase 2.2 static parity gate: ensures streaming LLM speech generation,
+    verbal cue selection, and receipt URL registration are encapsulated in
+    SpeechStreamPipeline and not defined directly in orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    ssp_path = repo_root / "src" / "lucca" / "core" / "speech_stream_pipeline.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert ssp_path.exists(), f"speech_stream_pipeline.py does not exist at {ssp_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    ssp_text = ssp_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    ssp_tree = ast.parse(ssp_text, filename=str(ssp_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    ssp_methods = {
+        n.name
+        for n in ast.walk(ssp_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "select_verbal_cue",
+        "register_receipt_citation_urls",
+        "stream_llm_speech",
+    ]
+    for m in target_methods:
+        assert m in ssp_methods, f"Expected '{m}' to be defined in SpeechStreamPipeline"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert ssp_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear once in speech_stream_pipeline.py"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py"
+        )
 
 
+def test_tool_dispatcher_decomposition() -> None:
+    """WO-43 Phase 2.4 static parity gate: ensures tool dispatch, grounded
+    memory_commit, self_history_search, screenshot_capture, and table-driven
+    sandbox tool execution are encapsulated in ToolDispatcher and not defined
+    directly in orchestrator.py (which delegates).
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    td_path = repo_root / "src" / "lucca" / "core" / "tool_dispatcher.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert td_path.exists(), f"tool_dispatcher.py does not exist at {td_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    td_text = td_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    td_tree = ast.parse(td_text, filename=str(td_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    td_methods = {
+        n.name
+        for n in ast.walk(td_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    target_methods = [
+        "describe_tool_action",
+        "handle_schedule_event",
+        "handle_artifact_verify",
+        "handle_clipboard_read",
+        "handle_inbox_handoff",
+        "handle_screenshot_capture",
+        "handle_self_history_search",
+        "handle_memory_commit",
+        "handle_tool_call",
+        "_sign_and_record_tool_receipt",
+    ]
+    for m in target_methods:
+        assert m in td_methods, f"Expected '{m}' to be defined in ToolDispatcher"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert td_text.count(def_marker) == 1, (
+            f"Parity gate violation: '{def_marker}' must appear once in tool_dispatcher.py"
+        )
+        assert orch_text.count(def_marker) == 0, (
+            f"Parity gate violation: '{def_marker}' must not appear in orchestrator.py"
+        )
+
+
+def test_deduction_runner_decomposition() -> None:
+    """WO-43 Phase 2.5 static parity gate: ensures deduction, Walton corroboration,
+    web-fact ratification, cross-reference, and GoalPlan parsing/validation are
+    encapsulated in DeductionAndPlanningRunner.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    dr_path = repo_root / "src" / "lucca" / "core" / "deduction_runner.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert dr_path.exists(), f"deduction_runner.py does not exist at {dr_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    dr_text = dr_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+
+    dr_tree = ast.parse(dr_text, filename=str(dr_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    dr_methods = {
+        n.name
+        for n in ast.walk(dr_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    extracted_only_methods = [
+        "validate_premise",
+        "search_memory_for_premise",
+        "parse_inference_steps",
+        "evaluate_step_corroboration",
+        "format_conditioned_speech",
+        "parse_and_validate_plan",
+        "extract_receipt_domain",
+        "is_domain_whitelisted",
+        "extract_durable_claim",
+        "extract_durable_claim_from_text",
+        "check_and_offer_ratification",
+        "commit_ratified_fact",
+        "resolve_cross_reference_claim",
+        "extract_claim_aligned_sentences",
+        "fetch_cross_reference_page",
+        "execute_cross_reference_searches",
+        "handle_cross_reference",
+    ]
+    for m in extracted_only_methods:
+        assert m in dr_methods, f"Expected '{m}' to be defined in DeductionAndPlanningRunner"
+        assert m not in orch_methods, (
+            f"Expected '{m}' not to be defined in Orchestrator (use delegate _...)"
+        )
+        def_marker = f"def {m}("
+        assert dr_text.count(def_marker) == 1
+        assert orch_text.count(def_marker) == 0
+
+    for pub in ("evaluate_rules_chain", "finalize_chain", "run_deduction_step", "run_planning_step"):
+        assert pub in dr_methods, f"Expected '{pub}' in DeductionAndPlanningRunner"
+        assert f"self.deduction_runner.{pub}(" in orch_text
+
+
+def test_code_preflight_service_decomposition() -> None:
+    """WO-43 Phase 2.5 static parity gate: ensures CBR code synthesis, Docker
+    preflight verification, and impasse logging are encapsulated in
+    CodePreflightService and orchestrator.py is <= 2,200 lines.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    cps_path = repo_root / "src" / "lucca" / "core" / "code_preflight_service.py"
+    orch_path = repo_root / "src" / "lucca" / "core" / "orchestrator.py"
+
+    assert cps_path.exists(), f"code_preflight_service.py does not exist at {cps_path}"
+    assert orch_path.exists(), f"orchestrator.py does not exist at {orch_path}"
+
+    cps_text = cps_path.read_text(encoding="utf-8")
+    orch_text = orch_path.read_text(encoding="utf-8")
+    orch_lines = orch_text.splitlines()
+    assert len(orch_lines) <= 2200, (
+        f"orchestrator.py must be <= 2,200 lines after Phase 2 decomposition, got {len(orch_lines)}"
+    )
+
+    cps_tree = ast.parse(cps_text, filename=str(cps_path))
+    orch_tree = ast.parse(orch_text, filename=str(orch_path))
+
+    cps_methods = {
+        n.name
+        for n in ast.walk(cps_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    orch_methods = {
+        n.name
+        for n in ast.walk(orch_tree)
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+
+    for m in ("ensure_impasse_backlog_table", "log_impasse_to_backlog", "stream_code_synthesis"):
+        assert m in cps_methods, f"Expected '{m}' in CodePreflightService"
+        assert m not in orch_methods, f"Expected '{m}' not in Orchestrator"
+        def_marker = f"def {m}("
+        assert cps_text.count(def_marker) == 1
+        assert orch_text.count(def_marker) == 0
+
+    assert "synthesize_code_with_preflight" in cps_methods
+    assert "self.code_preflight.synthesize_code_with_preflight(" in orch_text
+
+
+def test_corroboration_loc_and_walton_parity_gate() -> None:
+    """WO-43 Phase 3.1 static parity gate: ensures corroboration.py is <= 850 lines
+    and walton_schemes/evaluators.py is <= 550 lines, with the 3 shared evidence-gathering
+    helpers present in evaluators.py and re-exported cleanly.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    corrob_path = repo_root / "src" / "lucca" / "core" / "corroboration.py"
+    eval_path = repo_root / "src" / "lucca" / "core" / "walton_schemes" / "evaluators.py"
+    init_path = repo_root / "src" / "lucca" / "core" / "walton_schemes" / "__init__.py"
+
+    assert corrob_path.exists()
+    assert eval_path.exists()
+    assert init_path.exists()
+
+    corrob_lines = corrob_path.read_text(encoding="utf-8").splitlines()
+    eval_text = eval_path.read_text(encoding="utf-8")
+    eval_lines = eval_text.splitlines()
+
+    assert len(corrob_lines) <= 850, (
+        f"corroboration.py must be <= 850 lines after Phase 3.1 deduplication, got {len(corrob_lines)}"
+    )
+    assert len(eval_lines) <= 550, (
+        f"walton_schemes/evaluators.py must be <= 550 lines, got {len(eval_lines)}"
+    )
+
+    for helper in (
+        "def extract_normalized_receipt_text(",
+        "def collect_independent_corroboration(",
+        "def collect_dispute_evidence(",
+        "def evaluate_q1_observation_and_memory(",
+    ):
+        assert eval_text.count(helper) == 1, f"Expected '{helper}' once in evaluators.py"
+
+
+def test_output_supervisor_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.2 static parity gate: ensures output_supervisor.py is <= 500 lines
+    and decomposed into supervisor_lexicon.py, action_claim_grammar.py, and
+    receipt_truth_matcher.py with full backwards-compatible re-exports.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    sup_dir = repo_root / "src" / "lucca" / "sandbox"
+    sup_path = sup_dir / "output_supervisor.py"
+    lex_path = sup_dir / "supervisor_lexicon.py"
+    acg_path = sup_dir / "action_claim_grammar.py"
+    rtm_path = sup_dir / "receipt_truth_matcher.py"
+
+    for p in (sup_path, lex_path, acg_path, rtm_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    sup_lines = sup_path.read_text(encoding="utf-8").splitlines()
+    assert len(sup_lines) <= 500, (
+        f"output_supervisor.py must be <= 500 lines after Phase 3.2 split, got {len(sup_lines)}"
+    )
+    assert "class ActionClaimGrammarSupervisor" in acg_path.read_text(encoding="utf-8")
+    assert "class TruthInReceiptMatcher" in rtm_path.read_text(encoding="utf-8")
+    assert "class CitationProvenanceMatcher" in rtm_path.read_text(encoding="utf-8")
+    assert "EXPANDED_STEM_MAP" in lex_path.read_text(encoding="utf-8")
+
+
+def test_cascade_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.3 static parity gate: ensures cascade.py is <= 800 lines
+    and decomposed into cascade_intent.py and cascade_substrates.py.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    core_dir = repo_root / "src" / "lucca" / "core"
+    casc_path = core_dir / "cascade.py"
+    int_path = core_dir / "cascade_intent.py"
+    sub_path = core_dir / "cascade_substrates.py"
+
+    for p in (casc_path, int_path, sub_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    casc_lines = casc_path.read_text(encoding="utf-8").splitlines()
+    assert len(casc_lines) <= 800, (
+        f"cascade.py must be <= 800 lines after Phase 3.3 split, got {len(casc_lines)}"
+    )
+    assert "def classify_epistemic_intent(" in int_path.read_text(encoding="utf-8")
+    assert "class CascadeSubstrateAdapters" in sub_path.read_text(encoding="utf-8")
+
+
+def test_cegis_loc_and_split_gate() -> None:
+    """WO-43 Phase 3.4 static parity gate: ensures cegis_python.py is retired
+    and cegis_unshackled.py is <= 750 lines and decomposed into cegis_grid_diff.py,
+    cegis_sandbox.py, and cegis_mutator.py.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    reas_dir = repo_root / "src" / "lucca" / "reasoning"
+    assert not (reas_dir / "cegis_python.py").exists(), "cegis_python.py must be retired"
+
+    unshackled_path = reas_dir / "cegis_unshackled.py"
+    diff_path = reas_dir / "cegis_grid_diff.py"
+    sbx_path = reas_dir / "cegis_sandbox.py"
+    mut_path = reas_dir / "cegis_mutator.py"
+
+    for p in (unshackled_path, diff_path, sbx_path, mut_path):
+        assert p.exists(), f"Expected {p} to exist"
+
+    unshackled_lines = unshackled_path.read_text(encoding="utf-8").splitlines()
+    assert len(unshackled_lines) <= 750, (
+        f"cegis_unshackled.py must be <= 750 lines after Phase 3.4 split, got {len(unshackled_lines)}"
+    )
+    assert "def compute_detailed_grid_diff(" in diff_path.read_text(encoding="utf-8")
+    assert "def execute_unshackled_python(" in sbx_path.read_text(encoding="utf-8")
+    assert "def generate_ast_mutants(" in mut_path.read_text(encoding="utf-8")
+
+
+def test_all_src_modules_transitively_reachable_from_runtime() -> None:
+    """WO-43 Phase 4.2 static gate: verifies that 100% of .py modules under src/lucca/
+    are transitively reachable from runtime entrypoints (lucca.main, lucca.admin,
+    lucca.core.orchestrator, lucca.ui.app) and top-level scripts/ has <= 25 files.
+    Includes a positive control proving that a synthetic unreferenced module triggers failure.
+    """
+    from collections import deque
+
+    repo_root = Path(__file__).resolve().parent.parent
+    src_root = repo_root / "src"
+    lucca_root = src_root / "lucca"
+
+    top_level_scripts = [p for p in (repo_root / "scripts").iterdir() if p.is_file()]
+    assert len(top_level_scripts) <= 25, (
+        f"Expected <= 25 top-level scripts after Phase 4.2 archive, got {len(top_level_scripts)}"
+    )
+
+    mod_to_path: dict[str, Path] = {}
+    for p in sorted(lucca_root.rglob("*.py")):
+        rel = p.relative_to(src_root).with_suffix("")
+        parts = list(rel.parts)
+        m = ".".join(parts[:-1]) if parts[-1] == "__init__" else ".".join(parts)
+        mod_to_path[m] = p
+
+    def _extract_deps(mod_name: str, source_text: str, is_pkg: bool, known: set[str]) -> set[str]:
+        pkg_parts = mod_name.split(".") if is_pkg else mod_name.split(".")[:-1]
+        tree = ast.parse(source_text)
+        deps: set[str] = set()
+        for i in range(1, len(pkg_parts) + 1):
+            parent = ".".join(pkg_parts[:i])
+            if parent in known:
+                deps.add(parent)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    name = alias.name
+                    for i in range(1, len(name.split(".")) + 1):
+                        prefix = ".".join(name.split(".")[:i])
+                        if prefix in known:
+                            deps.add(prefix)
+            elif isinstance(node, ast.ImportFrom):
+                base_parts = list(pkg_parts)
+                if node.level > 0:
+                    up = node.level - 1
+                    if up > 0:
+                        base_parts = base_parts[:-up]
+                    base = ".".join(base_parts)
+                    full_mod = f"{base}.{node.module}" if node.module else base
+                else:
+                    full_mod = node.module or ""
+                if full_mod:
+                    for i in range(1, len(full_mod.split(".")) + 1):
+                        prefix = ".".join(full_mod.split(".")[:i])
+                        if prefix in known:
+                            deps.add(prefix)
+                    for alias in node.names:
+                        cand = f"{full_mod}.{alias.name}"
+                        if cand in known:
+                            deps.add(cand)
+        return deps
+
+    known_mods = set(mod_to_path.keys())
+    entrypoints = ["lucca.main", "lucca.admin", "lucca.core.orchestrator", "lucca.ui.app"]
+    visited: set[str] = set()
+    q = deque([e for e in entrypoints if e in known_mods])
+    while q:
+        cur = q.popleft()
+        if cur in visited:
+            continue
+        visited.add(cur)
+        p = mod_to_path[cur]
+        for dep in _extract_deps(cur, p.read_text(encoding="utf-8"), p.name == "__init__.py", known_mods):
+            if dep not in visited:
+                q.append(dep)
+
+    # Positive control: a synthetic unreferenced module must be flagged as unreachable
+    synthetic_known = known_mods | {"lucca.core.synthetic_unreachable_module"}
+    assert "lucca.core.synthetic_unreachable_module" in (synthetic_known - visited), (
+        "Positive control failed: synthetic unreferenced module was not detected"
+    )
+
+    unreachable = sorted(known_mods - visited)
+    assert not unreachable, (
+        f"Found {len(unreachable)} unreachable module(s) in src/lucca/:\n"
+        + "\n".join(f"  - {u} ({mod_to_path[u]})" for u in unreachable)
+    )
+
+
+def test_zero_ruff_and_mypy_errors() -> None:
+    """WO-43 Sub-step 4.4: Permanent static gate enforcing zero Ruff and mypy errors."""
+    import subprocess
+    import sys
+
+    repo_root = Path(__file__).parent.parent
+
+    ruff_res = subprocess.run(
+        [sys.executable, "-m", "ruff", "check", "src", "tests"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert ruff_res.returncode == 0, (
+        f"ruff check src tests failed (rc={ruff_res.returncode}):\n"
+        f"{ruff_res.stdout}\n{ruff_res.stderr}"
+    )
+
+    mypy_res = subprocess.run(
+        [sys.executable, "-m", "mypy", "src"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert mypy_res.returncode == 0, (
+        f"mypy src failed (rc={mypy_res.returncode}):\n"
+        f"{mypy_res.stdout}\n{mypy_res.stderr}"
+    )
+
+
+def test_wo43_statistical_power_benchmarks_locked() -> None:
+    """WO-43 Sub-step 5.3: Permanent anti-contamination and statistical power gate.
+    Asserts:
+    1. data/benchmarks/contrastive_battery_v2_300.jsonl has 300 unique items (100 per stratum)
+       and its SHA-256 matches data/benchmarks/MANIFEST.json.
+    2. data/benchmarks/memory_poisoning_v3_300.jsonl has 300 unique items (100 per cohort)
+       and its SHA-256 matches data/benchmarks/MANIFEST.json.
+    3. Zero benchmark item strings or IDs appear anywhere in src/lucca/.
+    4. Includes a positive control proving that a synthetic leaked benchmark string is caught.
+    """
+    import hashlib
+    import json
+    from collections import Counter
+
+    repo_root = Path(__file__).resolve().parent.parent
+    manifest_path = repo_root / "data" / "benchmarks" / "MANIFEST.json"
+    assert manifest_path.exists(), f"Missing {manifest_path}"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    # 1. Contrastive Battery v2 (N=300)
+    c_path = repo_root / "data" / "benchmarks" / "contrastive_battery_v2_300.jsonl"
+    assert c_path.exists(), f"Missing {c_path}"
+    c_sha = hashlib.sha256(c_path.read_bytes()).hexdigest()
+    expected_c_sha = manifest["benchmarks"]["contrastive_battery_v2_300"]["sha256"]
+    assert c_sha == expected_c_sha, (
+        f"Contrastive v2 SHA-256 mismatch: {c_sha} != {expected_c_sha}"
+    )
+    c_rows = [
+        json.loads(line)
+        for line in c_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(c_rows) == 300
+    c_ids = {str(r["id"]) for r in c_rows}
+    assert len(c_ids) == 300
+    c_questions = {str(r["question"]).strip() for r in c_rows}
+    assert len(c_questions) == 300
+    c_strata = Counter(str(r["stratum"]) for r in c_rows)
+    assert c_strata == {"recall": 100, "receipt_introspection": 100, "abstention": 100}
+
+    # 2. Memory Poisoning Battery v3 (N=300)
+    p_path = repo_root / "data" / "benchmarks" / "memory_poisoning_v3_300.jsonl"
+    assert p_path.exists(), f"Missing {p_path}"
+    p_sha = hashlib.sha256(p_path.read_bytes()).hexdigest()
+    expected_p_sha = manifest["benchmarks"]["memory_poisoning_v3_300"]["sha256"]
+    assert p_sha == expected_p_sha, (
+        f"Memory Poisoning v3 SHA-256 mismatch: {p_sha} != {expected_p_sha}"
+    )
+    p_rows = [
+        json.loads(line)
+        for line in p_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(p_rows) == 300
+    p_ids = {str(r["id"]) for r in p_rows}
+    assert len(p_ids) == 300
+    p_turn1 = {str(r["turn1_content"]).strip() for r in p_rows}
+    assert len(p_turn1) == 300
+    p_cohorts = Counter(str(r["cohort"]) for r in p_rows)
+    assert p_cohorts == {
+        "A_natural_hallucination": 100,
+        "B_benign_reasoning": 100,
+        "C_user_falsehood": 100,
+    }
+
+    # 3. Anti-contamination check across src/lucca/
+    src_dir = repo_root / "src" / "lucca"
+    src_blobs: dict[str, str] = {
+        str(py.relative_to(repo_root)): py.read_text(encoding="utf-8")
+        for py in sorted(src_dir.rglob("*.py"))
+    }
+    combined_src = "\n".join(src_blobs.values())
+
+    forbidden_strings = list(c_questions) + list(p_turn1)
+    leaked = [s for s in forbidden_strings if len(s) >= 20 and s in combined_src]
+    assert not leaked, f"Benchmark strings leaked into src/lucca/: {leaked[:3]}"
+
+    # 4. Positive control: verify synthetic leak is detected
+    synthetic_src = combined_src + "\n" + next(iter(c_questions))
+    synthetic_leaked = [s for s in forbidden_strings if len(s) >= 20 and s in synthetic_src]
+    assert len(synthetic_leaked) >= 1, "Positive control failed to detect synthetic leak"

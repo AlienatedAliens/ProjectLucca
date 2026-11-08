@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.brain.prompt_builder import (
     build_narration_messages,
@@ -36,13 +37,14 @@ from lucca.core.affect import AffectSignal
 from lucca.core.cascade import EpistemicSubstrate
 from lucca.core.config import get_config, load_heuristics
 from lucca.core.exceptions import SchemeInterruptSignal, SchemeYieldSignal
+from lucca.core.pipeline_tracer import PipelineTracer
 from lucca.core.proof_policy import is_cross_reference_command
 from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     AssertFact,
     ChatMessage,
     ExecutionTier,
-    JsonValue,
+    InferenceStep,
     PendingRatification,
     RouteAction,
     RouteDecision,
@@ -50,15 +52,20 @@ from lucca.core.schemas import (
     RuleState,
     Say,
     ToolCall,
+    ToolDefinition,
     ToolResult,
 )
 from lucca.core.self_diagnosis import is_self_diagnosis_query
-from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
+from lucca.core.text_utils import (
+    normalize_spelled_words,
+    normalize_transcript,
+)
 from lucca.core.trace import TurnTrace, now_ns
+from lucca.core.visual_session import VisualSessionStore
+from lucca.memory.working import WorkingMemory
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.policy import parse_confirmation_response
 from lucca.senses.ring_buffer import FLAG_ABORT, FLAG_EOS
-from lucca.core.visual_session import VisualSessionStore
 
 if TYPE_CHECKING:
     from lucca.core.orchestrator import Orchestrator
@@ -316,7 +323,9 @@ class SubTurnScratchpadBuffer:
             head = content[: self.head_chars]
             tail = content[-self.tail_chars :] if self.tail_chars > 0 else ""
             bounded_output = (
-                f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters omitted to preserve synthesis budget ...]\n\n{tail}"
+                f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters "
+                "omitted to "
+                f"preserve synthesis budget ...]\n\n{tail}"
             )
             self.truncated_count += 1
             logger.info(
@@ -373,23 +382,65 @@ def detect_operational_ambiguity(text: str) -> tuple[bool, str | None]:
             return False, None
 
     # 1. Financial interest without specifying simple vs compound
-    has_interest = bool(re.search(r"\b(interest|rate of interest|earns interest|accrues interest|loan)\b", lower))
-    has_explicit_convention = bool(re.search(r"\b(simple interest|compound(ed)?|compounding|apr|apy)\b", lower))
+    has_interest = bool(
+        re.search(
+            r"\b(interest|rate of interest|earns interest|accrues "
+            r"interest|loan)\b",
+            lower,
+        )
+    )
+    has_explicit_convention = bool(
+        re.search(
+            r"\b(simple "
+            r"interest|compound(ed)?|compounding|apr|apy)\b",
+            lower,
+        )
+    )
     if has_interest and not has_explicit_convention:
         return True, "Interest calculation without explicit simple vs compound convention specified"
 
     # 2. Multi-tier fee/tip/tax where base is ambiguous (subtotal vs grand total)
-    has_fee = bool(re.search(r"\b(fee|service fee|delivery fee|convenience fee|vendor fee|tax|tip)\b", lower))
-    has_multiple_costs = bool(re.search(r"\b(delivery|shipping|travel|expenses|freight|tip|subtotal)\b", lower))
+    has_fee = bool(
+        re.search(
+            r"\b(fee|service fee|delivery fee|convenience fee|vendor "
+            r"fee|tax|tip)\b",
+            lower,
+        )
+    )
+    has_multiple_costs = bool(
+        re.search(
+            r"\b(delivery|shipping|travel|expenses|freight|tip|subtota"
+            r"l)\b",
+            lower,
+        )
+    )
     if has_fee and has_multiple_costs and "%" in text:
-        if not re.search(r"\b(applied (strictly )?to|on (the )?(subtotal|groceries|merchandise|work) only)\b", lower):
+        if not re.search(
+            r"\b(applied (strictly )?to|on (the "
+            r")?(subtotal|groceries|merchandise|work) only)\b",
+            lower,
+        ):
             return True, "Percentage fee application ambiguous across subtotal vs grand total"
 
     # 3. Discrete physical entity packing/rounding without explicit rounding direction
-    has_discrete_packing = bool(re.search(r"\b(how many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b", lower))
-    has_explicit_rounding = bool(re.search(r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at least|exact(ly)?)\b", lower))
+    has_discrete_packing = bool(
+        re.search(
+            r"\b(how "
+            r"many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b",
+            lower,
+        )
+    )
+    has_explicit_rounding = bool(
+        re.search(
+            r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at "
+            r"least|exact(ly)?)\b",
+            lower,
+        )
+    )
     if has_discrete_packing and not has_explicit_rounding:
-        return True, "Discrete physical unit allocation without explicit floor/ceil rounding direction"
+        return True, (
+            "Discrete physical unit allocation without explicit floor/ceil rounding direction"
+        )
 
     return False, None
 
@@ -417,7 +468,8 @@ class TurnPipeline:
     _DIRECT_VISION_PATTERNS: tuple[re.Pattern[str], ...] = (
         # Explicit media nouns
         re.compile(
-            r"\b(in|on|from) (the |this |that )?(image|screenshot|picture|photo|capture|frame|screen|display)\b",
+            r"\b(in|on|from) (the |this |that "
+            r")?(image|screenshot|picture|photo|capture|frame|screen|display)\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -434,7 +486,8 @@ class TurnPipeline:
             re.IGNORECASE,
         ),
         re.compile(
-            r"\bwhat (do you|can you|did you|are you|are you able to) (see|spot|notice|observe|look at|looking at)\b",
+            r"\bwhat (do you|can you|did you|are you|are you able to) "
+            r"(see|spot|notice|observe|look at|looking at)\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -472,7 +525,8 @@ class TurnPipeline:
         re.compile(r"\b(where is (it|that|the)|where are (they|the))\b", re.IGNORECASE),
         re.compile(r"\bwhich (one|part|side|half)\b", re.IGNORECASE),
         re.compile(
-            r"\b(on the (left|right|top|bottom|side|edge)|in the (middle|center|background|foreground|corner))\b",
+            r"\b(on the (left|right|top|bottom|side|edge)|in the "
+            r"(middle|center|background|foreground|corner))\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -489,7 +543,9 @@ class TurnPipeline:
     _VISION_QUERY_PATTERNS = _DIRECT_VISION_PATTERNS
 
     def _is_vision_query(self, text: str, has_active_image: bool = False) -> bool:
-        """Returns True if the query requires visual inspection (or follow-up if image is active)."""
+        """
+        Returns True if the query requires visual inspection (or follow-up if image is active).
+        """
         if not text:
             return False
         for pat in self._DIRECT_VISION_PATTERNS:
@@ -505,6 +561,47 @@ class TurnPipeline:
         self.orch = orchestrator
         self.sanity_guard = SanityCheckGuard()
         self.difficulty_estimator = DifficultyEstimator()
+        self._closed_trace_ids: set[str] = set()
+
+    @property
+    def working_memory(self) -> WorkingMemory | None:
+        wm = self.orch._working_memory
+        if wm is not None:
+            return wm
+        db_mgr = getattr(self.orch, "db", None)
+        if db_mgr is not None:
+            wm = WorkingMemory(db=db_mgr)
+            self.orch._working_memory = wm
+            return wm
+        return None
+
+    def on_turn_finalized(self, trace: TurnTrace, decision_id: str | None = None) -> None:
+        """Closes WorkingMemory task journal entry and finalizes PipelineTracer flow."""
+        if not trace.trace_id or trace.trace_id in self._closed_trace_ids:
+            return
+        self._closed_trace_ids.add(trace.trace_id)
+        wm = self.working_memory
+        if wm is not None:
+            try:
+                outcome = (
+                    "completed"
+                    if getattr(self.orch, "current_turn_tool_ok", True) and not trace.interrupted
+                    else "failed"
+                )
+                wm.close_task(trace.trace_id, outcome=outcome)
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_close_failed", error=str(wm_err))
+        try:
+            reply_str = str(getattr(self.orch, "current_turn_assistant_reply", "") or "")
+            PipelineTracer.get_instance().finish_flow(
+                predicted_ans=reply_str[:500],
+                expected_ans="",
+                passed=bool(
+                    getattr(self.orch, "current_turn_tool_ok", True) and not trace.interrupted
+                ),
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_finish_failed", error=str(tr_err))
 
     # ------------------------------------------------------------------------
     # Phase 0: Turn State Reset
@@ -518,6 +615,7 @@ class TurnPipeline:
         self.orch.play_ring.clear_flag(FLAG_EOS)
         self.orch.current_turn_tool_calls = []
         self.orch.current_turn_receipts = []
+        self.orch.current_turn_historical_receipts = []
         self.orch.current_turn_tier = ExecutionTier.FULL_LOOP
         self.orch.current_turn_tool_spoken = []
         self.orch.current_turn_tool_ok = True
@@ -606,6 +704,7 @@ class TurnPipeline:
                 self.orch.play_ring.set_flag(FLAG_EOS)
         finally:
             self.orch._finalize_turn(trace, decision_id)
+            self.on_turn_finalized(trace, decision_id)
 
     def execute_act_then_narrate(
         self,
@@ -664,10 +763,8 @@ class TurnPipeline:
                     content=combined,
                     elapsed_ms=0.0,
                 )
-            else:
-                say_actions = [
-                    a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
-                ]
+            elif winning_outcome.plan:
+                say_actions = [a.text for a in winning_outcome.plan.actions if isinstance(a, Say)]
                 if say_actions:
                     spoken = " ".join(say_actions)
                     self.orch._speak_text(trace, spoken)
@@ -684,12 +781,13 @@ class TurnPipeline:
                 if (last_tool_res is None or getattr(last_tool_res, "ok", True))
                 else "pydantic_valid"
             )
-            self.orch.rule_engine.emit_execution_triple(
-                rule_id=winning_outcome.rule_id,
-                plan=winning_outcome.plan,
-                signal=signal,
-                detail="ACT_THEN_NARRATE execution",
-            )
+            if winning_outcome.plan:
+                self.orch.rule_engine.emit_execution_triple(
+                    rule_id=winning_outcome.rule_id,
+                    plan=winning_outcome.plan,
+                    signal=signal,
+                    detail="ACT_THEN_NARRATE execution",
+                )
 
             mem_hits = self.orch._search_memories(user_text) if user_text else []
             eff_user_text = user_text
@@ -745,7 +843,7 @@ class TurnPipeline:
             logger.error("act_then_narrate_error", error=str(e))
             self.orch._finalize_turn(trace, decision_id)
 
-    def narration_grammar_request(self) -> tuple[list[object] | None, str | None]:
+    def narration_grammar_request(self) -> tuple[list[ToolDefinition] | None, str | None]:
         """
         Sampling-request decision for the ACT_THEN_NARRATE narration channel
         (WO-38 Phase 3 audit finding).
@@ -779,7 +877,9 @@ class TurnPipeline:
             try:
                 return grammar_path.read_text(encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
-                logger.debug("action_claim_grammar_load_failed", path=str(grammar_path), error=str(exc))
+                logger.debug(
+                    "action_claim_grammar_load_failed", path=str(grammar_path), error=str(exc)
+                )
         return None
 
     # ------------------------------------------------------------------------
@@ -815,7 +915,11 @@ class TurnPipeline:
                 )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
-        if yielded_context and yielded_context.get("reason") not in ("define: no term", "no term", ""):
+        if yielded_context and yielded_context.get("reason") not in (
+            "define: no term",
+            "no term",
+            "",
+        ):
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
@@ -851,11 +955,14 @@ class TurnPipeline:
                 goal_ctx = active_goals.get_goal_context_prompt(limit=3)
                 if goal_ctx:
                     goal_block = f"[Shared Active Goals]\n{goal_ctx}"
-                    epistemic_ctx = f"{epistemic_ctx}\n\n{goal_block}" if epistemic_ctx else goal_block
+                    epistemic_ctx = (
+                        f"{epistemic_ctx}\n\n{goal_block}" if epistemic_ctx else goal_block
+                    )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("active_goals_context_error", error=str(exc))
 
-        # WO-36 Milestone 36.3: Waking Continuity Note on Session Gap >= 30 min (AffectSignal.LONG_GAP)
+        # WO-36 Milestone 36.3: Waking Continuity Note on Session Gap >= 30 min
+        # (AffectSignal.LONG_GAP)
         last_turn_ts = getattr(self.orch, "last_turn_timestamp", None)
         now_ts = time.time()
         if isinstance(last_turn_ts, (int, float)) and (now_ts - float(last_turn_ts)) >= 1800.0:
@@ -874,28 +981,39 @@ class TurnPipeline:
                 try:
                     with db_mgr.read_cursor() as cur:
                         cur.execute(
-                            "SELECT event_type, topic FROM learning_events WHERE created_at > ? ORDER BY created_at DESC LIMIT 3",
+                            (
+                                "SELECT event_type, topic FROM learning_events WHERE created_at "
+                                "> ? "
+                                "ORDER BY created_at DESC LIMIT 3"
+                            ),
                             (last_turn_ts,),
                         )
                         l_rows = cur.fetchall()
                         if l_rows:
                             items_str = ", ".join(f"{r[0]}:{r[1]}" for r in l_rows)
-                            overnight_details.append(f"idle/dream learning events ({len(l_rows)}): {items_str}")
-                        cur.execute(
-                            "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'"
-                        )
+                            overnight_details.append(
+                                f"idle/dream learning events ({len(l_rows)}): {items_str}"
+                            )
+                        cur.execute("SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'")
                         rq_row = cur.fetchone()
                         if rq_row and int(rq_row[0]) > 0:
                             overnight_details.append(f"pending review items: {int(rq_row[0])}")
                 except Exception as db_err:  # noqa: BLE001
                     logger.debug("waking_continuity_db_query_failed", error=str(db_err))
 
-            extra_suffix = f" Overnight summary: {'; '.join(overnight_details)}." if overnight_details else ""
+            extra_suffix = (
+                (f" Overnight summary: {'; '.join(overnight_details)}.")
+                if overnight_details
+                else ""
+            )
             continuity_note = (
                 f"[Waking Continuity Note: {gap_minutes} minutes elapsed since last turn. "
-                f"Resuming collaborative workspace; state and active goals preserved.{extra_suffix}]"
+                "Resuming collaborative workspace; state and active goals "
+                f"preserved.{extra_suffix}]"
             )
-            epistemic_ctx = f"{epistemic_ctx}\n\n{continuity_note}" if epistemic_ctx else continuity_note
+            epistemic_ctx = (
+                f"{epistemic_ctx}\n\n{continuity_note}" if epistemic_ctx else continuity_note
+            )
         self.orch.last_turn_timestamp = now_ts
 
         # D-DUAL-01 & D-REAS-10: Deliberation lane floor-hold cue & shared workspace hint
@@ -929,14 +1047,17 @@ class TurnPipeline:
                 dom_hint = (
                     "[Neurosymbolic Domain Directive (container_world): For object relocation or "
                     "Theory-of-Mind tracking, invoke `run_python` using `ContainerWorld` (`world = "
-                    "ContainerWorld(); world.set_room_occupants(...); world.move(...); world.tell(...)`) "
+                    "ContainerWorld(); world.set_room_occupants(...); world.move(...); "
+                    "world.tell(...)`) "
                     "to compute exact locations and agent beliefs.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
             elif route_decision.reasoning_domain in ("combinatorial_smt", "z3_smt"):
                 dom_hint = (
-                    "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra puzzles, "
-                    "invoke `run_python` with `import z3` to formalize constraints and solve via `z3.Solver()`.]"
+                    "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra "
+                    "puzzles, "
+                    "invoke `run_python` with `import z3` to formalize constraints and solve via "
+                    "`z3.Solver()`.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
             elif route_decision.reasoning_domain == "soft_logic":
@@ -969,7 +1090,9 @@ class TurnPipeline:
                     "State your operational assumption explicitly on line 1 before providing "
                     "calculations or numerical conclusions (e.g. 'Assumption: ...').]"
                 )
-                epistemic_ctx = f"{epistemic_ctx}\n\n{disambig_hint}" if epistemic_ctx else disambig_hint
+                epistemic_ctx = (
+                    f"{epistemic_ctx}\n\n{disambig_hint}" if epistemic_ctx else disambig_hint
+                )
 
         return epistemic_ctx
 
@@ -977,12 +1100,12 @@ class TurnPipeline:
         self,
         rule_state: RuleState,
         text_for_gate: str,
-    ) -> list[object] | None:
+    ) -> list[ToolDefinition] | None:
         """
         Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
         Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
         """
-        turn_tools: list[object] | None = None
+        turn_tools: list[ToolDefinition] | None = None
         intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
         toolless_intents = {"dangerous"}
 
@@ -1077,6 +1200,22 @@ class TurnPipeline:
             return
 
         # Phase 1: Input Normalization & Spelled-Word Attractor Neutralization
+        try:
+            PipelineTracer.get_instance().start_flow(
+                trace.trace_id,
+                {"query": str(user_text or "")[:200], "mode": inp.mode, "origin": inp.origin},
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_start_failed", error=str(tr_err))
+
+        wm = self.working_memory
+        if wm is not None and trace.trace_id:
+            try:
+                wm.open_task(trace.trace_id)
+                wm.set(trace.trace_id, "stage", "tank_1_ingestion")
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_open_failed", error=str(wm_err))
+
         normalized_text = normalize_transcript(user_text)
         _, detected_words = normalize_spelled_words(user_text)
         self.orch.active_detected_words = detected_words
@@ -1170,6 +1309,17 @@ class TurnPipeline:
             return
 
         # Phase 3: Rule State & Route Decision
+        try:
+            PipelineTracer.get_instance().transition_stage(
+                "tank_2_intent_valve",
+                "Conformal Intent Valve & Safety Shunt",
+                "router",
+                eval_user_text,
+                details="Evaluating MicroScheme rules & routing...",
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_tank2_failed", error=str(tr_err))
+
         rule_state = self.orch._build_rule_state(eval_user_text, mode=inp.mode)
         yielded_context: dict[str, object] | None = None
         shadow_outcomes: list[RuleOutcome] = []
@@ -1221,6 +1371,16 @@ class TurnPipeline:
 
         # Phase 4: Tier Dispatch (REFLEX / ACT_THEN_NARRATE Early Exit)
         if route_decision and route_decision.action == RouteAction.RULE:
+            try:
+                PipelineTracer.get_instance().transition_stage(
+                    "tank_3_symbolic_centrifuge",
+                    "MicroScheme Symbolic Centrifuge",
+                    "rule_engine",
+                    str(getattr(route_decision, "action", "RULE")),
+                    details="Dispatching symbolic rule execution tier...",
+                )
+            except Exception as tr_err:  # noqa: BLE001
+                logger.debug("pipeline_tracer_tank3_failed", error=str(tr_err))
             winning_outcome: RuleOutcome | None = None
             for outcome in active_outcomes:
                 if outcome.fired and not outcome.errored and outcome.plan is not None:
@@ -1247,11 +1407,8 @@ class TurnPipeline:
                     text=user_text,
                     intent=getattr(route_decision, "intent", None),
                 )
-            else:
-                has_tool_calls = any(
-                    isinstance(a, ToolCall)
-                    for a in winning_outcome.plan.actions
-                )
+            elif winning_outcome and winning_outcome.plan:
+                has_tool_calls = any(isinstance(a, ToolCall) for a in winning_outcome.plan.actions)
                 tier = (
                     getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
                     if has_tool_calls
@@ -1276,6 +1433,22 @@ class TurnPipeline:
                     return
 
         # Phase 5: Epistemic Context, Tool Gating & Streaming LLM Full Loop
+        try:
+            PipelineTracer.get_instance().transition_stage(
+                "tank_5_deliberation",
+                "Neural Deliberation Boiler",
+                "llm",
+                eval_user_text or user_text,
+                details="Synthesizing epistemic context & streaming...",
+            )
+        except Exception as tr_err:  # noqa: BLE001
+            logger.debug("pipeline_tracer_tank5_failed", error=str(tr_err))
+        if wm is not None and trace.trace_id:
+            try:
+                wm.set(trace.trace_id, "stage", "tank_5_deliberation")
+            except Exception as wm_err:  # noqa: BLE001
+                logger.debug("working_memory_set_failed", error=str(wm_err))
+
         mem_hits = self.orch._search_memories(user_text) if user_text else []
         epistemic_ctx = self.build_epistemic_context(
             user_text=eval_user_text or user_text,
@@ -1304,6 +1477,36 @@ class TurnPipeline:
             elif route_decision.thinking_mode == "direct":
                 enable_thinking = False
         trace.enable_thinking = enable_thinking
+        if enable_thinking and (eval_user_text or user_text):
+            ded_runner = getattr(self.orch, "deduction_runner", None)
+            if ded_runner is not None and hasattr(ded_runner, "evaluate_step_corroboration"):
+                try:
+                    q_text = (eval_user_text or user_text).strip()
+                    prems = [q_text]
+                    m_attr = re.search(
+                        r"according\s+to\s+([^,.:;]+)[,.:;]\s*(.+)",
+                        q_text,
+                        re.IGNORECASE,
+                    )
+                    if m_attr:
+                        prems.append(f"{m_attr.group(1).strip()} asserts {m_attr.group(2).strip()}")
+                    step = InferenceStep(
+                        s="turn_query",
+                        p="requires_deliberation",
+                        o=q_text[:160],
+                        premises=prems,
+                        confidence=0.75,
+                    )
+                    cq_results = ded_runner.evaluate_step_corroboration(step)
+                    if step.conditions or cq_results:
+                        cond_str = ", ".join(step.conditions) if step.conditions else "evaluated"
+                        cq_note = (
+                            f"[Walton Critical-Question Corroboration: conf={step.confidence:.2f}; "
+                            f"conditions={cond_str}]"
+                        )
+                        epistemic_ctx = f"{epistemic_ctx}\n{cq_note}" if epistemic_ctx else cq_note
+                except Exception as cq_err:  # noqa: BLE001
+                    logger.debug("deduction_corroboration_eval_failed", error=str(cq_err))
 
         # Tier 3 Code Synthesis with Autonomous Docker Preflight Loop (WO-26 Phase 4)
         if is_code_synthesis_request(eval_user_text or user_text):
@@ -1353,3 +1556,4 @@ class TurnPipeline:
             tools=turn_tools,
             enable_thinking=enable_thinking,
         )
+        self.on_turn_finalized(trace, decision_id)

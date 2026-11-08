@@ -5,7 +5,8 @@ D-REAS-11, D-AUD-01
 Extends MicroScheme with domain-general abstract data types:
 1. Higher-order sequence operations (map, filter, fold, zip, take, drop, reverse, unique).
 2. Set & relational operations (member?, subset?, union, intersection, difference).
-3. 2D vector geometry & navigation (vec2d, vec-add, vec-sub, vec-scale, manhattan-dist, euclidean-dist, heading-turn, step-forward).
+3. 2D vector geometry & navigation (vec2d, vec-add, vec-sub, vec-scale, manhattan-dist,
+euclidean-dist, heading-turn, step-forward).
 4. Constraint predicates (all?, any?, none?, count-if).
 
 Zero-Any typing strictly enforced per D-AUD-01.
@@ -13,19 +14,15 @@ Zero-Any typing strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import math
+from collections.abc import Callable
 from typing import Final, cast
 
 import structlog
 
 from lucca.core.exceptions import SchemeRuntimeError
 from lucca.reasoning.scheme.parser import (
-    Keyword,
-    SchemeNode,
     SchemeValue,
-    Symbol,
-    to_canonical,
 )
 from lucca.reasoning.scheme.prims import PURE_PRIMITIVES
 
@@ -94,7 +91,7 @@ def prim_zip(args: list[SchemeValue]) -> SchemeValue:
         raise SchemeRuntimeError(f"'zip' requires exactly 2 arguments, got {len(args)}")
     xs = _check_list(args[0], "zip")
     ys = _check_list(args[1], "zip")
-    return [cast(SchemeValue, [x, y]) for x, y in zip(xs, ys)]
+    return [cast(SchemeValue, [x, y]) for x, y in zip(xs, ys, strict=False)]
 
 
 def prim_unique(args: list[SchemeValue]) -> SchemeValue:
@@ -255,7 +252,8 @@ def prim_heading_turn(args: list[SchemeValue]) -> SchemeValue:
     elif turn == "around":
         delta = 2
     else:
-        raise SchemeRuntimeError(f"Unknown turn action '{turn}', expected 'left', 'right', or 'around'")
+        raise SchemeRuntimeError(
+            f"Unknown turn action '{turn}', expected 'left', 'right', or 'around'")
     return (h + delta) % 4
 
 

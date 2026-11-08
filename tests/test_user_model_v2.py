@@ -7,8 +7,9 @@ Acceptance Gate: G-WO36-USERMODEL-NLI & Trap 1/Trap 2 Invariants.
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
+
 import pytest
 
 from lucca.core.active_goals import ActiveGoalManager

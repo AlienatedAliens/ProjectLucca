@@ -2,7 +2,10 @@
 Tests for robust multi-tier grid extraction in ConceptARC and ARC-AGI runners.
 """
 
-from scripts.run_concept_arc import extract_grid_from_text, extract_perceptual_invariants
+from scripts.archive.wo01_wo42.run_concept_arc import (
+    extract_grid_from_text,
+    extract_perceptual_invariants,
+)
 
 
 def test_extract_grid_direct_json():

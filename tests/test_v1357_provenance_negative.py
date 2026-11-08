@@ -3,9 +3,6 @@ Negative test fixture for v1.35.7 Phase 4: Distillation Provenance Invariants.
 Spec 03 §5, ADR-006, Gates: G-V1357-DISTILL, D-MEM-05 quarantine retention.
 """
 
-import os
-import sqlite3
-from unittest.mock import MagicMock
 
 import pytest
 

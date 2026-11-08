@@ -11,17 +11,10 @@ import sys
 import threading
 import time
 from collections.abc import Callable
-from pathlib import Path
-
-logger = logging.getLogger(__name__)
-
-
-from pydantic import JsonValue
-
-os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 import psutil
 import zmq
+from pydantic import JsonValue
 from PyQt6.QtCore import QMetaObject, QObject, QPoint, QRect, Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QFont, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
@@ -52,12 +45,16 @@ from lucca.ui.sprite import CompanionSprite
 from lucca.ui.telemetry_hud import TelemetryHUD
 from lucca.ui.theme import CHRONO_TRIGGER_STYLE_SHEET
 
+logger = logging.getLogger(__name__)
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
+
 
 class UIBridge(QObject):
     state_changed = pyqtSignal(str)
     rms_received = pyqtSignal(float)
     caption_received = pyqtSignal(str, str, bool)  # text, source, is_final
     confirm_requested = pyqtSignal(str, str, float)  # prompt, summary, timeout_s
+    user_message_requested = pyqtSignal(str, object)  # text, image_b64
 
 
 def get_commorose_actions(
@@ -197,6 +194,7 @@ class UIApplication:
         self.bridge.rms_received.connect(self.sprite.set_mouth_aperture)
         self.bridge.caption_received.connect(self._on_caption_received)
         self.bridge.confirm_requested.connect(self._on_confirm_requested)
+        self.bridge.user_message_requested.connect(self._send_user_message)
 
         # Wire sprite interactions: Single click -> chat/subtitles, Double click -> Commorose
         self.sprite.on_geometry_changed = self._on_sprite_moved
@@ -458,17 +456,13 @@ class UIApplication:
                 b64, _, _ = StudioFacade.capture_screenshot()
                 self._send_user_message("Describe what you see on my screen.", b64)
             except Exception as exc:  # noqa: BLE001
-                logger.debug("inspect_screen_failed", error=str(exc))
+                logger.debug("inspect_screen_failed: %s", exc)
 
         threading.Thread(target=_worker, name="ui-screenshot", daemon=True).start()
 
     def _send_user_message(self, text: str, image_b64: str | None = None) -> None:
         if threading.current_thread() is not threading.main_thread():
-            QMetaObject.invokeMethod(
-                self.bubble,
-                lambda: self._send_user_message(text, image_b64),
-                Qt.ConnectionType.QueuedConnection,
-            )
+            self.bridge.user_message_requested.emit(text, image_b64)
             return
 
         geom = self.sprite.geometry()
@@ -521,12 +515,21 @@ class UIApplication:
 
     def _send_config_update(self, new_config: dict[str, JsonValue]) -> None:
         self.active_voice = str(new_config.get("voice", self.active_voice))
-        self.active_speed = float(new_config.get("speed", self.active_speed))
+        raw_speed = new_config.get("speed", self.active_speed)
+        self.active_speed = (
+            float(raw_speed) if isinstance(raw_speed, (int, float, str)) else self.active_speed
+        )
         self.active_ptt_key = str(new_config.get("ptt_key", self.active_ptt_key))
         if "pitch_semitones" in new_config:
-            self.active_dsp_pitch = float(new_config["pitch_semitones"])
+            raw_pitch = new_config["pitch_semitones"]
+            if isinstance(raw_pitch, (int, float, str)):
+                self.active_dsp_pitch = float(raw_pitch)
         if "dsp_enabled" in new_config:
             self.active_dsp_enabled = bool(new_config["dsp_enabled"])
+
+        def _opt_str(key: str) -> str | None:
+            v = new_config.get(key)
+            return str(v) if v is not None else None
 
         env = Envelope(
             type="ui.config_update",
@@ -537,10 +540,10 @@ class UIApplication:
                 voice=self.active_voice,
                 speed=self.active_speed,
                 ptt_key=self.active_ptt_key,
-                persona_archetype=new_config.get("persona_archetype"),
-                formality=new_config.get("formality"),
-                custom_system_prompt=new_config.get("custom_system_prompt"),
-                llm_model=new_config.get("llm_model"),
+                persona_archetype=_opt_str("persona_archetype"),
+                formality=_opt_str("formality"),
+                custom_system_prompt=_opt_str("custom_system_prompt"),
+                llm_model=_opt_str("llm_model"),
                 dsp_pitch_semitones=getattr(self, "active_dsp_pitch", None),
                 dsp_enabled=getattr(self, "active_dsp_enabled", None),
             ).model_dump(),

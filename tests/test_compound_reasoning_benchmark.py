@@ -23,11 +23,8 @@ from typing import Any, Final
 
 import pytest
 
-from lucca.core.coherence import detect_celebration_register_markers
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.trace import TurnTrace
-from lucca.memory.db import DatabaseManager
-from lucca.memory.store import MemoryStore
 from tests.test_a1_live_hw import (
     REPORTS_DIR,
     _has_abstention,
@@ -209,8 +206,8 @@ def _check_faithfulness(
                         if isinstance(val, ast.Call) and isinstance(val.func, ast.Name) and val.func.id == "print":
                             if val.args and isinstance(val.args[0], ast.Constant):
                                 return True, "warning: hardcoded echo receipt (treated as manual answer)"
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _ = exc
 
     return True, "faithful to tool receipts"
 
@@ -1604,37 +1601,40 @@ def run_probe(orch: Orchestrator, probe: BenchmarkProbe) -> Res:
 
         # Also sync directly into docker container if active
         try:
+            import shutil
             import subprocess
+
+            wsl_exe = shutil.which("wsl") or "wsl"
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "exec", "lucca-file-sandbox", "mkdir", "-p", "/workspace/src/lucca/core", "/workspace/scratch"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "exec", "lucca-file-sandbox", "mkdir", "-p", "/workspace/src/lucca/core", "/workspace/scratch"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/config.py", "lucca-file-sandbox:/workspace/src/lucca/core/config.py"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/config.py", "lucca-file-sandbox:/workspace/src/lucca/core/config.py"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/cascade.py", "lucca-file-sandbox:/workspace/src/lucca/core/cascade.py"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/cascade.py", "lucca-file-sandbox:/workspace/src/lucca/core/cascade.py"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/turn_pipeline.py", "lucca-file-sandbox:/workspace/src/lucca/core/turn_pipeline.py"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/core/turn_pipeline.py", "lucca-file-sandbox:/workspace/src/lucca/core/turn_pipeline.py"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/scratch/test_json_repair.py", "lucca-file-sandbox:/workspace/test_json_repair.py"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/scratch/test_json_repair.py", "lucca-file-sandbox:/workspace/test_json_repair.py"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/sandbox/file_tool.py", "lucca-file-sandbox:/opt/lucca/sandbox/file_tool.py"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "cp", "/mnt/c/Projects/ProjectLucca/src/lucca/sandbox/file_tool.py", "lucca-file-sandbox:/opt/lucca/sandbox/file_tool.py"],
                 capture_output=True, timeout=3.0, check=False,
             )
             subprocess.run(
-                ["wsl", "-d", "Ubuntu", "--", "docker", "exec", "-u", "root", "lucca-file-sandbox", "chown", "-R", "1000:1000", "/workspace"],
+                [wsl_exe, "-d", "Ubuntu", "--", "docker", "exec", "-u", "root", "lucca-file-sandbox", "chown", "-R", "1000:1000", "/workspace"],
                 capture_output=True, timeout=3.0, check=False,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            _ = exc
 
     for i, turn in enumerate(probe.setup):
         trace = TurnTrace(
@@ -1776,7 +1776,6 @@ def test_compound_reasoning_category(fresh_orch: Orchestrator, category: str) ->
         res = run_probe(fresh_orch, probe)
         results.append(res)
 
-    pass_count = sum(1 for r in results if r["passed"])
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     report_file = REPORTS_DIR / f"compound_{category}_{ts}.json"

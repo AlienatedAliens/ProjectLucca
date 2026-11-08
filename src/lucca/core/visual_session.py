@@ -10,11 +10,11 @@ Zero-Any typing strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 import base64
-from dataclasses import dataclass
 import hashlib
-from pathlib import Path
 import threading
 import time
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -37,7 +37,10 @@ class VisualSessionStore:
         self._counter: int = 0
 
     def store_image(self, b64_jpeg: str, description: str = "screenshot") -> VisualArtifact:
-        """Decodes b64, hashes SHA-256, writes {sha256[:16]}.jpg, appends to index, evicts oldest if > MAX_IMAGES."""
+        """
+        Decodes b64, hashes SHA-256, writes {sha256[:16]}.jpg, appends to index, evicts oldest if >
+        MAX_IMAGES.
+        """
         with self._lock:
             clean_b64 = b64_jpeg
             if "," in clean_b64:
@@ -69,7 +72,10 @@ class VisualSessionStore:
             while len(self._artifacts) > self.MAX_IMAGES:
                 evicted = self._artifacts.pop(0)
                 try:
-                    if evicted.path.exists() and not any(a.path == evicted.path for a in self._artifacts):
+                    if (
+                        evicted.path.exists() and not any(
+                            a.path == evicted.path for a in self._artifacts)
+                    ):
                         evicted.path.unlink(missing_ok=True)
                 except OSError:
                     pass

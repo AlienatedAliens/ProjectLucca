@@ -4,6 +4,7 @@ Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2), WO-37 Phase 2
 """
 
 import json
+import os
 import threading
 import time
 import unicodedata
@@ -17,19 +18,20 @@ import structlog
 try:
     from tokenizers import Tokenizer
 except ImportError:
-    Tokenizer = None  # type: ignore[assignment, misc]
+    Tokenizer = None
 
 from lucca.core.schemas import VerificationResult, VerifierLabel
 
 logger = structlog.get_logger(__name__)
 
-import os
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _resolve_verifier_model_dir() -> Path:
-    """Resolve verifier model directory from environment or repo root, or raise FileNotFoundError."""
+    """
+    Resolve verifier model directory from environment or repo root, or raise FileNotFoundError.
+    """
     env_dir = os.environ.get("LUCCA_VERIFIER_MODEL_DIR")
     if env_dir:
         p = Path(env_dir)
@@ -50,7 +52,8 @@ def _resolve_verifier_model_dir() -> Path:
         "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
     )
     if export_script.exists():
-        msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+        msg += f" Alternatively, generate it locally by running: python {
+            export_script.relative_to(REPO_ROOT)}"
     raise FileNotFoundError(msg)
 
 
@@ -113,10 +116,12 @@ class VerifierWorker:
                 export_script = REPO_ROOT / "scripts" / "export_nli_minilm.py"
                 msg = (
                     f"Verifier model directory not found at '{self.model_dir}'. "
-                    "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
+                    "Please download cross-encoder/nli-MiniLM2-L6-H768 or set "
+                        "LUCCA_VERIFIER_MODEL_DIR."
                 )
                 if export_script.exists():
-                    msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+                    msg += f" Alternatively, generate it locally by running: python {
+                        export_script.relative_to(REPO_ROOT)}"
                 raise FileNotFoundError(msg)
         else:
             self.model_dir = _resolve_verifier_model_dir()
@@ -124,9 +129,9 @@ class VerifierWorker:
         self._requested_device = device
         self.device = "CPU"
         self._infer_lock = threading.Lock()
-        self.compiled: object | None = None
-        self.infer_request: object | None = None
-        self.tokenizer: object | None = None
+        self.compiled: ov.CompiledModel | None = None
+        self.infer_request: ov.InferRequest | None = None
+        self.tokenizer: Tokenizer | None = None
         self._input_names: list[str] = []
         self._cache = BoundedLRUPairCache(capacity=cache_capacity)
         self._init_model()
@@ -162,7 +167,6 @@ class VerifierWorker:
 
         try:
             core = ov.Core()
-            available = core.available_devices
 
             if self._requested_device is not None:
                 target_dev = self._requested_device
@@ -188,12 +192,12 @@ class VerifierWorker:
                     raise compile_exc
 
             if self.compiled is not None:
-                compiled_model: ov.CompiledModel = self.compiled  # type: ignore[assignment]
+                compiled_model: ov.CompiledModel = self.compiled
                 self.infer_request = compiled_model.create_infer_request()
                 self._input_names = [inp.get_any_name() for inp in compiled_model.inputs]
                 if self.tokenizer is not None:
-                    warm_enc = self.tokenizer.encode("warmup", "warmup")  # type: ignore[attr-defined]
-                    warm_feed: dict[str, np.ndarray] = {}
+                    warm_enc = self.tokenizer.encode("warmup", "warmup")
+                    warm_feed: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
                     if "input_ids" in self._input_names:
                         warm_feed["input_ids"] = np.array([warm_enc.ids], dtype=np.int64)
                     if "attention_mask" in self._input_names:
@@ -204,7 +208,7 @@ class VerifierWorker:
                         warm_feed["token_type_ids"] = np.array(
                             [warm_enc.type_ids], dtype=np.int64
                         )
-                    self.infer_request.infer(warm_feed)  # type: ignore[attr-defined]
+                    self.infer_request.infer(warm_feed)
         except Exception as init_exc:
             logger.warning("verifier_model_init_failed", error=str(init_exc))
             self.compiled = None
@@ -255,14 +259,14 @@ class VerifierWorker:
             )
 
         try:
-            tok: Tokenizer = self.tokenizer  # type: ignore[assignment]
+            tok: Tokenizer = self.tokenizer
             # Encode premise and hypothesis pair
             encoding = tok.encode(norm_premise, norm_hypothesis)
 
             input_ids = np.array([encoding.ids], dtype=np.int64)
             attention_mask = np.array([encoding.attention_mask], dtype=np.int64)
 
-            feed_dict: dict[str, np.ndarray] = {}
+            feed_dict: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
             if "input_ids" in self._input_names:
                 feed_dict["input_ids"] = input_ids
             if "attention_mask" in self._input_names:
@@ -272,7 +276,9 @@ class VerifierWorker:
                 feed_dict["token_type_ids"] = token_type_ids
 
             with self._infer_lock:
-                infer_req: ov.InferRequest = self.infer_request or self.compiled.create_infer_request()  # type: ignore[assignment]
+                infer_req: ov.InferRequest = (
+                    self.infer_request or self.compiled.create_infer_request()
+                )
                 outputs = infer_req.infer(feed_dict)
 
             # Extract 3-class logits

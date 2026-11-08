@@ -5,8 +5,6 @@ Spec §7, WP-2, Gate G-WO37-BELIEF-TOPIC
 
 from __future__ import annotations
 
-import pytest
-
 from lucca.core.memory_commit_service import _extract_stance_topic
 
 

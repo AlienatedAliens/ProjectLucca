@@ -4,9 +4,7 @@ Spec: Step 3 Measurement Fixes
 
 from __future__ import annotations
 
-import pytest
-
-from scripts.regrade_math_checkpoint import (
+from scripts.archive.wo01_wo42.regrade_math_checkpoint import (
     compare_math_lenient,
     compare_math_results,
     compare_math_strict,

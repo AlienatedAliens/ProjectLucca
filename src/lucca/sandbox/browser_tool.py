@@ -8,7 +8,7 @@ for client-side JavaScript rendering, SPAs, and dynamic DOM extraction.
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import structlog
 from pydantic import JsonValue
@@ -62,7 +62,9 @@ class HeadlessBrowserTool:
         self,
         url: str,
         max_chars: int = DEFAULT_MAX_CHARS,
-        wait_until: str = "domcontentloaded",
+        wait_until: Literal[
+            "commit", "domcontentloaded", "load", "networkidle"
+        ] = "domcontentloaded",
     ) -> tuple[dict[str, JsonValue], str]:
         """
         Navigates to URL in headless Chromium, enforces subresource SSRF blocking,
@@ -134,13 +136,15 @@ class HeadlessBrowserTool:
                     status_code = response.status if response else 200
                     page_title = page.title() or ""
 
-                    # Extract readable text and embedded links while stripping hidden/adversarial DOM nodes
+                    # Extract readable text and embedded links while stripping hidden/adversarial
+                    # DOM nodes
                     dom_data = page.evaluate(
                         """() => {
                         const root = document.body ? document.body : document.documentElement;
                         const clone = root.cloneNode(true);
                         const toRemove = clone.querySelectorAll(
-                            'script, style, noscript, iframe, svg, nav, footer, template, [hidden], [aria-hidden="true"]'
+                            'script, style, noscript, iframe, svg, nav, footer, ' +
+                            'template, [hidden], [aria-hidden="true"]'
                         );
                         toRemove.forEach(el => el.remove());
                         const allEls = clone.querySelectorAll('*');
@@ -167,11 +171,16 @@ class HeadlessBrowserTool:
                     }"""
                     )
 
-                    extracted_text = dom_data.get("text", "")
-                    raw_links = dom_data.get("links", [])
-                    clean_links = [
-                        u.rstrip(".,;:!?'\")>]") for u in set(raw_links) if len(u) < 512
+                    extracted_text = str(
+                        dom_data.get("text", "") if isinstance(dom_data, dict) else ""
+                    )
+                    raw_links = dom_data.get("links", []) if isinstance(dom_data, dict) else []
+                    clean_links_strs = [
+                        str(u).rstrip(".,;:!?'\")>]")
+                        for u in set(raw_links)
+                        if isinstance(u, str) and len(u) < 512
                     ][:100]
+                    clean_links: list[JsonValue] = list(clean_links_strs)
 
                     clean_text = re.sub(r"\n{3,}", "\n\n", extracted_text).strip()
                     clean_text = re.sub(r"[ \t]+", " ", clean_text)

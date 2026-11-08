@@ -4,15 +4,12 @@ Wiring Semantic Verification Across the 7 Subsystems.
 Gates: G-V1357-ANALOGY, G-V1357-DIAG, G-V1357-BELNAP, G-V1357-RULE.
 """
 
-from unittest.mock import MagicMock
 
 import pytest
 
-from lucca.core.belief_service import BeliefService
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.coherence import ToolReceipt, detect_ungrounded_action_claims
-from lucca.core.corroboration import critical_questions, Scheme
-from lucca.core.memory_commit_service import MemoryCommitService
+from lucca.core.corroboration import Scheme, critical_questions
 from lucca.core.schemas import InferenceStep, VerificationResult, VerifierLabel
 from lucca.core.self_diagnosis import DiagnosisEngine
 from lucca.ports import SemanticVerifierPort
@@ -222,7 +219,7 @@ def test_coherence_semantic_entailment_grounds_claim() -> None:
     narration = "I updated your notes on disk."
 
     # Without verifier, "updated notes" might be flagged as tool family mismatch
-    claims_no_verifier = detect_ungrounded_action_claims(narration, [receipt])
+    detect_ungrounded_action_claims(narration, [receipt])
     # With verifier entailing the output, claim is grounded
     verifier = MockVerifier(
         {

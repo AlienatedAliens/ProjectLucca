@@ -17,7 +17,7 @@ from lucca.core.capabilities import (
     CapabilityRegistry,
     get_default_native_tools,
 )
-from lucca.core.schemas import Risk, ToolParameter, ToolResult, ToolSchema, TurnTrace
+from lucca.core.schemas import Risk, ToolSchema
 from lucca.sandbox.policy import requires_confirmation
 from lucca.sandbox.service import SandboxService
 
@@ -334,14 +334,6 @@ def test_orchestrator_action_descriptions_and_confirmation_hooks(tmp_path: Path)
         desc_av = orch._describe_tool_action("artifact_verify", {"path": "summary.txt"})
         assert desc_av == "verify summary.txt"
 
-        # Direct handler tests on orchestrator
-        trace = TurnTrace(
-            trace_id="test-trace-1",
-            points_ns={},
-            e2e_latency_ms=0.0,
-            mode="transcript",
-        )
-
         # Test schedule_event through orchestrator handler
         res_se = orch._handle_schedule_event(
             call_id="call-se-orch",
@@ -378,7 +370,9 @@ def test_orchestrator_action_descriptions_and_confirmation_hooks(tmp_path: Path)
 def test_clipboard_read_orchestrator_confirm_flow(tmp_path: Path):
     """End-to-end confirm flow: clipboard_read pauses in confirm_wait; accepted via click executes."""
     import time
+
     import numpy as np
+
     from lucca.core.ipc_schemas import PTTReleasedPayload
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.schemas import Done, LLMUsage, ToolCall, ToolCallEnd
@@ -437,7 +431,9 @@ def test_clipboard_read_orchestrator_confirm_flow(tmp_path: Path):
 def test_inbox_handoff_orchestrator_confirm_flow(tmp_path: Path):
     """End-to-end confirm flow: inbox_handoff pauses in confirm_wait; accepted via click executes."""
     import time
+
     import numpy as np
+
     from lucca.core.ipc_schemas import PTTReleasedPayload
     from lucca.core.orchestrator import Orchestrator
     from lucca.core.schemas import Done, LLMUsage, ToolCall, ToolCallEnd

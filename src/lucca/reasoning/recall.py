@@ -168,7 +168,10 @@ def recall_past_episodes(
                     except (json.JSONDecodeError, TypeError, ValueError) as exc:
                         logger.debug("recall_triples_json_parse_error", error=str(exc))
 
-                    summary = f"Execution action in triple {tr_id}: {out_j}"
+                    summary = (
+                        f"Execution action in triple {tr_id}: proposal={prop_j} "
+                        f"decision={dec_j} outcome={out_j}"
+                    )
                     payload_triple: dict[str, JsonValue] = {
                         "triple_id": str(tr_id),
                         "proposal": prop_obj,

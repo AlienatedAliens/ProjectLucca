@@ -7,11 +7,8 @@ and graceful degradation.
 from __future__ import annotations
 
 import time
-from pathlib import Path
 
-import pytest
-
-from lucca.core.schemas import VerificationResult, VerifierLabel
+from lucca.core.schemas import VerifierLabel
 from lucca.senses.verifier import VERIFIER_MINILM_DIR, VerifierWorker
 
 

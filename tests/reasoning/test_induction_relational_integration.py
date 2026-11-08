@@ -13,8 +13,6 @@ Zero benchmark dataset strings per anti-benchmax contract.
 
 from __future__ import annotations
 
-import pytest
-
 from src.lucca.reasoning.cegis_unshackled import execute_unshackled_python
 
 
@@ -39,10 +37,10 @@ def transform(grid):
     comps = connected_components(np.array(grid))
     ring = next(c for c in comps if c.color == 1)
     blob = next(c for c in comps if c.color == 2)
-    
+
     # Use relational kernel in_cavity primitive
     is_enclosed = in_cavity(blob, ring)
-    
+
     # Return 1x1 grid with 3 if enclosed, else 0
     return [[3 if is_enclosed else 0]]
 """
@@ -72,10 +70,10 @@ def transform(grid):
     comps = connected_components(np.array(grid))
     u_shape = next(c for c in comps if c.color == 1)
     blob = next(c for c in comps if c.color == 2)
-    
+
     # in_cavity MUST be False for open U-shape
     is_enclosed = in_cavity(blob, u_shape)
-    
+
     return [[3 if is_enclosed else 0]]
 """
     outcome = execute_unshackled_python(code, grid_in)
@@ -104,17 +102,17 @@ def transform(grid):
     comps = connected_components(np.array(grid))
     # Filter non-background components
     colored = [c for c in comps if c.color != 0]
-    
+
     # Verify above() predicate consistency
     c1 = next(c for c in colored if c.color == 1)
     c2 = next(c for c in colored if c.color == 2)
     c3 = next(c for c in colored if c.color == 3)
-    
+
     assert above(c1, c2) is True
     assert above(c2, c3) is True
     assert above(c1, c3) is True
     assert below(c3, c1) is True
-    
+
     # Sort colored components from top to bottom
     sorted_colors = [c.color for c in sorted(colored, key=lambda c: y_projection(c).start)]
     return [sorted_colors]

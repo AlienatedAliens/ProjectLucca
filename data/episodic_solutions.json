@@ -10,9 +10,9 @@
     "train_demonstrations_count": 3,
     "query": "",
     "output": "",
-    "positive_evidence": 3,
+    "positive_evidence": 7,
     "negative_evidence": 0,
-    "reuse_count": 2
+    "reuse_count": 6
   },
   {
     "task_id": "AboveBelow1",

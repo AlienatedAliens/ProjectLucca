@@ -10,9 +10,7 @@ Pre-registered acceptance gate verification:
 
 from __future__ import annotations
 
-import pytest
-
-from lucca.core.affective_ode import AffectSignal3D, AffectiveODEMachine
+from lucca.core.affective_ode import AffectiveODEMachine, AffectSignal3D
 from lucca.core.cognitive_sink import CognitiveOutcomeSink
 from lucca.core.episode_recall import EpisodeRecall
 from lucca.core.reasoning_context import ReasoningContext

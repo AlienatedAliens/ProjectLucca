@@ -19,8 +19,8 @@ import structlog
 
 from lucca.core.exceptions import RuleError, RuleValidationError, SchemeSyntaxError
 from lucca.core.schemas import CandidateRule, VerifierLabel
-from lucca.ports import SemanticVerifierPort
 from lucca.memory.db import DatabaseManager
+from lucca.ports import SemanticVerifierPort
 from lucca.reasoning.egraph import synthesize_macro_from_patterns
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.macros import MacroDefinition
@@ -205,8 +205,7 @@ def is_rule_conflict(
             r2 = verifier.check_consistency(premise=text2, hypothesis=text1)
             if not r1.degraded and not r2.degraded:
                 if (
-                    r1.label == VerifierLabel.CONTRADICTION
-                    or r2.label == VerifierLabel.CONTRADICTION
+                    VerifierLabel.CONTRADICTION in (r1.label, r2.label)
                 ):
                     return True
                 if (
@@ -263,7 +262,8 @@ def cluster_phrasings(
 ) -> list[tuple[str, int, list[str]]]:
     """
     Deterministically clusters a list of string values into near-duplicate groups
-    using bidirectional entailment (SemanticVerifierPort) or token-set Jaccard similarity >= threshold.
+    using bidirectional entailment (SemanticVerifierPort) or token-set Jaccard similarity >=
+    threshold.
 
     Preservation invariant D-REAS-06: changes merge grouping only. QUARANTINE registration
     and 5-cluster/0-error promotion gate remain completely intact.
@@ -317,7 +317,8 @@ def cluster_phrasings(
 
         if best_cluster_idx is not None:
             cl = clusters[best_cluster_idx]
-            cl["count"] = int(cl["count"]) + count
+            prev_cnt = cl["count"]
+            cl["count"] = (int(prev_cnt) if isinstance(prev_cnt, (int, float, str)) else 0) + count
             cast_members = cl["members"]
             if isinstance(cast_members, list):
                 cast_members.extend([item] * count)
@@ -354,7 +355,9 @@ def cluster_phrasings(
 
             representative = max(unique_members, key=_score_member)
 
-        result.append((representative, int(cl["count"]), sorted(unique_members)))
+        raw_cl_cnt = cl["count"]
+        cl_cnt = int(raw_cl_cnt) if isinstance(raw_cl_cnt, (int, float, str)) else 0
+        result.append((representative, cl_cnt, sorted(unique_members)))
 
     return result
 
@@ -618,7 +621,9 @@ class RuleInducer:
             existing = [
                 r
                 for r in self.rule_engine.rules.values()
-                if (clean_val and clean_val in r.rule_id) or cluster.arg_val.lower() in r.rule_id.lower()
+                if (
+                    clean_val and clean_val in r.rule_id)
+                        or cluster.arg_val.lower() in r.rule_id.lower()
             ]
             if existing:
                 continue

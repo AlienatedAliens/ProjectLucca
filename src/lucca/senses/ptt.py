@@ -79,7 +79,8 @@ KEY_MAP: Final[dict[str, list[int]]] = {
     # Spacebar
     "space": [VK_SPACE],
     "spacebar": [VK_SPACE],
-    # Universal Any: specifically Right Alt, Right Ctrl, and Right Shift (excluding Left Alt / Left Shift)
+    # Universal Any: specifically Right Alt, Right Ctrl, and Right Shift (excluding Left Alt / Left
+    # Shift)
     "any": [VK_RMENU, VK_RCONTROL, VK_RSHIFT],
     "all": [VK_RMENU, VK_RCONTROL, VK_RSHIFT],
     "both": [VK_RMENU, VK_RCONTROL, VK_RSHIFT],

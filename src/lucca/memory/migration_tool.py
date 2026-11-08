@@ -25,7 +25,7 @@ import structlog
 
 from lucca.core.schemas import Provenance
 from lucca.memory.db import DatabaseManager
-from lucca.memory.signers import derive_provenance_key
+from lucca.memory.tokens import derive_provenance_key
 
 logger = structlog.get_logger(__name__)
 

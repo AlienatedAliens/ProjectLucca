@@ -426,18 +426,23 @@ def check_tool_fit(
         hypothesis = f"The user request requires invoking tool '{tool_name}': {q_clean}"
         try:
             res = verifier.check_consistency(premise=premise, hypothesis=hypothesis)
-            lbl = getattr(res.label, "value", str(res.label)).lower()
-            conf = getattr(res, "confidence", 0.0)
-            if "contradiction" in lbl and conf > 0.60:
-                logger.info(
-                    "tool_fit_rejected_by_verifier",
-                    tool=tool_name,
-                    confidence=conf,
-                    query=q_clean[:80],
-                )
-                return False
-            if ("consistent" in lbl or "entailment" in lbl) and conf >= 0.50:
-                return True
+            if not getattr(res, "degraded", False):
+                lbl = getattr(res.label, "value", str(res.label)).lower()
+                conf = getattr(res, "confidence", 0.0)
+                if "contradiction" in lbl and conf > 0.60:
+                    logger.info(
+                        "tool_fit_rejected_by_verifier",
+                        tool=tool_name,
+                        confidence=conf,
+                        query=q_clean[:80],
+                    )
+                    return False
+                if (
+                    "uncertain" not in lbl
+                    and ("consistent" in lbl or "entailment" in lbl)
+                    and conf >= 0.50
+                ):
+                    return True
         except Exception as v_err:  # noqa: BLE001
             logger.debug("tool_fit_verifier_error", error=str(v_err))
 
@@ -466,14 +471,17 @@ def check_tool_fit(
     if tool_name == "calc_math":
         has_digit = any(ch.isdigit() for ch in q_clean)
         has_math_op = any(op in q_clean for op in ("+", "-", "*", "/", "=", "^", "%"))
-        has_calc_cue = any(w in q_lower for w in ("calculate", "compute", "evaluate", "math", "sum", "multiply", "divide"))
+        has_calc_cue = any(w in q_lower for w in ("calculate", "compute", "evaluate", "math", "sum",
+            "multiply", "divide"))
         return (has_digit and has_math_op) or (has_digit and has_calc_cue)
 
     if tool_name in ("run_python", "run_python_async"):
-        code_cues = ("python", "code", "script", "program", "simulate", "algorithm", "plot", "def ", "import ", "print(", "solve", "sympy", "z3")
+        code_cues = ("python", "code", "script", "program", "simulate", "algorithm", "plot", "def ",
+            "import ", "print(", "solve", "sympy", "z3")
         if any(c in q_lower for c in code_cues):
             return True
-        qa_cues = ("who wrote", "capital of", "tell me a joke", "how are you", "what is the capital", "meaning of life")
+        qa_cues = ("who wrote", "capital of", "tell me a joke", "how are you",
+            "what is the capital", "meaning of life")
         if any(c in q_lower for c in qa_cues):
             return False
 

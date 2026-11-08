@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
@@ -37,12 +38,17 @@ logger = structlog.get_logger(__name__)
 
 
 def _inject_shared_workspace_prelude(code: str) -> str:
-    """Loads canonical ContainerWorld module from single-source container_world.py when explicitly requested."""
-    if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase", "BeliefTracker")):
+    """
+    Loads canonical ContainerWorld module from single-source container_world.py when explicitly
+    requested.
+    """
+    if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase",
+        "BeliefTracker")):
         if "class ContainerWorld" not in code:
             cw_path = Path(__file__).with_name("container_world.py")
             if cw_path.is_file():
-                cw_src = cw_path.read_text(encoding="utf-8").replace("from __future__ import annotations", "")
+                cw_src = cw_path.read_text(encoding="utf-8").replace("from __future__ import "
+                    "annotations", "")
                 clean_code = code.replace("from __future__ import annotations", "")
                 shim = (
                     "from __future__ import annotations\n"
@@ -54,7 +60,8 @@ def _inject_shared_workspace_prelude(code: str) -> str:
                     "_cw_mod.KnowledgeBase = KnowledgeBase\n"
                     "_cw_mod.BeliefTracker = BeliefTracker\n"
                     "_cw_mod.Agent = Agent\n"
-                    '_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"]\n'
+                    '_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", '
+                        '"BeliefTracker", "Agent"]\n'
                     '_sys.modules["container_world"] = _cw_mod\n'
                 )
                 return shim + "\n" + clean_code
@@ -285,12 +292,14 @@ class PersistentDockerWorker:
                 except Exception as read_err:
                     logger.error("persistent_worker_read_exception", error=str(read_err))
                     self._kill_proc()
-                    raise SandboxProtocolError(f"Worker stdout read error: {read_err}") from read_err
+                    raise SandboxProtocolError(
+                        f"Worker stdout read error: {read_err}") from read_err
 
                 if not raw_line or not raw_line.strip():
                     logger.error("persistent_worker_empty_eof", call_id=call_id)
                     self._kill_proc()
-                    raise SandboxProtocolError("Persistent worker returned empty line / unexpected EOF")
+                    raise SandboxProtocolError("Persistent worker returned empty line / "
+                        "unexpected EOF")
 
                 stripped = raw_line.strip()
                 try:
@@ -307,7 +316,8 @@ class PersistentDockerWorker:
 
             if res_dict is None:
                 self._kill_proc()
-                raise SandboxTimeout(f"Persistent worker did not produce valid JSON response within {timeout_s}s")
+                raise SandboxTimeout(
+                    f"Persistent worker did not produce valid JSON response within {timeout_s}s")
 
             # Call-ID correlation & anti-desync guard
             returned_call_id = str(res_dict.get("call_id", ""))
@@ -411,7 +421,10 @@ class DockerRPCTransport:
     _synced_containers: set[str] = set()
 
     def _sync_container_runtime(self, force: bool = False) -> None:
-        """Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the container."""
+        """
+        Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the
+        container.
+        """
         if not force and self.container_name in DockerRPCTransport._synced_containers:
             return
         try:
@@ -423,7 +436,8 @@ class DockerRPCTransport:
             wsl_src = win_to_wsl_path(src_lucca)
             sync_cmd = (
                 f"tar -C '{wsl_src}/..' -cf - lucca "
-                f"| docker exec -i {self.container_name} sh -c 'mkdir -p /tmp/lucca_runtime && tar -C /tmp/lucca_runtime -xf -'"
+                f"| docker exec -i {self.container_name} sh -c 'mkdir -p /tmp/lucca_runtime && tar "
+                "-C /tmp/lucca_runtime -xf -'"
             )
             res = subprocess.run(  # noqa: S603
                 ["wsl", "-d", self.wsl_distro, "--", "sh", "-c", sync_cmd],  # noqa: S607
@@ -527,15 +541,28 @@ class DockerRPCTransport:
                 else:
                     content = "Directory is empty (0 items)."
 
+        raw_cid = res_dict.get("call_id", call_id)
+        cid_str = str(raw_cid) if raw_cid is not None else call_id
+        raw_ec = res_dict.get("exit_code", 0)
+        ec_int = (
+            int(raw_ec)
+            if isinstance(raw_ec, (int, float, str)) and not isinstance(raw_ec, bool)
+            else 0
+        )
+        struct_val = structured if isinstance(structured, dict) else None
+        content_val = str(content) if content is not None else None
         return ToolResult(
-            call_id=res_dict.get("call_id", call_id),
+            call_id=cid_str,
             ok=ok,
-            exit_code=res_dict.get("exit_code", 0),
-            structured=structured,
-            content=content,
+            exit_code=ec_int,
+            structured=struct_val,
+            content=content_val,
             content_truncated=bool(res_dict.get("content_truncated", False)),
             elapsed_ms=elapsed_ms,
-            stderr=str(res_dict.get("stderr") or ("" if ok else (structured.get("stderr") if isinstance(structured, dict) else content) or "execution_failed")),
+            stderr=str(
+                res_dict.get(
+                    "stderr") or ("" if ok else (struct_val.get("stderr") if struct_val is not None
+                        else content_val) or "execution_failed")),
         )
 
     def _execute_single_shot(
@@ -587,7 +614,7 @@ class DockerRPCTransport:
             try:
                 # Find the valid JSON response line (handling multi-line stdout or warnings)
                 res_dict = None
-                lines = [l.strip() for l in stdout.strip().splitlines() if l.strip()]
+                lines = [ln.strip() for ln in stdout.strip().splitlines() if ln.strip()]
                 for line in reversed(lines):
                     try:
                         parsed = json.loads(line)
@@ -650,22 +677,26 @@ class DockerRPCTransport:
         self,
         call_id: str,
         tool: str,
-        args: dict[str, JsonValue],
+        args: Mapping[str, JsonValue],
         timeout_s: float | None = None,
     ) -> ToolResult:
         """Executes a single tool call against the container or fallback tool."""
         t0 = time.perf_counter()
+        args_dict: dict[str, JsonValue] = dict(args)
 
         # Differentiated timeout resolution: 15.0s for child python, 5.0s for filesystem
         effective_timeout_s = (
             timeout_s if timeout_s is not None else (15.0 if tool == "run_python" else 5.0)
         )
 
-        if tool == "run_python" and isinstance(args.get("code"), str):
-            args = {**args, "code": _inject_shared_workspace_prelude(str(args["code"]))}
+        if tool == "run_python" and isinstance(args_dict.get("code"), str):
+            args_dict = {
+                **args_dict,
+                "code": _inject_shared_workspace_prelude(str(args_dict["code"])),
+            }
 
         if self.use_direct_fallback:
-            return self._execute_direct(call_id, tool, args, t0)
+            return self._execute_direct(call_id, tool, args_dict, t0)
 
         if self.use_persistent_worker:
             worker = self.get_worker()
@@ -694,7 +725,7 @@ class DockerRPCTransport:
 
             try:
                 res_dict = worker.execute(
-                    call_id=call_id, tool=tool, args=args, timeout_s=effective_timeout_s
+                    call_id=call_id, tool=tool, args=args_dict, timeout_s=effective_timeout_s
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return self._process_response_dict(call_id, tool, res_dict, elapsed_ms)
@@ -709,10 +740,10 @@ class DockerRPCTransport:
                 )
             except SandboxRPCDesyncError as desync_err:
                 logger.error("persistent_rpc_desync_falling_back", err=str(desync_err))
-                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
             except (SandboxProtocolError, Exception) as worker_err:
                 logger.warning("persistent_rpc_failure_falling_back", err=str(worker_err))
-                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
 
         # Single-shot path (legacy / fallback)
         if not self.is_docker_available():
@@ -733,7 +764,7 @@ class DockerRPCTransport:
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
 
-        return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+        return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
 
     def _execute_direct(
         self,

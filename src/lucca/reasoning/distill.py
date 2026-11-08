@@ -50,11 +50,14 @@ def _clean_conversational_filler(text: str) -> str:
         clean = clean[m.end():].lstrip()
 
     # Normalize first-person phrasing to third-person statement
-    clean = re.sub(r"^(?:i\s+prefer|i\s+like|i\s+want)\s+", "The user prefers ", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"^(?:i\s+prefer|i\s+like|"
+        r"i\s+want)\s+", "The user prefers ", clean, flags=re.IGNORECASE)
     clean = re.sub(r"^(?:i\s+always\s+use)\s+", "The user always uses ", clean, flags=re.IGNORECASE)
     clean = re.sub(r"^(?:i\s+never\s+use)\s+", "The user never uses ", clean, flags=re.IGNORECASE)
-    clean = re.sub(r"^(?:i\s+don't\s+support|i\s+dont\s+support|we\s+don't\s+support)\s+", "System does not support ", clean, flags=re.IGNORECASE)
-    clean = re.sub(r"^(?:i\s+am\s+in|i\s+live\s+in)\s+", "The user is located in ", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"^(?:i\s+don't\s+support|i\s+dont\s+support|we\s+don't\s+s"
+        r"upport)\s+", "System does not support ", clean, flags=re.IGNORECASE)
+    clean = re.sub(r"^(?:i\s+am\s+in|i\s+liv"
+        r"e\s+in)\s+", "The user is located in ", clean, flags=re.IGNORECASE)
 
     if clean:
         clean = clean[0].upper() + clean[1:]
@@ -67,11 +70,11 @@ def distill_contradiction_to_proposition(
     old_content: str,
     new_content: str,
     topic: str = "general",
-    llm: SpeechLLMPort | None = None,
+    llm: SpeechLLMPort | object | None = None,
     grammar_path: Path | None = None,
 ) -> DistilledProposition:
     """
-    Distills a confirmed contradiction into a clean third-person declarative proposition.
+    Distills a confirmed contradiction into a third-person declarative proposition.
     Uses GBNF-constrained JSON generation via SpeechLLMPort if available,
     with a deterministic fallback.
     """
@@ -83,7 +86,7 @@ def distill_contradiction_to_proposition(
         except Exception as exc:  # noqa: BLE001
             logger.debug("gbnf_grammar_read_failed", path=str(g_path), error=str(exc))
 
-    if llm is not None and grammar_text:
+    if llm is not None and hasattr(llm, "stream_turn") and grammar_text:
         try:
             prompt = (
                 f"Distill this revised fact into a third-person canonical proposition.\n"
@@ -169,9 +172,9 @@ def quarantine_rejected_distillate(
     current_time = now if now is not None else time.time()
     conn: sqlite3.Connection | None = None
     if hasattr(db, "get_writer"):
-        conn = getattr(db, "get_writer")()
+        conn = db.get_writer()
     elif hasattr(db, "conn"):
-        conn = getattr(db, "conn")
+        conn = db.conn
     elif isinstance(db, sqlite3.Connection):
         conn = db
 

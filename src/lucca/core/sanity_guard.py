@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 import re
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
 
@@ -57,7 +58,7 @@ class SanityCheckGuard:
     def validate(
         self,
         tool_name: str,
-        tool_args: dict[str, object],
+        tool_args: Mapping[str, object],
         tool_output: str,
         user_query: str = "",
     ) -> SanityCheckResult:
@@ -92,7 +93,8 @@ class SanityCheckGuard:
             "radius",
             "area",
         )
-        is_financial = any(w in combined_context for w in ("payoff", "profit", "loss", "return", "pnl", "balance", "net", "margin", "auction"))
+        is_financial = any(w in combined_context for w in ("payoff", "profit", "loss", "return",
+            "pnl", "balance", "net", "margin", "auction"))
         has_positivity_kw = not is_financial and any(
             re.search(r"\b" + re.escape(kw) + r"\b", combined_context) for kw in positivity_keywords
         )
@@ -308,7 +310,8 @@ class SanityCheckGuard:
             # 7a. Multiplication A * B:
             mult_match = re.search(r"(\d+(?:\.\d+)?)\s*[\*x×]\s*(\d+(?:\.\d+)?)", calc_target)
             if mult_match:
-                # Do not Fermi-check multiplication if division or exponentiation dominates the expression
+                # Do not Fermi-check multiplication if division or exponentiation dominates the
+                # expression
                 if not (any(op in code_str for op in ("^", "**", "/"))):
                     a_val = float(mult_match.group(1))
                     b_val = float(mult_match.group(2))
@@ -332,9 +335,11 @@ class SanityCheckGuard:
                                         reason=reason,
                                         directive=(
                                             f"[Sanity Warning: Tool output exhibits an "
-                                            f"order-of-magnitude discrepancy ({reason}). Acknowledge "
+                                            f"order-of-magnitude discrepancy ({
+                                                reason}). Acknowledge "
                                             "the execution but state transparently that the result "
-                                            "appears inconsistent with mathematical boundary checks.]"
+                                            "appears inconsistent with mathematical "
+                                                "boundary checks.]"
                                         ),
                                         elapsed_us=elapsed,
                                     )

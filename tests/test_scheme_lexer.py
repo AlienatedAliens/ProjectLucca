@@ -24,7 +24,7 @@ def test_token_dataclass() -> None:
     assert tok.line == 1
     assert tok.col == 3
 
-    with pytest.raises(Exception):  # FrozenInstanceError
+    with pytest.raises(AttributeError):  # FrozenInstanceError
         tok.value = ":plan"  # type: ignore[misc]
 
 

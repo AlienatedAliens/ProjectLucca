@@ -31,29 +31,22 @@ Sections:
 
 from __future__ import annotations
 
-import json
 import queue
-import re
 import time
 from collections import deque
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from hypothesis import HealthCheck, given, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from lucca.core.belief_service import (
-    _BELIEF_STOP_WORDS,
-    _MIN_TOPICAL_TOKENS,
     BeliefService,
 )
 from lucca.core.cascade import (
     BelnapValue,
     EpistemicSearchCascade,
-    EpistemicSubstrate,
-    EvidenceItem,
-    TrustTier,
     belnap_join_k,
     pool_evidence,
 )
@@ -67,7 +60,7 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import TurnTrace
 from lucca.memory.db import DatabaseManager
-from lucca.memory.reflection import ReflectionEngine, THIRTY_DAYS_SECONDS
+from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
@@ -769,7 +762,7 @@ def test_cluster_phrasings_corpus_stress_test() -> None:
 
     # Build cluster mapping: each phrasing -> cluster leader
     phrasing_to_leader: dict[str, str] = {}
-    for leader, count, phrasings in clusters:
+    for leader, _count, phrasings in clusters:
         for phr in phrasings:
             phrasing_to_leader[phr] = leader
 

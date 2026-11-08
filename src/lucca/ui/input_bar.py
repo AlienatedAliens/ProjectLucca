@@ -5,6 +5,7 @@ Spec 01 §1, Spec 16 §3, ADR-005
 
 from collections.abc import Callable
 
+import structlog
 from PyQt6.QtCore import QRect, QRectF, Qt
 from PyQt6.QtGui import QColor, QFont, QKeyEvent, QPainter, QPainterPath, QPen
 from PyQt6.QtWidgets import (
@@ -13,9 +14,6 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QWidget,
 )
-
-
-import structlog
 
 logger = structlog.get_logger(__name__)
 

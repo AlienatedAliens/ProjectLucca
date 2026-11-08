@@ -6,10 +6,13 @@ Provides hygienic compile-time macro expansion with recursion depth and step bou
 
 import copy
 from dataclasses import dataclass
+from pathlib import Path
 
 from lucca.core.exceptions import SchemeSyntaxError
+from lucca.reasoning.scheme.lexer import tokenize
 from lucca.reasoning.scheme.parser import (
     ALLOWED_OPS,
+    Parser,
     SchemeNode,
     Symbol,
 )
@@ -164,9 +167,7 @@ class MacroExpander:
 
 def load_spatial_macros(registry: MacroRegistry | None = None) -> MacroRegistry:
     """Loads spatial domain macros from spatial_primitives.scm into the MacroRegistry."""
-    from pathlib import Path
 
-    from lucca.reasoning.scheme.parser import Parser, tokenize
 
     reg = registry if registry is not None else MacroRegistry()
     scm_path = Path(__file__).resolve().parent.parent / "spatial_primitives.scm"

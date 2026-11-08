@@ -6,11 +6,11 @@ Captures all process output, logging records, and uncaught exceptions to persist
 from __future__ import annotations
 
 import logging
-from logging.handlers import RotatingFileHandler
-import os
-from pathlib import Path
 import sys
 import traceback
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+from types import TracebackType
 from typing import TextIO
 
 from lucca.core.config import get_config
@@ -81,7 +81,8 @@ def setup_process_logging(process_name: str) -> Path:
 
     # Check if this process handler is already installed
     has_file_handler = any(
-        isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename", "") == str(log_file_path.resolve())
+        isinstance(h, RotatingFileHandler) and getattr(h, "baseFilename",
+            "") == str(log_file_path.resolve())
         for h in root_logger.handlers
     )
     if not has_file_handler:
@@ -109,14 +110,19 @@ def setup_process_logging(process_name: str) -> Path:
         logger.debug("tee_stream_init_failed: %s", exc)
 
     # Install global uncaught exception hook
-    def _crash_hook(exc_type: type[BaseException], exc_val: BaseException, tb: object) -> None:
+    def _crash_hook(
+        exc_type: type[BaseException], exc_val: BaseException, tb: TracebackType | None
+    ) -> None:
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_val, tb)
             return
 
         err_msg = "".join(traceback.format_exception(exc_type, exc_val, tb))
         timestamp = logging.Formatter().formatTime(logging.LogRecord("", 0, "", 0, "", (), None))
-        crash_header = f"\n{'='*70}\n[CRASH] Unhandled exception in process '{process_name}' at {timestamp}:\n{err_msg}{'='*70}\n"
+        crash_header = (
+            f"\n{'='*70}\n[CRASH] Unhandled exception in process '{process_name}' at "
+            f"{timestamp}:\n{err_msg}{'='*70}\n"
+        )
 
         root_logger.critical("Unhandled exception in process %s:\n%s", process_name, err_msg)
         try:

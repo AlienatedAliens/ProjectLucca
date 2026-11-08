@@ -11,10 +11,8 @@ Pre-registered Acceptance Gates:
 from __future__ import annotations
 
 import json
-from pathlib import Path
-import re
 import time
-from typing import Final
+from pathlib import Path
 
 import pytest
 
@@ -30,22 +28,17 @@ from lucca.core.convergence import (
 from lucca.core.schemas import Risk, ToolParameter, ToolSchema
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.abduction import (
-    AbductiveHypothesis,
     BackwardAbductionSolver,
     _substitute_hole,
 )
-from lucca.reasoning.cost import ast_cost
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.mcts import (
     ASTHoleMCTSEngine,
     MCTSConfig,
     MCTSNode,
-    SynthesisResult,
 )
 from lucca.reasoning.scheme.eval import SchemeEvaluator
 from lucca.reasoning.scheme.parser import (
-    SchemeNode,
-    Symbol,
     parse_expr,
     to_canonical,
 )
@@ -53,11 +46,7 @@ from lucca.reasoning.scheme.prims import PURE_PRIMITIVES
 from lucca.reasoning.smt_verifier import SMTVerifier
 from lucca.reasoning.topology import (
     BoundaryTopologyParser,
-    BoundaryViolation,
     BoundaryViolationType,
-    TopologyValidationResult,
-    extract_hole_info,
-    is_hole_node,
 )
 from tests.test_wo30_minimum_viable_engine import BUCKET_C_REASONING_ITEMS
 

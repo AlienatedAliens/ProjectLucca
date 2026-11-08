@@ -19,6 +19,11 @@ import structlog
 from lucca.core.clock import SystemClock
 from lucca.core.schemas import VerifierLabel
 from lucca.core.trace import TurnTrace
+from lucca.memory.latent_probe import (
+    BelnapLatentInvestigator,
+    BelnapValue,
+    has_structural_proposition_conflict,
+)
 from lucca.ports import ClockPort, SemanticVerifierPort
 
 if TYPE_CHECKING:
@@ -72,7 +77,9 @@ _MIN_TOPICAL_TOKENS: Final[int] = 2
 
 
 class BeliefService:
-    """Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b)."""
+    """
+    Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b).
+    """
 
     def __init__(
         self,
@@ -209,24 +216,42 @@ class BeliefService:
                     logger.debug("candidate_topic_parse_failed", error=str(exc))
 
             is_conflict_top = False
+            clarification_prompt: str | None = None
             if self.verifier is not None:
                 try:
                     v_res = self.verifier.check_consistency(
                         premise=old_content, hypothesis=new_content
                     )
-                    if not v_res.degraded:
-                        if v_res.label == VerifierLabel.CONTRADICTION:
-                            is_conflict_top = True
-                        elif v_res.label == VerifierLabel.ENTAILMENT:
-                            is_conflict_top = False
-                        else:
-                            is_conflict_top = self._evaluate_candidate_conflict(
-                                old_content, new_content
-                            )
+                    if not v_res.degraded and v_res.label == VerifierLabel.CONTRADICTION:
+                        is_conflict_top = True
+                    elif not v_res.degraded and v_res.label in (
+                        VerifierLabel.ENTAILMENT,
+                        VerifierLabel.CONSISTENT,
+                    ):
+                        is_conflict_top = False
                     else:
-                        is_conflict_top = self._evaluate_candidate_conflict(
+                        has_lex_conflict = self._evaluate_candidate_conflict(
                             old_content, new_content
+                        ) or (
+                            has_structural_proposition_conflict(old_content, new_content)
+                            and not self._has_retraction_cue(new_content)
                         )
+                        belnap_val = BelnapLatentInvestigator.evaluate_nli_verdict(
+                            v_res, has_lexical_conflict=has_lex_conflict
+                        )
+                        if belnap_val == BelnapValue.BOTH or (
+                            (v_res.degraded or v_res.label == VerifierLabel.UNCERTAIN)
+                            and old_content.strip().lower() != new_content.strip().lower()
+                            and not self._has_retraction_cue(new_content)
+                        ):
+                            is_conflict_top = True
+                            clarification_prompt = (
+                                BelnapLatentInvestigator().generate_clarification_prompt(
+                                    old_content, new_content
+                                )
+                            )
+                        else:
+                            is_conflict_top = False
                 except Exception as exc:  # noqa: BLE001
                     logger.debug("belief_verifier_eval_failed", error=str(exc))
                     is_conflict_top = self._evaluate_candidate_conflict(old_content, new_content)
@@ -245,6 +270,8 @@ class BeliefService:
                 )
 
                 if is_queued:
+                    if clarification_prompt:
+                        self.pending_spoken_updates.append(clarification_prompt)
                     logger.info(
                         "belief_revision_flagged_for_review",
                         review_id=res_str,
@@ -260,6 +287,15 @@ class BeliefService:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("contradiction_handling_failed", error=str(exc), belief_id=belief_id)
 
+    @staticmethod
+    def _has_retraction_cue(text: str) -> bool:
+        """Returns True if text contains explicit user retraction or negation cues."""
+        retraction_cues = [
+            r"\b(?:don't|dont|do\s+not|not|never|no\s+longer|wrong|actually\s+live\s+in)\b",
+        ]
+        t_lower = text.lower()
+        return any(re.search(cue, t_lower) for cue in retraction_cues)
+
     def _evaluate_candidate_conflict(self, old_content: str, new_content: str) -> bool:
         """Evaluates candidate belief contradiction signal (Belnap TOP conflict).
 
@@ -273,10 +309,7 @@ class BeliefService:
         new_lower = new_content.lower()
 
         # Explicit user negation / retraction resolves to Belnap F (not TOP conflict)
-        retraction_cues = [
-            r"\b(?:don't|dont|do\s+not|not|never|no\s+longer|wrong|actually\s+live\s+in)\b",
-        ]
-        if any(re.search(cue, new_lower) for cue in retraction_cues):
+        if self._has_retraction_cue(new_lower):
             return False
 
         # Numeric attribute disagreement represents genuine Belnap TOP conflict
@@ -300,10 +333,13 @@ class BeliefService:
     _check_contradictions = check_contradictions
 
     def maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
-        """Processes queued unflagged belief revision sentences without speaking them aloud (WO-26 Phase 1).
+        """
+        Processes queued unflagged belief revision sentences without speaking them aloud (WO-26
+        Phase 1).
 
         Maintains the interiority barrier: logs the revision to structured audit telemetry
-        and publishes a system caption, but strictly quarantines it from conversational TTS and history.
+        and publishes a system caption, but strictly quarantines it from conversational TTS and
+        history.
         """
         while self.pending_spoken_updates:
             spoken_update = self.pending_spoken_updates.popleft()
@@ -314,7 +350,10 @@ class BeliefService:
                     trace_id=trace.trace_id if trace else None,
                 )
                 print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
-                if self._orchestrator is not None and hasattr(self._orchestrator, "_publish_caption"):
-                    self._orchestrator._publish_caption(spoken_update, source="system", is_final=True)
+                if self._orchestrator is not None and hasattr(self._orchestrator,
+                    "_publish_caption"):
+                    self._orchestrator._publish_caption(
+                        spoken_update, source="system", is_final=True
+                    )
 
     _maybe_speak_pending_updates = maybe_speak_pending_updates

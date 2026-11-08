@@ -9,12 +9,14 @@ import json
 import math
 import platform
 import re
+import socket
 import subprocess
 import threading
 import time
-from collections.abc import Callable
-from pathlib import Path
 import uuid
+from collections.abc import Callable
+from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import psutil
@@ -22,16 +24,28 @@ import structlog
 from pydantic import BaseModel, JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.config import get_config
+from lucca.core.config import get_config, resolve_or_create_master_key
 from lucca.core.exceptions import SandboxTimeout
 from lucca.core.schemas import Risk, ToolResult
 from lucca.memory.manager import MemoryManager
+from lucca.sandbox.artifact_tool import verify_artifact
+from lucca.sandbox.ast_sanitizer import (
+    sanitize_and_repair_python_code,  # noqa: PLC0415
+)
+from lucca.sandbox.clipboard_tool import read_clipboard_text
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.preflight import build_preflight_runner_code, extract_docstring_assertions
+from lucca.sandbox.research_tool import research_topic
 from lucca.sandbox.rpc import DockerRPCTransport
+from lucca.sandbox.schedule_tool import (
+    ScheduledEvent,
+    claim_due_events,
+    list_scheduled_events,
+    schedule_event,
+)
 from lucca.sandbox.schemas import (
     EXTRA_TOOL_SCHEMAS,
     TOOL_ARG_SCHEMAS,
@@ -54,15 +68,6 @@ from lucca.sandbox.schemas import (
     SearchWebArgs,
     SysInfoArgs,
     ViewSliceArgs,
-)
-from lucca.sandbox.artifact_tool import verify_artifact
-from lucca.sandbox.clipboard_tool import read_clipboard_text
-from lucca.sandbox.research_tool import research_topic
-from lucca.sandbox.schedule_tool import (
-    ScheduledEvent,
-    claim_due_events,
-    list_scheduled_events,
-    schedule_event,
 )
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
@@ -103,11 +108,11 @@ def get_host_network_and_location() -> dict[str, JsonValue]:
     """Retrieves local network IPs using local socket inspection (<5ms)."""
     net_info: dict[str, JsonValue] = {"local_ips": []}
     try:
-        import socket
 
         hostname = socket.gethostname()
         local_ips = socket.gethostbyname_ex(hostname)[2]
-        net_info["local_ips"] = [ip for ip in local_ips if not ip.startswith("127.")]
+        ips_json: list[JsonValue] = [str(ip) for ip in local_ips if not ip.startswith("127.")]
+        net_info["local_ips"] = ips_json
     except Exception as exc:  # noqa: BLE001
         logger.debug("get_local_ips_failed", error=str(exc))
 
@@ -231,13 +236,16 @@ def _eval_ast_node(node: ast.AST) -> int | float | bool | list[object] | tuple[o
             return left**right
         raise ValueError(f"Unsupported binary operator: {type(node.op).__name__}")
     if isinstance(node, ast.BoolOp):
+        val: int | float | bool | list[object] | tuple[object, ...] = False
         if isinstance(node.op, ast.And):
+            val = True
             for v in node.values:
                 val = _eval_ast_node(v)
                 if not val:
                     return val
             return val
         if isinstance(node.op, ast.Or):
+            val = False
             for v in node.values:
                 val = _eval_ast_node(v)
                 if val:
@@ -246,28 +254,35 @@ def _eval_ast_node(node: ast.AST) -> int | float | bool | list[object] | tuple[o
         raise ValueError(f"Unsupported boolean operator: {type(node.op).__name__}")
     if isinstance(node, ast.Compare):
         left = _eval_ast_node(node.left)
-        for op, comparator in zip(node.ops, node.comparators):
+        for op, comparator in zip(node.ops, node.comparators, strict=False):
             right = _eval_ast_node(comparator)
             matched = False
             if isinstance(op, ast.Eq):
                 matched = (left == right)
             elif isinstance(op, ast.NotEq):
                 matched = (left != right)
-            elif isinstance(op, ast.Lt):
-                matched = (left < right)
-            elif isinstance(op, ast.LtE):
-                matched = (left <= right)
-            elif isinstance(op, ast.Gt):
-                matched = (left > right)
-            elif isinstance(op, ast.GtE):
-                matched = (left >= right)
+            elif isinstance(op, (ast.Lt, ast.LtE, ast.Gt, ast.GtE)):
+                if not isinstance(left, (int, float)) or not isinstance(right, (int, float)):
+                    raise ValueError("Ordering comparison operands must be numeric")
+                if isinstance(op, ast.Lt):
+                    matched = (left < right)
+                elif isinstance(op, ast.LtE):
+                    matched = (left <= right)
+                elif isinstance(op, ast.Gt):
+                    matched = (left > right)
+                else:
+                    matched = (left >= right)
             elif isinstance(op, ast.Is):
                 matched = (left is right)
             elif isinstance(op, ast.IsNot):
                 matched = (left is not right)
             elif isinstance(op, ast.In):
+                if not isinstance(right, (list, tuple)):
+                    raise ValueError("Right operand of 'in' must be a list or tuple")
                 matched = (left in right)
             elif isinstance(op, ast.NotIn):
+                if not isinstance(right, (list, tuple)):
+                    raise ValueError("Right operand of 'not in' must be a list or tuple")
                 matched = (left not in right)
             else:
                 raise ValueError(f"Unsupported comparison operator: {type(op).__name__}")
@@ -372,7 +387,7 @@ class SandboxService:
 
     def _resolve_schedule_db_path(self) -> Path:
         if self.db is not None and hasattr(self.db, "db_path"):
-            p = getattr(self.db, "db_path")
+            p = self.db.db_path
             if isinstance(p, (Path, str)) and str(p) != ":memory:":
                 return Path(p)
         return self.workspace_mgr.workspace_root / ".scheduled_events.sqlite"
@@ -387,7 +402,6 @@ class SandboxService:
 
     def get_memory_manager(self) -> MemoryManager:
         if self._memory_manager is None:
-            from lucca.core.config import resolve_or_create_master_key
             cfg = get_config()
             mk = resolve_or_create_master_key(cfg)
             try:
@@ -426,26 +440,29 @@ class SandboxService:
         confirmed: bool = False,
         human_confirmed: bool = False,
     ) -> ToolResult:
+        args_dict: dict[str, JsonValue] = (
+            args.model_dump() if isinstance(args, BaseModel) else dict(args)
+        )
         # Semantic argument repair & tool rerouting
-        if isinstance(args, dict):
-            if tool_name == "calc_math":
-                expr_val = args.get("expr")
-                code_val = args.get("code")
-                raw_content = str(code_val if code_val is not None else (expr_val or ""))
-                is_python_code = (
-                    "code" in args
-                    or "\n" in raw_content
-                    or "import " in raw_content
-                    or "def " in raw_content
-                    or "print(" in raw_content
-                    or len(raw_content) > 300
-                )
-                if is_python_code:
-                    tool_name = "run_python"
-                    args = {"code": raw_content}
-            elif tool_name == "run_python":
-                if "expr" in args and "code" not in args:
-                    args = {"code": str(args["expr"])}
+        if tool_name == "calc_math":
+            expr_val = args_dict.get("expr")
+            code_val = args_dict.get("code")
+            raw_content = str(code_val if code_val is not None else (expr_val or ""))
+            is_python_code = (
+                "code" in args_dict
+                or "\n" in raw_content
+                or "import " in raw_content
+                or "def " in raw_content
+                or "print(" in raw_content
+                or len(raw_content) > 300
+            )
+            if is_python_code:
+                tool_name = "run_python"
+                args_dict = {"code": raw_content}
+        elif tool_name == "run_python":
+            if "expr" in args_dict and "code" not in args_dict:
+                args_dict = {"code": str(args_dict["expr"])}
+        args = args_dict
 
         # 1. Sequence Guard Check
         allowed, reason = self.guard.check_and_record(tool_name, args)
@@ -566,7 +583,7 @@ class SandboxService:
 
         # 4a. Browse Page Tool (Path 2: Interactive Browser Engine)
         if tool_name in ("browse_page", "render_page"):
-            url_val = str(args.get("url", "")).strip()
+            url_val = str(args_dict.get("url", "")).strip()
             if not url_val:
                 return ToolResult(
                     call_id=call_id,
@@ -575,7 +592,8 @@ class SandboxService:
                     stderr="invalid_arguments: missing 'url'",
                     elapsed_ms=0.0,
                 )
-            max_chars = int(args.get("max_chars", 20000))
+            raw_mc = args_dict.get("max_chars", 20000)
+            max_chars = int(raw_mc) if isinstance(raw_mc, (int, float, str)) else 20000
             try:
                 # Lazy import: browser_tool pulls Playwright only when rendering is requested.
                 from lucca.sandbox.browser_tool import render_page  # noqa: PLC0415
@@ -761,7 +779,7 @@ class SandboxService:
 
         # 5. Query Capabilities Tool
         if tool_name == "query_capabilities":
-            category = str(args.get("category", "all"))
+            category = str(args_dict.get("category", "all"))
             registry = get_capability_registry()
             structured_data = registry.get_capabilities_manifest(
                 category=category,
@@ -796,6 +814,7 @@ class SandboxService:
                 mgr = self.get_memory_manager()
                 all_hits = mgr.list_memories(search=parsed_mem_search.query)
                 top_hits = all_hits[: parsed_mem_search.top_k]
+                hits_json: list[JsonValue] = list(top_hits)
                 content_lines = [
                     f"- [{h.get('kind', 'fact')}/{h.get('provenance', 'USER_EXPLICIT')}] "
                     f"{h.get('content')}"
@@ -809,7 +828,7 @@ class SandboxService:
                     call_id=call_id,
                     ok=True,
                     exit_code=0,
-                    structured={"hits": top_hits, "count": len(top_hits)},
+                    structured={"hits": hits_json, "count": len(top_hits)},
                     content=content_str,
                     elapsed_ms=elapsed_ms,
                 )
@@ -981,7 +1000,6 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                from datetime import datetime
 
                 boot_time = psutil.boot_time()
                 uptime_s = max(0.0, time.time() - boot_time)
@@ -995,7 +1013,8 @@ class SandboxService:
                     iana_name = target_tz.key
                     tz_abbr = now_tz.strftime("%Z")
                     utc_offset = now_tz.strftime("%z")
-                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
+                    dst_delta = now_tz.dst()
+                    is_dst = bool(dst_delta is not None and dst_delta.total_seconds() != 0)
                     local_time = now_tz.strftime("%Y-%m-%d %H:%M:%S")
                     time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
                 else:
@@ -1003,7 +1022,8 @@ class SandboxService:
                     iana_name = getattr(now_tz.tzinfo, "key", None) or now_tz.tzname() or "UTC"
                     tz_abbr = now_tz.strftime("%Z")
                     utc_offset = now_tz.strftime("%z")
-                    is_dst = bool(now_tz.dst() and now_tz.dst().total_seconds() != 0)
+                    dst_delta = now_tz.dst()
+                    is_dst = bool(dst_delta is not None and dst_delta.total_seconds() != 0)
                     local_time = now_tz.strftime("%Y-%m-%d %H:%M:%S")
                     time_str = now_tz.strftime("%A, %B %d, %Y, %I:%M:%S %p (%Z, UTC%z)")
 
@@ -1013,7 +1033,7 @@ class SandboxService:
                     filter_name=parsed_sys.filter_name,
                     limit=parsed_sys.limit,
                 )
-                structured = {
+                sys_structured: dict[str, JsonValue] = {
                     "platform": platform.platform(),
                     "system": platform.system(),
                     "release": platform.release(),
@@ -1038,14 +1058,16 @@ class SandboxService:
                     for p in processes
                 )
                 geo_summary = ""
+                local_ips_val = net_geo.get("local_ips")
                 if net_geo.get("public_ip"):
                     geo_summary = (
                         f"Physical Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
-                        f"{net_geo.get('country')} (IP: {net_geo.get('public_ip')}, ISP: {net_geo.get('isp')})\n"
+                        f"{net_geo.get('country')} (IP: {net_geo.get('public_ip')}, ISP: "
+                        f"{net_geo.get('isp')})\n"
                     )
-                elif net_geo.get("local_ips"):
+                elif isinstance(local_ips_val, list) and local_ips_val:
                     geo_summary = (
-                        f"Local Network IPs: {', '.join(str(x) for x in net_geo['local_ips'])}\n"
+                        f"Local Network IPs: {', '.join(str(x) for x in local_ips_val)}\n"
                     )
 
                 content = (
@@ -1063,7 +1085,7 @@ class SandboxService:
                     call_id=call_id,
                     ok=True,
                     exit_code=0,
-                    structured=structured,
+                    structured=sys_structured,
                     content=content,
                     elapsed_ms=elapsed_ms,
                 )
@@ -1079,7 +1101,7 @@ class SandboxService:
 
         # 6. Async Task Management Tools
         if tool_name == "get_task_status":
-            task_id = str(args.get("task_id", ""))
+            task_id = str(args_dict.get("task_id", ""))
             task = self.tasks.get_task(task_id)
             if not task:
                 return ToolResult(
@@ -1110,7 +1132,7 @@ class SandboxService:
             )
 
         if tool_name == "cancel_task":
-            task_id = str(args.get("task_id", ""))
+            task_id = str(args_dict.get("task_id", ""))
             success = self.tasks.cancel_task(task_id)
             return ToolResult(
                 call_id=call_id,
@@ -1125,14 +1147,14 @@ class SandboxService:
             )
 
         if tool_name == "list_tasks":
-            raw_filter = args.get("status")
+            raw_filter = args_dict.get("status")
             status_filter: TaskStatus | None = None
             if isinstance(raw_filter, str):
                 upper_filter = raw_filter.upper()
                 if upper_filter in ("PENDING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"):
                     status_filter = upper_filter  # type: ignore[assignment]
             task_list = self.tasks.list_tasks(status=status_filter)
-            tasks_data = [
+            tasks_data: list[JsonValue] = [
                 {
                     "task_id": t.task_id,
                     "name": t.name,
@@ -1170,8 +1192,8 @@ class SandboxService:
                 # WO-10.5 (F15): launch under Docker in a background task and
                 # return the task ID immediately so long jobs never block the
                 # voice loop (D-SAND-03).
-                code = str(args.get("code", ""))
-                task_name = str(args.get("name", "python-job"))[:60]
+                code = str(args_dict.get("code", ""))
+                task_name = str(args_dict.get("name", "python-job"))[:60]
                 container_id = getattr(self.rpc, "container_id", "lucca-sandbox")
 
                 def _docker_python(cancel_event: threading.Event) -> tuple[int, str, str]:
@@ -1218,7 +1240,8 @@ class SandboxService:
                     parsed_ev.message,
                     db_path=self._resolve_schedule_db_path(),
                 )
-                content = f"Event '{parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
+                content = f"Event '{
+                    parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
@@ -1322,6 +1345,7 @@ class SandboxService:
                     )
                     if f.is_file()
                 ]
+                files_json: list[JsonValue] = [str(f_name) for f_name in files]
                 if files:
                     content = f"Inbox contains {len(files)} file(s): {', '.join(files)}"
                 else:
@@ -1331,7 +1355,7 @@ class SandboxService:
                     ok=True,
                     exit_code=0,
                     content=content,
-                    structured={"files": files, "count": len(files)},
+                    structured={"files": files_json, "count": len(files)},
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
@@ -1362,6 +1386,8 @@ class SandboxService:
                     except Exception as exc:  # noqa: BLE001
                         logger.warning("inbox_import_failed", filename=f.name, error=str(exc))
                         errors.append(f"{f.name}: {exc}")
+                imported_json: list[JsonValue] = [str(x) for x in imported]
+                errors_json: list[JsonValue] = [str(x) for x in errors]
                 if imported:
                     content = (
                         f"Imported {len(imported)} file(s) from inbox: {', '.join(imported)}."
@@ -1374,9 +1400,9 @@ class SandboxService:
                         exit_code=0,
                         content=content,
                         structured={
-                            "imported": imported,
+                            "imported": imported_json,
                             "count": len(imported),
-                            "errors": errors,
+                            "errors": errors_json,
                         },
                         elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                     )
@@ -1387,7 +1413,7 @@ class SandboxService:
                     exit_code=1,
                     stderr=content,
                     content=content,
-                    structured={"imported": [], "errors": errors},
+                    structured={"imported": [], "errors": errors_json},
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
 
@@ -1410,6 +1436,7 @@ class SandboxService:
                     )
                     if f.is_file()
                 ]
+                avail_json: list[JsonValue] = [str(x) for x in avail]
                 avail_str = (
                     f"Available inbox files: {', '.join(avail)}" if avail else "Inbox is empty."
                 )
@@ -1420,7 +1447,11 @@ class SandboxService:
                     exit_code=1,
                     stderr=err_msg,
                     content=err_msg,
-                    structured={"error": "not_found", "requested": target_fn, "available": avail},
+                    structured={
+                        "error": "not_found",
+                        "requested": target_fn,
+                        "available": avail_json,
+                    },
                     elapsed_ms=(time.perf_counter() - t0) * 1000.0,
                 )
             except Exception as exc:  # noqa: BLE001
@@ -1473,6 +1504,7 @@ class SandboxService:
                         except (OSError, ValueError):
                             continue
                     file_names = [str(e["name"]) for e in entries if not e.get("is_dir")]
+                    entries_json: list[JsonValue] = list(entries)
                     if entries:
                         content = (
                             f"Inbox drop folder contains {len(entries)} item(s): "
@@ -1486,7 +1518,7 @@ class SandboxService:
                         ok=True,
                         exit_code=0,
                         structured={
-                            "entries": entries,
+                            "entries": entries_json,
                             "truncated": False,
                             "location": "inbox",
                             "count": len(entries),
@@ -1631,7 +1663,8 @@ class SandboxService:
                     cwd=parsed_pt.cwd,
                     timeout=parsed_pt.timeout,
                 )
-                exit_code = int(structured.get("exit_code", 0))
+                exit_val = structured.get("exit_code", 0)
+                exit_code = int(exit_val) if isinstance(exit_val, (int, float, str)) else 0
                 return ToolResult(
                     call_id=call_id,
                     ok=(exit_code == 0),
@@ -1651,8 +1684,8 @@ class SandboxService:
                 )
 
         # 9. File Tools & run_python via RPC (with Tier 1 AST Preflight Sanitizer on run_python)
-        if tool_name == "run_python" and isinstance(args.get("code"), str):
-            raw_code = str(args["code"])
+        if tool_name == "run_python" and isinstance(args_dict.get("code"), str):
+            raw_code = str(args_dict["code"])
             try:
                 needs_repair = False
                 try:
@@ -1660,16 +1693,15 @@ class SandboxService:
                 except SyntaxError:
                     needs_repair = True
 
-                from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code  # noqa: PLC0415
 
                 clean_code, _ok_san, _repairs = sanitize_and_repair_python_code(raw_code)
                 if clean_code and clean_code.strip():
                     ast.parse(clean_code)
                     if needs_repair or ("import " in clean_code and "import " not in raw_code):
-                        args = {**args, "code": clean_code}
+                        args_dict = {**args_dict, "code": clean_code}
             except Exception as san_err:  # noqa: BLE001
                 logger.debug("run_python_ast_sanitize_skipped", error=str(san_err))
-        return self.rpc.execute(call_id=call_id, tool=tool_name, args=args)
+        return self.rpc.execute(call_id=call_id, tool=tool_name, args=args_dict)
 
     def preflight_verify_code(
         self,
@@ -1737,7 +1769,8 @@ class SandboxService:
                 )
                 return PreflightResult(
                     success=True,
-                    error_msg=f"preflight_timeout: execution exceeded {timeout_s}s limit; failing open",
+                    error_msg=f"preflight_timeout: execution exceeded {
+                        timeout_s}s limit; failing open",
                     elapsed_ms=elapsed,
                     assertions_run=len(assertions),
                     fail_open=True,

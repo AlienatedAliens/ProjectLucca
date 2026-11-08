@@ -4,17 +4,14 @@ Tests term-rewriting equality saturation over MicroScheme ASTs,
 canonical simplification, constant folding, and spatial rewrites.
 """
 
-import pytest
 
 from lucca.reasoning.egraph import (
-    EGraph,
-    RewriteRule,
     SPATIAL_REWRITE_RULES,
     STANDARD_REWRITE_RULES,
-    equality_saturate,
-    extract_best,
+    EGraph,
+    RewriteRule,
 )
-from lucca.reasoning.scheme.parser import Symbol, parse_expr, to_canonical
+from lucca.reasoning.scheme.parser import Symbol, parse_expr
 
 
 def test_rewrite_rule_creation():

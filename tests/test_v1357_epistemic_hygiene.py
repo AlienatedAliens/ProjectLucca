@@ -43,7 +43,6 @@ from lucca.core.belief_service import BeliefService
 from lucca.core.cascade import (
     BelnapValue,
     EpistemicSearchCascade,
-    EvidenceItem,
 )
 from lucca.core.schemas import Provenance, ToolResult, UnsignedPayload
 from lucca.core.trace import TurnTrace
@@ -227,7 +226,7 @@ def test_defect1_candidate_topic_extracted_and_enforces_lock(tmp_path: Path) -> 
         nonce="nonce-seed-topic-1",
         confidence=0.9,
     )
-    old_mid = store.commit(asst_signer.sign(payload))
+    store.commit(asst_signer.sign(payload))
 
     # Commit grounded user turn with candidate update
     new_user_text = "Default proxy port is set to 8080 with strict TLS."

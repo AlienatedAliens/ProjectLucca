@@ -8,7 +8,7 @@ All operations return new grids or structured objects without mutating inputs.
 from __future__ import annotations
 
 from collections import deque
-from typing import Mapping
+from collections.abc import Mapping
 
 
 def clone_grid(grid: list[list[int]]) -> list[list[int]]:
@@ -60,7 +60,7 @@ def rotate_90(grid: list[list[int]], clockwise: bool = True, times: int = 1) -> 
 
     out = clone_grid(grid)
     for _ in range(k):
-        out = [list(col) for col in zip(*out[::-1])]
+        out = [list(col) for col in zip(*out[::-1], strict=False)]
     return out
 
 
@@ -288,8 +288,8 @@ def align_objects(
     """
     raw_coords_a = obj_a.get("coords") if isinstance(obj_a, Mapping) else obj_a
     raw_coords_b = obj_b.get("coords") if isinstance(obj_b, Mapping) else obj_b
-    coords_a: list[tuple[int, int]] = raw_coords_a if isinstance(raw_coords_a, list) else []  # type: ignore
-    coords_b: list[tuple[int, int]] = raw_coords_b if isinstance(raw_coords_b, list) else []  # type: ignore
+    coords_a: list[tuple[int, int]] = raw_coords_a if isinstance(raw_coords_a, list) else []
+    coords_b: list[tuple[int, int]] = raw_coords_b if isinstance(raw_coords_b, list) else []
     if not coords_a or not coords_b:
         return (0, 0)
 

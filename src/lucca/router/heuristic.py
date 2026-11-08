@@ -3,6 +3,7 @@ Project Lucca — Heuristic Decision Router & Lexicon Matcher
 Spec 06 §1, §2, §3
 """
 
+import hashlib as _hl
 import json
 import re
 import time
@@ -248,7 +249,8 @@ class HeuristicRouter:
             ):
                 return "launch_app", 0.92, entities
 
-        # Non-whitelisted 3rd-party desktop application launch requests or figurative open/start/run idioms
+        # Non-whitelisted 3rd-party desktop application launch requests or figurative open/start/run
+        # idioms
         if not entities["app"] and re.search(
             r"\b(?:open|launch|start)\s+(?:blender|spotify|obsidian|figma|photoshop|illustrator|premiere|steam|vlc)\b|"
             r"^start\s+by\s+(?:summarizing|outlining|reviewing)\b|"
@@ -258,7 +260,8 @@ class HeuristicRouter:
         ):
             return "unknown", 0.20, entities
 
-        # Symbolic dangerous boundary check (both positive high-severity triggers and negative filter)
+        # Symbolic dangerous boundary check (both positive high-severity triggers and negative
+        # filter)
         has_dangerous_marker = bool(
             re.search(
                 r"\b(?:delete\s+(?:all|every|my)|rm\s+-rf|format\s+(?:[a-z]:?|drive|disk|partition)|"
@@ -289,7 +292,8 @@ class HeuristicRouter:
             entities["file"]
             and not has_dangerous_marker
             and not re.search(
-                r"\b(?:bug|exception|traceback|error|failing|pytest|patch|fix|leak|crash| deadlock)\b",
+                r"\b(?:bug|exception|traceback|error|failing|pytest|patch|fix|leak|crash| "
+                    r"deadlock)\b",
                 text,
             )
         ):
@@ -396,7 +400,9 @@ class HeuristicRouter:
             transcript_text = transcript if isinstance(transcript, str) else ""
 
         transcript_text = normalize_transcript(transcript_text)
-        eff_blind = self.blind_classifier_only if blind_classifier_only is None else blind_classifier_only
+        eff_blind = (
+            self.blind_classifier_only if blind_classifier_only is None else blind_classifier_only
+        )
 
         intent, auto_conf, entities = self.classify_intent(
             transcript_text, last_tool=last_tool, blind_classifier_only=eff_blind
@@ -480,7 +486,8 @@ class HeuristicRouter:
         else:
             tier = ExecutionTier.FULL_LOOP
 
-        # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch via OpenVINO NPU Multi-Head Classifier
+        # Dynamic Tiered Neurosymbolic Reasoning & Thinking Mode Dispatch via OpenVINO NPU
+        # Multi-Head Classifier
         if model_tier is None:
             try:
                 cfg_model = get_config().llm.model.lower()
@@ -633,7 +640,6 @@ class HeuristicRouter:
         ]
         floor_hold_cue: str | None = None
         if deliberation_lane:
-            import hashlib as _hl
             _idx = int(_hl.md5(text_lower.encode()).hexdigest(), 16) % len(FLOOR_HOLD_CUES)
             floor_hold_cue = FLOOR_HOLD_CUES[_idx]
 

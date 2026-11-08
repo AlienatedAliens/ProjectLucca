@@ -45,7 +45,7 @@ if sys.platform == "win32":
         pass
 
 from lucca.reasoning.stats import wilson_score_interval
-from scripts.run_modern_2024_benchmarks import (
+from scripts.archive.wo01_wo42.run_modern_2024_benchmarks import (
     clean_latex_for_sympy,
     compare_intervals,
     compare_matrices_elements,

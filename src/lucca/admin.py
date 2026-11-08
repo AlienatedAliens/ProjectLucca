@@ -4,7 +4,6 @@ Spec 11 §7 (`lucca-admin`), F-CORE-026, F-CORE-027, F-DRIFT-003
 """
 
 import argparse
-import asyncio
 import json
 import logging
 import sys
@@ -23,15 +22,18 @@ from lucca.core.trace import (
     compute_latency_statistics,
     format_latency_markdown,
 )
+from lucca.eval import contrastive_grader, in_d_grader
 from lucca.memory.db import DatabaseManager
 from lucca.memory.manager import MemoryManager
 from lucca.memory.migration_tool import migrate_memory_keys
 from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.repl_loop import ReasoningREPL, TaskRegistry
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
+from lucca.tools import lint as tools_lint
 
 logger = logging.getLogger(__name__)
 
@@ -339,20 +341,26 @@ def run_rules_cli(
         table.add_column("McNemar p", justify="right")
         table.add_column("Execution-Reliability Rate (S1)", justify="right")
 
+        def _f(v: object, default: float = 0.0) -> float:
+            return float(v) if isinstance(v, (int, float, str)) else default
+
+        def _i(v: object, default: int = 0) -> int:
+            return int(float(v)) if isinstance(v, (int, float, str)) else default
+
         for r in sorted(manager.rules.values(), key=lambda x: x.rule_id):
             summary = manager.get_contrastive_summary(r.rule_id)
-            total_turns = int(summary.get("total_turns", 0))
-            agreed_rate = float(summary.get("agreed_rate", 0.0))
+            total_turns = _i(summary.get("total_turns", 0))
+            agreed_rate = _f(summary.get("agreed_rate", 0.0))
             agreed_interval_raw = summary.get("agreed_interval", [0.0, 1.0])
             agreed_interval = (
                 agreed_interval_raw
                 if isinstance(agreed_interval_raw, list) and len(agreed_interval_raw) == 2
                 else [0.0, 1.0]
             )
-            b = int(summary.get("b_rule_better", 0))
-            c = int(summary.get("c_core_better", 0))
-            p_val = float(summary.get("mcnemar_p_value", 1.0))
-            rel_rate = float(summary.get("rule_reliability_rate", 0.0))
+            b = _i(summary.get("b_rule_better", 0))
+            c = _i(summary.get("c_core_better", 0))
+            p_val = _f(summary.get("mcnemar_p_value", 1.0), 1.0)
+            rel_rate = _f(summary.get("rule_reliability_rate", 0.0))
             rel_interval_raw = summary.get("rule_reliability_interval", [0.0, 1.0])
             rel_interval = (
                 rel_interval_raw
@@ -367,14 +375,14 @@ def run_rules_cli(
             fail_ucl = rule_of_three_ucl(n_clusters)
             cluster_str = f"{n_clusters}/5 (0 err -> fail <= {fail_ucl:.0%})"
 
-            ag_lb_str = f"{float(agreed_interval[0]):.1%}"
-            ag_ub_str = f"{float(agreed_interval[1]):.1%}"
+            ag_lb_str = f"{_f(agreed_interval[0]):.1%}"
+            ag_ub_str = f"{_f(agreed_interval[1], 1.0):.1%}"
             agreed_str = (
                 f"{agreed_rate:.1%} [{ag_lb_str}, {ag_ub_str}]" if total_turns > 0 else "N/A"
             )
             p_str = f"{p_val:.3f}" if (b + c) > 0 else "N/A"
             rel_str = (
-                f"{rel_rate:.1%} [{float(rel_interval[0]):.1%}, {float(rel_interval[1]):.1%}]"
+                f"{rel_rate:.1%} [{_f(rel_interval[0]):.1%}, {_f(rel_interval[1], 1.0):.1%}]"
                 if total_turns > 0
                 else "N/A"
             )
@@ -609,7 +617,7 @@ def run_memory_cli(
         store = MemoryStore(db=db, master_key=mk)
         reflection = ReflectionEngine(db=db, store=store, master_key=mk)
         try:
-            new_mid = asyncio.run(reflection.approve_review(review_id, decided_by=approver))
+            new_mid = reflection.approve_review(review_id, decided_by=approver)
             console.print(
                 f"[bold green]SUCCESS: Review '{review_id}' approved by '{approver}'.[/bold green] "
                 f"New memory ID: {new_mid}"
@@ -882,8 +890,8 @@ def run_memory_cli(
 
         if report.errors:
             console.print("[bold red]Migration Warnings / Errors:[/bold red]")
-            for err in report.errors:
-                console.print(f"  - {err}")
+            for err_item in report.errors:
+                console.print(f"  - {err_item}")
         return 0 if report.is_success else 1
 
     console.print(f"[red]Unknown memory action: {action}[/red]")
@@ -1108,7 +1116,23 @@ def create_parser() -> argparse.ArgumentParser:
         )
         sub.add_argument("rest", nargs="*", help="Subcommand arguments")
 
+    p_repl = subparsers.add_parser(
+        "repl", help="Launch interactive CEGIS and spatial reasoning REPL"
+    )
+    p_repl.add_argument("--task", help="Optional task ID or path to load initially")
+    p_repl.add_argument(
+        "--list-tasks", action="store_true", help="List available minimal tasks and exit"
+    )
+
+    subparsers.add_parser("eval-ind", help="Run mechanical Personhood IN-D skill lifecycle grader")
+    subparsers.add_parser(
+        "eval-contrastive", help="Verify frozen contrastive grader SHA-256 and thresholds"
+    )
+    subparsers.add_parser("lint-check", help="Run composite T0 static lint gate")
+
     return parser
+
+
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -1225,7 +1249,29 @@ def main(argv: list[str] | None = None) -> None:
     elif args.cmd in ("metrics", "router", "replay"):
         print("not implemented (tracked as F-CORE-027)")
         sys.exit(3)
+    elif args.cmd == "repl":
+        if getattr(args, "list_tasks", False):
+            tasks = TaskRegistry().list_minimal_tasks()
+            for t in tasks:
+                print(t)
+            sys.exit(0)
+        repl = ReasoningREPL()
+        if getattr(args, "task", None):
+            repl.load_task(str(args.task))
+        repl.run()
+        sys.exit(0)
+    elif args.cmd == "eval-ind":
+        rep = in_d_grader.grade_in_d()
+        print(rep.model_dump_json(indent=2))
+        sys.exit(0)
+    elif args.cmd == "eval-contrastive":
+        print(json.dumps({"grader_sha256": contrastive_grader.grader_sha256()}))
+        sys.exit(0)
+    elif args.cmd == "lint-check":
+        tools_lint.main()
     else:
+
+
         print(f"Unknown command '{args.cmd}'", file=sys.stderr)
         sys.exit(2)
 

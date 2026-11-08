@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import structlog
+from pydantic import JsonValue
 from PyQt6.QtCore import QPoint, Qt, QTimer
 from PyQt6.QtGui import QFont, QKeyEvent
 from PyQt6.QtWidgets import (
@@ -166,7 +167,21 @@ class MemoryTab(QWidget):
         v_filter.addLayout(h_batch)
 
         # Memory Table with multi-row selection
-        self.table_mem = QTableWidget(0, 6, grp_filter)
+        tab_self = self
+
+        class _MemoryTableWidget(QTableWidget):
+            def keyPressEvent(self, event: QKeyEvent | None) -> None:
+                if event is not None and event.key() in (
+                    Qt.Key.Key_Delete,
+                    Qt.Key.Key_Backspace,
+                ):
+                    if tab_self._get_selected_memory_ids():
+                        tab_self._delete_selected_memories()
+                        event.accept()
+                        return
+                super().keyPressEvent(event)
+
+        self.table_mem = _MemoryTableWidget(0, 6, grp_filter)
         self.table_mem.setHorizontalHeaderLabels(
             ["ID", "Kind", "Content / Fact Statement", "Importance", "Provenance", "Created At"]
         )
@@ -188,19 +203,6 @@ class MemoryTab(QWidget):
         # Context menu for quick pruning and selection
         self.table_mem.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table_mem.customContextMenuRequested.connect(self._show_table_context_menu)
-
-        # Delete & Backspace keyboard shortcuts
-        orig_key_press = self.table_mem.keyPressEvent
-
-        def _table_key_press(event: QKeyEvent) -> None:
-            if event.key() in (Qt.Key.Key_Delete, Qt.Key.Key_Backspace):
-                if self._get_selected_memory_ids():
-                    self._delete_selected_memories()
-                    event.accept()
-                    return
-            orig_key_press(event)
-
-        self.table_mem.keyPressEvent = _table_key_press
 
         v_filter.addWidget(self.table_mem)
 
@@ -367,13 +369,17 @@ class MemoryTab(QWidget):
                     or m.get("provenance") in ("USER_EXPLICIT", "ASSISTANT_UTTERANCE")
                 ]
             elif kind_filter == "fact":
+                def _imp(item: dict[str, JsonValue]) -> float:
+                    raw = item.get("importance", 0.5)
+                    return float(raw) if isinstance(raw, (int, float, str)) else 0.5
+
                 mems = [
                     m
                     for m in mems
                     if m.get("provenance") in ("USER_DERIVED", "INFERRED", "LISP_ASSERTION")
                     or (
                         m.get("kind") == "fact"
-                        and float(m.get("importance", 0.5)) >= 0.75
+                        and _imp(m) >= 0.75
                     )
                 ]
             elif kind_filter:
@@ -388,7 +394,8 @@ class MemoryTab(QWidget):
                 mid = str(m.get("memory_id", ""))
                 raw_kind = str(m.get("kind", ""))
                 content = str(m.get("content", ""))
-                imp_val = float(m.get("importance", 0.5))
+                raw_imp = m.get("importance", 0.5)
+                imp_val = float(raw_imp) if isinstance(raw_imp, (int, float, str)) else 0.5
                 imp = f"{imp_val:.2f}"
                 prov = str(m.get("provenance", "USER_EXPLICIT"))
                 if prov == "USER_EXPLICIT" and raw_kind == "fact" and imp_val < 0.75:
@@ -399,7 +406,13 @@ class MemoryTab(QWidget):
                     kind = "tool_receipt"
                 else:
                     kind = raw_kind
-                ts = datetime.fromtimestamp(float(m.get("created_at", time.time()))).strftime(
+                raw_created = m.get("created_at", time.time())
+                created_f = (
+                    float(raw_created)
+                    if isinstance(raw_created, (int, float, str))
+                    else time.time()
+                )
+                ts = datetime.fromtimestamp(created_f).strftime(
                     "%Y-%m-%d %H:%M"
                 )
 
@@ -453,19 +466,25 @@ class MemoryTab(QWidget):
                 else f"🗑️ Prune Memory #{selected_ids[0]}"
             )
             act_del = menu.addAction(del_text)
-            act_del.triggered.connect(self._delete_selected_memories)
+            if act_del is not None:
+                act_del.triggered.connect(self._delete_selected_memories)
             menu.addSeparator()
             act_desel = menu.addAction("⬜ Deselect All")
-            act_desel.triggered.connect(self._deselect_all_memories)
+            if act_desel is not None:
+                act_desel.triggered.connect(self._deselect_all_memories)
 
         act_sel_all = menu.addAction("☑️ Select All Visible")
-        act_sel_all.triggered.connect(self._select_all_memories)
+        if act_sel_all is not None:
+            act_sel_all.triggered.connect(self._select_all_memories)
 
         menu.addSeparator()
         act_reset = menu.addAction("💥 Factory Reset All Memories")
-        act_reset.triggered.connect(self._factory_reset_memories)
+        if act_reset is not None:
+            act_reset.triggered.connect(self._factory_reset_memories)
 
-        menu.exec(self.table_mem.viewport().mapToGlobal(pos))
+        vp = self.table_mem.viewport()
+        if vp is not None:
+            menu.exec(vp.mapToGlobal(pos))
 
     def _on_memory_selection_changed(self) -> None:
         selected_ids = self._get_selected_memory_ids()

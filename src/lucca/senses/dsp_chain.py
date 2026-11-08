@@ -11,7 +11,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-import scipy.signal  # type: ignore[import-untyped]
+import scipy.signal
 
 
 @dataclass
@@ -181,11 +181,12 @@ def apply_pitch_shift(
     if n_samples < 64:
         idx = np.clip(np.arange(n_samples, dtype=np.float64) * pitch_ratio, 0.0, n_samples - 1.0)
         shifted = np.interp(idx, np.arange(n_samples, dtype=np.float64), samples).astype(np.float32)
-        return cast(npt.NDArray[np.float32], shifted), playback_sr
+        return shifted, playback_sr
 
     grain_len = min(1024, max(64, (n_samples // 4) * 2))
     hop = grain_len // 2
-    window = (0.5 * (1.0 - np.cos(2.0 * np.pi * np.arange(grain_len, dtype=np.float64) / grain_len))).astype(
+    phase = 2.0 * np.pi * np.arange(grain_len, dtype=np.float64) / grain_len
+    window = (0.5 * (1.0 - np.cos(phase))).astype(
         np.float32
     )
 

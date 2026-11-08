@@ -12,7 +12,6 @@ from lucca.reasoning.scheme.parser import RuleDefinition
 from lucca.reasoning.scheme.validator import (
     _collect_plan_tool_actions,
     _generate_test_states,
-    _validate_plan_tools,
     validate_rule_static,
 )
 

@@ -3,7 +3,6 @@ Project Lucca — Unit Tests for ARC Spatial Primitives Library
 Tests all 10 canonical operations per Priority 2A.
 """
 
-import pytest
 
 from lucca.reasoning.arc_primitives import (
     align_objects,
@@ -12,7 +11,6 @@ from lucca.reasoning.arc_primitives import (
     flip_h,
     flip_v,
     flood_fill,
-    get_connected_components,
     get_objects,
     gravity_drop,
     paste,
@@ -29,7 +27,6 @@ from lucca.reasoning.spatial_dsl import (
     split_by_separators,
     translate_grid,
 )
-
 
 
 def test_flood_fill():

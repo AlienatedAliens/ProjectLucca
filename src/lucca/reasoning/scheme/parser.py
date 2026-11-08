@@ -155,8 +155,13 @@ ALLOWED_OPS = frozenset(
         "euclidean-dist",
         "heading-turn",
         "step-forward",
+        # Continuous interval & skill limit primitives (WO-43 Phase 3.5)
+        "point-in-interval?",
+        "during-real?",
+        "active-skill-limit",
     }
 )
+
 
 STATE_PREDICATES = frozenset(
     {
@@ -198,7 +203,9 @@ DYNAMIC_ALLOWED_OPS: set[str] = set()
 
 
 def register_dynamic_op(op_name: str) -> None:
-    """Registers a dynamically induced primitive operator name into the parser's allowed operations."""
+    """
+    Registers a dynamically induced primitive operator name into the parser's allowed operations.
+    """
     DYNAMIC_ALLOWED_OPS.add(op_name)
 
 
@@ -554,10 +561,11 @@ def _validate_action_node(action: SchemeNode) -> None:
             )
     elif action_name == "assert":
         if len(action) == 2 and isinstance(action[1], list) and len(action[1]) == 3:
-            s_node, p_node, o_node = action[1]
+            _, p_node, _ = action[1]
         elif len(action) == 4:
-            s_node, p_node, o_node = action[1], action[2], action[3]
+            p_node = action[2]
         else:
+
             raise SchemeSyntaxError(
                 f"Assert action requires a triple (s p o), got {action}"
             )
@@ -616,7 +624,8 @@ def _validate_plan_structure(plan_node: SchemeNode) -> None:
         _validate_action_node(plan_node)
     else:
         raise SchemeSyntaxError(
-            f"Rule :plan clause must be of form (list ...), (if ...), or (assert ...), got ({head} ...)"
+            f"Rule :plan clause must be of form (list ...), (if ...), or (assert ...), got ({
+                head} ...)"
         )
 
 

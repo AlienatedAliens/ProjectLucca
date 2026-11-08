@@ -31,6 +31,7 @@ from lucca.speech.engines import (
 from lucca.speech.kokoclone import compute_cloned_style_vector, get_kokoclone_metadata
 from lucca.speech.text_normalizer import KittenTextNormalizer, normalize_text
 
+
 def modulate_epistemic_prosody(
     base_speed: float = 1.05,
     base_pitch_semitones: float = 0.0,

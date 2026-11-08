@@ -139,8 +139,8 @@ def test_facade_forget_memories_and_factory_reset(facade: StudioFacade) -> None:
     assert remaining[0]["memory_id"] == m3
 
     # 3. Add more facts
-    m4 = facade.add_memory_fact("Fact 4: The earth orbits the sun", importance=0.9)
-    m5 = facade.add_memory_fact("Fact 5: Sound travels in waves", importance=0.8)
+    facade.add_memory_fact("Fact 4: The earth orbits the sun", importance=0.9)
+    facade.add_memory_fact("Fact 5: Sound travels in waves", importance=0.8)
     assert facade.get_memory_stats()["active_memories"] == 3
 
     # 4. Factory reset memories to zero

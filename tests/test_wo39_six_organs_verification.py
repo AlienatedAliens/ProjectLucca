@@ -366,8 +366,8 @@ def test_organ6_k_order_theory_of_mind_depth3_perspective() -> None:
 def test_stt_lucca_wake_word_and_dsp_pitch_shift_and_url_security(tmp_path: Path) -> None:
     """Verify STT 'Lucca' normalization, DSP pitch shift frequency change, and .url sandbox escape block."""
     from lucca.sandbox.file_tool import SafeFileTool, SandboxSecurityError
+    from lucca.senses.asr import normalize_lucca_wake_word
     from lucca.senses.dsp_chain import apply_pitch_shift
-    from lucca.senses.stt import normalize_lucca_wake_word
 
     # 1. STT wake-word normalization
     assert normalize_lucca_wake_word("Lucas, check the logs") == "Lucca, check the logs"

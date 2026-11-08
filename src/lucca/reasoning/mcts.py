@@ -22,22 +22,22 @@ import math
 import random
 import threading
 import time
-from typing import Final
+from collections.abc import Callable, Sequence
+from typing import Final, cast
 
-from pydantic import BaseModel, ConfigDict, Field
 import structlog
 import z3
+from pydantic import BaseModel, ConfigDict
 
 from lucca.core.convergence import TracebackDivergenceGuard
 from lucca.core.schemas import CandidateRule, ToolSchema
-from lucca.reasoning.abduction import BackwardAbductionSolver, _substitute_hole
+from lucca.reasoning.abduction import AbductiveHypothesis, BackwardAbductionSolver, _substitute_hole
 from lucca.reasoning.cost import ast_cost, ast_depth
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import SchemeEvaluator
 from lucca.reasoning.scheme.parser import (
-    ALLOWED_OPS,
-    SchemeAtom,
     SchemeNode,
+    SchemeValue,
     Symbol,
     parse_expr,
     parse_rule,
@@ -177,14 +177,17 @@ def _ast_references_any_var(node: SchemeNode, var_names: set[str]) -> bool:
 def _evaluate_node_safe(
     node_ast: SchemeNode,
     extra_env: dict[str, object] | None = None,
-) -> SchemeAtom | None:
+) -> SchemeValue | None:
     """Safely evaluates a closed pure MicroScheme expression with optional bound inputs."""
     evaluator = SchemeEvaluator(gas_limit=1000, timeout_ms=50.0)
     try:
         env: dict[str, object] = dict(PURE_PRIMITIVES)
         if extra_env:
             env.update(extra_env)
-        val = evaluator.eval(node_ast, env)
+        val = evaluator.eval(
+            node_ast,
+            cast(dict[str, Callable[[list[SchemeValue]], SchemeValue]], env),
+        )
         if isinstance(val, (int, float, bool, str, list)):
             return val
         return None
@@ -253,7 +256,8 @@ def _gp_mutate(
     target_path = rng.choice(paths)
     sub = _get_subtree_at(ast, target_path)
     ops = [Symbol("+"), Symbol("-"), Symbol("*"), Symbol("/")]
-    terminals: list[SchemeNode] = [*var_symbols, *[lit for lit in literals if isinstance(lit, (int, float))]]
+    terminals: list[SchemeNode] = [*var_symbols, *[lit for lit in literals if isinstance(lit, (int,
+        float))]]
     if not terminals:
         terminals = [0, 1, 2]
 
@@ -276,9 +280,12 @@ _Z3_DIVISION_LOCK = threading.Lock()
 
 
 def _has_unsafe_division_ast(node: SchemeNode) -> tuple[bool, str]:
-    """Uses static and thread-safe Z3 symbolic analysis to detect potential division by zero in AST."""
+    """
+    Uses static and thread-safe Z3 symbolic analysis to detect potential division by zero in AST.
+    """
 
-    def _to_z3(curr: SchemeNode, ctx: z3.Context, var_map: dict[str, z3.ArithRef]) -> z3.ArithRef | None:
+    def _to_z3(curr: SchemeNode, ctx: z3.Context, var_map: dict[str,
+        z3.ArithRef]) -> z3.ArithRef | None:
         if isinstance(curr, bool):
             return z3.IntVal(1 if curr else 0, ctx=ctx)
         if isinstance(curr, int):
@@ -343,7 +350,8 @@ def _has_unsafe_division_ast(node: SchemeNode) -> tuple[bool, str]:
                             s_non_zero.set("timeout", 100)
                             s_non_zero.add(z_denom != 0)
                             if s_non_zero.check() == z3.unsat:
-                                return (True, f"Denominator identically zero in {to_canonical(curr)}")
+                                return (True,
+                                    f"Denominator identically zero in {to_canonical(curr)}")
             for child in curr[1:]:
                 bad, reason = _walk(child)
                 if bad:
@@ -435,12 +443,14 @@ class ASTHoleMCTSEngine:
 
         node_cnt = _count_ast_nodes(node_ast)
         if test_cases:
-            # If outputs vary across test_cases and AST is a constant (uses no input variables), reject cheat
+            # If outputs vary across test_cases and AST is a constant (uses no input variables),
+            # reject cheat
             distinct_outputs = {
                 str(tc.get("output", tc.get("expected", tc.get("expected_output"))))
                 for tc in test_cases
             }
-            if len(distinct_outputs) > 1 and var_names and not _ast_references_any_var(node_ast, var_names):
+            if len(distinct_outputs) > 1 and var_names and not _ast_references_any_var(node_ast,
+                var_names):
                 return (False, 0.0)
 
             passed = 0
@@ -656,8 +666,7 @@ class ASTHoleMCTSEngine:
                         is_sol, reward = self._evaluate_candidate_on_cases(
                             sim_target.ast, goal, test_cases, var_name_set
                         )
-                        if reward > best_iter_reward:
-                            best_iter_reward = reward
+                        best_iter_reward = max(best_iter_reward, reward)
                         with tree_lock:
                             if len(gp_population) < 64:
                                 gp_population.append((reward, sim_target.ast))
@@ -670,8 +679,7 @@ class ASTHoleMCTSEngine:
                                 break
                     else:
                         reward = 0.05 / (1.0 + sim_target.cost)
-                        if reward > best_iter_reward:
-                            best_iter_reward = reward
+                        best_iter_reward = max(best_iter_reward, reward)
                     sim_target.update(reward)
 
                 # Koza GP crossover & mutation step when unresolved holes exist
@@ -761,7 +769,7 @@ class ASTHoleMCTSEngine:
         self,
         current_ast: SchemeNode,
         hole: tuple[str, str | None],
-        hypotheses: list[object],
+        hypotheses: Sequence[object],
         literal_pool: list[int | float | str],
         current_depth: int,
         var_symbols: list[Symbol] | None = None,
@@ -771,7 +779,6 @@ class ASTHoleMCTSEngine:
         hole_name, _ = hole
 
         # 1. Abductive Hypotheses (Highest priority)
-        from lucca.reasoning.abduction import AbductiveHypothesis
 
         for h in hypotheses:
             if isinstance(h, AbductiveHypothesis) and h.hole_name == hole_name:
@@ -813,7 +820,7 @@ class ASTHoleMCTSEngine:
 
     def _matches_goal(
         self,
-        val: SchemeAtom,
+        val: object,
         goal: int | float | str | bool | list[object],
     ) -> bool:
         """Determines semantic equality with target goal."""
@@ -861,15 +868,17 @@ class ASTHoleMCTSEngine:
             )
 
         rule_name = f"rule-syn-{int(time.time() * 1000)}-v1"
-        rule_sexpr = f'(rule "{rule_name}" :when (intent= "{intent_label}") :plan (list (say "{canonical_expr}")))'
+        rule_sexpr = f'(rule "{
+            rule_name}" :when (intent= "{intent_label}") :plan (list (say "{canonical_expr}")))'
 
         # Enforce SMT Verification pre-check when available
         if self.smt_verifier is not None:
             try:
                 if hasattr(self.smt_verifier, "verify_expression"):
-                    expr_res = self.smt_verifier.verify_expression(winner.ast)  # type: ignore[attr-defined]
+                    expr_res = self.smt_verifier.verify_expression(winner.ast)
                     if not expr_res.verified:
-                        reasons_str = "; ".join(expr_res.reasons) if expr_res.reasons else expr_res.status
+                        reasons_str = "; ".join(
+                            expr_res.reasons) if expr_res.reasons else expr_res.status
                         return SynthesisResult(
                             success=False,
                             synthesized_ast=winner.ast,
@@ -879,7 +888,8 @@ class ASTHoleMCTSEngine:
                             cost=winner.cost,
                             pruned_branches=pruned,
                             elapsed_ms=elapsed_ms,
-                            rejection_reason=f"SMT expression verification rejected candidate: {reasons_str}",
+                            rejection_reason=f"SMT expression verification rejected candidate: {
+                                reasons_str}",
                         )
                 rule_def = parse_rule(rule_sexpr)
                 v_res = self.smt_verifier.verify_rule(rule_def=rule_def)

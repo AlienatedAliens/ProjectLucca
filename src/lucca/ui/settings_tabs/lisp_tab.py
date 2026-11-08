@@ -298,13 +298,19 @@ class LispTab(QWidget):
             _LOG.debug("get_rule_contrastive_summary_failed: %s", exc)
             return
 
-        total_turns = int(summary.get("total_turns", 0))
-        agreed_rate = float(summary.get("agreed_rate", 0.0))
+        def _f(v: object, default: float = 0.0) -> float:
+            return float(v) if isinstance(v, (int, float, str)) else default
+
+        def _i(v: object, default: int = 0) -> int:
+            return int(float(v)) if isinstance(v, (int, float, str)) else default
+
+        total_turns = _i(summary.get("total_turns", 0))
+        agreed_rate = _f(summary.get("agreed_rate", 0.0))
         ag_interval = summary.get("agreed_interval", [0.0, 1.0])
-        b = int(summary.get("b_rule_better", 0))
-        c = int(summary.get("c_core_better", 0))
-        p_val = float(summary.get("mcnemar_p_value", 1.0))
-        rel_rate = float(summary.get("rule_reliability_rate", 0.0))
+        b = _i(summary.get("b_rule_better", 0))
+        c = _i(summary.get("c_core_better", 0))
+        p_val = _f(summary.get("mcnemar_p_value", 1.0), 1.0)
+        rel_rate = _f(summary.get("rule_reliability_rate", 0.0))
         rel_interval = summary.get("rule_reliability_interval", [0.0, 1.0])
 
         live_rules = self.facade.get_rules()
@@ -316,15 +322,15 @@ class LispTab(QWidget):
         )
 
         if total_turns > 0 and isinstance(ag_interval, list) and len(ag_interval) == 2:
-            ag_lb_str = f"{float(ag_interval[0]):.1%}"
-            ag_ub_str = f"{float(ag_interval[1]):.1%}"
+            ag_lb_str = f"{_f(ag_interval[0]):.1%}"
+            ag_ub_str = f"{_f(ag_interval[1], 1.0):.1%}"
             self.lbl_lisp_agreement.setText(
                 f"Agreed Rate (95% CI): {agreed_rate:.1%} [{ag_lb_str}, {ag_ub_str}]"
             )
             self.lbl_lisp_mcnemar.setText(f"Paired McNemar (b={b}, c={c}): p={p_val:.3f}")
             if isinstance(rel_interval, list) and len(rel_interval) == 2:
-                r_lb_str = f"{float(rel_interval[0]):.1%}"
-                r_ub_str = f"{float(rel_interval[1]):.1%}"
+                r_lb_str = f"{_f(rel_interval[0]):.1%}"
+                r_ub_str = f"{_f(rel_interval[1], 1.0):.1%}"
                 self.lbl_lisp_reliability.setText(
                     f"Execution-Reliability (S1): {rel_rate:.1%} [{r_lb_str}, {r_ub_str}]"
                 )

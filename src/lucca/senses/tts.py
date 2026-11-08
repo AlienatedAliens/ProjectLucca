@@ -243,7 +243,9 @@ class TTSWorker:
         self.set_dsp_config(pitch_semitones=p, enabled=True)
 
     def resolve_voice_style(self, voice_spec: str) -> str | npt.NDArray[np.float32]:
-        """Resolves a voice string to either a native voice ID, cloned vector, or cached blended array."""
+        """
+        Resolves a voice string to either a native voice ID, cloned vector, or cached blended array.
+        """
         if self.engine is None:
             return voice_spec
 
@@ -319,11 +321,18 @@ class TTSWorker:
                 # Kokoro-82M native
                 if not isinstance(resolved_voice, np.ndarray) and not str(resolved_voice):
                     resolved_voice = self.resolve_voice_style("lucca_inventor")
+                if self.engine is None:
+                    raise RuntimeError("Kokoro engine not initialized")
                 samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
         except Exception as exc:  # noqa: BLE001
-            logger.debug("tts_engine_synthesize_failed_fallback", engine=engine_type, error=str(exc))
+            logger.debug("tts_engine_synthesize_faile"
+                "d_fallback", engine=engine_type, error=str(exc))
             fallback_voice = self.resolve_voice_style("af_sarah")
-            samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
+            if self.engine is None:
+                samples_f32 = np.zeros(0, dtype=np.float32)
+                sr = 24000
+            else:
+                samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
 
         # Apply Anime Voice DSP Chain (D-AUD-16) post-engine.create, pre-int16
         if self.dsp_chain and self.dsp_chain.config.enabled:

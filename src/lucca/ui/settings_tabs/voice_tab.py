@@ -13,11 +13,10 @@ Supported Ratified Voice Engines:
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 import threading
-from typing import TYPE_CHECKING, Final
+from pathlib import Path
+from typing import TYPE_CHECKING
 
-import kokoro_onnx
 import numpy as np
 import sounddevice as sd
 from PyQt6.QtCore import QObject, Qt, pyqtSignal
@@ -37,12 +36,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
 from lucca.senses.tts import (
     VOICE_ALIASES,
     VOICE_RECIPES,
-    enhance_anime_expressive_punctuation,
     get_available_voices,
-    parse_voice_blend,
 )
 from lucca.speech.engines import (
     ENGINE_CATALOG,
@@ -53,7 +51,7 @@ from lucca.speech.engines import (
     get_voice_engine,
     parse_engine_from_spec,
 )
-from lucca.speech.kokoclone import compute_cloned_style_vector, get_kokoclone_metadata
+from lucca.speech.kokoclone import get_kokoclone_metadata
 from lucca.speech.text_normalizer import normalize_text
 from lucca.ui.theme import CT_GOLD_TEXT
 
@@ -340,7 +338,7 @@ class VoiceTab(QWidget):
         f_kc = QFormLayout(self.panel_kokoclone)
 
         self.combo_kokoclone_preset = QComboBox(self.panel_kokoclone)
-        for p_k, (p_label, p_path) in KOKOCLONE_PRESETS.items():
+        for _p_k, (p_label, p_path) in KOKOCLONE_PRESETS.items():
             self.combo_kokoclone_preset.addItem(p_label, p_path)
         self.combo_kokoclone_preset.addItem("📁 Custom Reference .wav File (Browse...)", "custom")
         self.combo_kokoclone_preset.currentIndexChanged.connect(self._on_kokoclone_preset_changed)
@@ -689,14 +687,13 @@ class VoiceTab(QWidget):
         elif self.rb_engine_kokoclone.isChecked():
             wav_p = self.line_kokoclone_wav.text().strip()
             return f"kokoclone:{wav_p}" if wav_p else "kokoclone"
+        # Kokoro-82M
+        elif self.rb_mode_mixer.isChecked():
+            return self.line_blend_formula.text().strip()
+        elif self.rb_mode_recipe.isChecked():
+            return str(self.combo_recipe.currentData())
         else:
-            # Kokoro-82M
-            if self.rb_mode_mixer.isChecked():
-                return self.line_blend_formula.text().strip()
-            elif self.rb_mode_recipe.isChecked():
-                return str(self.combo_recipe.currentData())
-            else:
-                return str(self.combo_single_voice.currentData())
+            return str(self.combo_single_voice.currentData())
 
     def _on_status_updated(self, msg: str) -> None:
         self.lbl_voice_status.setText(msg)
@@ -705,9 +702,12 @@ class VoiceTab(QWidget):
         self.lbl_voice_status.setText(msg)
         self.btn_test_speech.setEnabled(True)
 
-    def _play_samples(self, samples: np.ndarray, sr: int = 24000) -> None:
+    def _play_samples(
+        self,
+        samples: np.ndarray[tuple[int, ...], np.dtype[np.float32]],
+        sr: int = 24000,
+    ) -> None:
         try:
-            from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
 
             ring = SharedAudioRing(PLAY_RING_NAME)
             samples_i16 = (np.clip(samples, -1.0, 1.0) * 32767.0).astype(np.int16)

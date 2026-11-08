@@ -13,16 +13,14 @@ Zero-Any typing strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 from collections.abc import Callable
-import re
 from typing import Final, cast
 
 import structlog
 import sympy as sp
 
-from lucca.reasoning.scheme.eval import SchemeEvaluator
+import lucca.reasoning.scheme.eval as _scheme_eval
 from lucca.reasoning.scheme.parser import (
     Keyword,
-    SchemeAtom,
     SchemeNode,
     SchemeValue,
     Symbol,
@@ -203,7 +201,8 @@ def prim_solve(args: list[SchemeValue]) -> SchemeValue:
     var_sym = sp.Symbol("x")
     sp_eq: sp.Basic
     i = 1
-    if len(args) >= 2 and not isinstance(args[1], Keyword) and not (isinstance(args[1], str) and args[1].startswith(":")):
+    if len(args) >= 2 and not isinstance(args[1], Keyword) and not (isinstance(args[1],
+        str) and args[1].startswith(":")):
         lhs = _scheme_to_sympy(args[0])
         rhs = _scheme_to_sympy(args[1])
         sp_eq = sp.Eq(lhs, rhs)
@@ -394,7 +393,10 @@ MATH_SCHEME_PRIMITIVES: Final[
 def make_math_scheme_env(
     extra_bindings: dict[str, SchemeValue] | None = None,
 ) -> dict[str, Callable[[list[SchemeValue]], SchemeValue]]:
-    """Constructs a MicroScheme environment initialized with PURE_PRIMITIVES and MATH_SCHEME_PRIMITIVES."""
+    """
+    Constructs a MicroScheme environment initialized with PURE_PRIMITIVES and
+    MATH_SCHEME_PRIMITIVES.
+    """
     env: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = {}
     env.update(PURE_PRIMITIVES)
     env.update(MATH_SCHEME_PRIMITIVES)
@@ -412,7 +414,8 @@ def make_math_scheme_env(
         for bound_key, bound_val in extra_bindings.items():
             captured_bound = bound_val
 
-            def _make_getter(captured_val: SchemeValue) -> Callable[[list[SchemeValue]], SchemeValue]:
+            def _make_getter(captured_val: SchemeValue) -> Callable[[list[SchemeValue]],
+                SchemeValue]:
                 return lambda _: captured_val
 
             env[bound_key] = _make_getter(captured_bound)
@@ -435,7 +438,7 @@ def evaluate_math_sketch(
         node = sketch
 
     env = make_math_scheme_env(extra_bindings=hole_bindings)
-    evaluator = SchemeEvaluator(gas_limit=gas_limit, timeout_ms=timeout_ms)
+    evaluator = _scheme_eval.SchemeEvaluator(gas_limit=gas_limit, timeout_ms=timeout_ms)
     return evaluator.eval(node, env)
 
 

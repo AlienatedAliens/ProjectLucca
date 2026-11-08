@@ -13,9 +13,9 @@ Formally verifies MicroScheme candidate rules using the Z3 SMT solver:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Final, Literal
 
 import structlog
@@ -25,7 +25,6 @@ from lucca.core.schemas import ToolSchema
 from lucca.reasoning.scheme.parser import (
     Keyword,
     RuleDefinition,
-    SchemeAtom,
     SchemeNode,
     Symbol,
     parse_expr,
@@ -426,7 +425,9 @@ class SMTVerifier:
         return actions
 
     def _translate_string_expr(self, node: SchemeNode, ctx: StateContext) -> z3.SeqRef:
-        """Translates a path/string AST node (literal or dynamic S-expression) into a Z3 String sort."""
+        """
+        Translates a path/string AST node (literal or dynamic S-expression) into a Z3 String sort.
+        """
         if isinstance(node, str):
             return z3.StringVal(node.strip().lower())
         if isinstance(node, (int, float, bool)):
@@ -536,7 +537,8 @@ class SMTVerifier:
                                         ],
                                     )
 
-                    # 2. Formal Z3 String Constraint Check (handles both literal and dynamic S-expression paths)
+                    # 2. Formal Z3 String Constraint Check (handles both literal and dynamic
+                    # S-expression paths)
                     z3_path = self._translate_string_expr(path_val, effective_ctx)
                     path_solver = z3.Solver()
                     path_solver.set("timeout", self.timeout_ms)
@@ -557,7 +559,8 @@ class SMTVerifier:
 
                     path_solver.add(z3.Or(*hazard_clauses))
                     if path_solver.check() != z3.unsat:
-                        path_repr = path_val if isinstance(path_val, str) else to_canonical(path_val)
+                        path_repr = path_val if isinstance(path_val,
+                            str) else to_canonical(path_val)
                         return SMTVerificationResult(
                             verified=False,
                             status="DEONTIC_UNSAFE",
@@ -598,7 +601,9 @@ class SMTVerifier:
         node: SchemeNode,
         ctx: StateContext,
     ) -> z3.ArithRef:
-        """Translates an arithmetic operand into a Z3 ArithRef (mapping Symbol variables to Z3 Ints)."""
+        """
+        Translates an arithmetic operand into a Z3 ArithRef (mapping Symbol variables to Z3 Ints).
+        """
         if isinstance(node, bool):
             return z3.IntVal(1 if node else 0)
         if isinstance(node, int):
@@ -678,7 +683,8 @@ class SMTVerifier:
                 left = self._translate_expr(args[0], ctx)
                 right = self._translate_expr(args[1], ctx)
                 if isinstance(left, z3.ArithRef) or isinstance(right, z3.ArithRef):
-                    return self._translate_arith_expr(args[0], ctx) == self._translate_arith_expr(args[1], ctx)
+                    return self._translate_arith_expr(args[0],
+                        ctx) == self._translate_arith_expr(args[1], ctx)
                 return left == right
             return z3.BoolVal(True)
 
@@ -712,22 +718,26 @@ class SMTVerifier:
 
         elif op == "+":
             if len(args) == 2:
-                return self._translate_arith_expr(args[0], ctx) + self._translate_arith_expr(args[1], ctx)
+                return self._translate_arith_expr(args[0],
+                    ctx) + self._translate_arith_expr(args[1], ctx)
             return z3.IntVal(0)
 
         elif op == "-":
             if len(args) == 2:
-                return self._translate_arith_expr(args[0], ctx) - self._translate_arith_expr(args[1], ctx)
+                return self._translate_arith_expr(args[0],
+                    ctx) - self._translate_arith_expr(args[1], ctx)
             return z3.IntVal(0)
 
         elif op == "*":
             if len(args) == 2:
-                return self._translate_arith_expr(args[0], ctx) * self._translate_arith_expr(args[1], ctx)
+                return self._translate_arith_expr(args[0],
+                    ctx) * self._translate_arith_expr(args[1], ctx)
             return z3.IntVal(0)
 
         elif op == "/":
             if len(args) == 2:
-                return self._translate_arith_expr(args[0], ctx) / self._translate_arith_expr(args[1], ctx)
+                return self._translate_arith_expr(args[0],
+                    ctx) / self._translate_arith_expr(args[1], ctx)
             return z3.IntVal(0)
 
         elif op in ("string-append", "concat", "path-join"):
@@ -831,7 +841,9 @@ ZEBRA_GRAMMAR_PATH: Final[Path] = Path("config/grammars/zebra_constraints.gbnf")
 
 
 def load_zebra_constraints_grammar(grammar_path: Path | None = None) -> str:
-    """Loads the GBNF grammar for structured ZebraLogic constraint emission on E2B/E4B edge models."""
+    """
+    Loads the GBNF grammar for structured ZebraLogic constraint emission on E2B/E4B edge models.
+    """
     path = grammar_path or ZEBRA_GRAMMAR_PATH
     return path.read_text(encoding="utf-8")
 
@@ -949,7 +961,8 @@ def compile_zebra_json_to_z3_python(spec: str | dict[str, object]) -> str:
     elif query_entity:
         lines.append(f"    print(m[v[{query_entity!r}]].as_long())")
     else:
-        lines.append("    out = {k: m[var].as_long() for k, var in v.items() if m[var] is not None}")
+        lines.append("    out = {k: m[var].as_long() for k, var in v.items() if m[var] "
+            "is not None}")
         lines.append("    print(out)")
     lines.append("else:")
     lines.append("    print('UNSAT')")
@@ -962,7 +975,8 @@ def solve_zebra_constraints(
 ) -> dict[str, object]:
     """
     Solves a structured ZebraLogic constraint specification directly via Z3 in-process.
-    Returns dict with keys: sat (bool), assignments (dict[str, int]), answer (str | int | None), code (str).
+    Returns dict with keys: sat (bool), assignments (dict[str, int]), answer (str | int | None),
+    code (str).
     """
     data = _parse_zebra_spec(spec)
     code = compile_zebra_json_to_z3_python(data)

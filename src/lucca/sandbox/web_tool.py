@@ -5,16 +5,18 @@ Spec 09 §5, ADR-003, ADR-004, TM-03b, Work Order #42 (WO-42 Phase 4)
 
 from __future__ import annotations
 
-from collections.abc import Callable
 import importlib
 import ipaddress
 import re
 import socket
+from collections.abc import Callable
 from urllib.parse import urljoin, urlparse
 
 import httpx
-from pydantic import JsonValue
 import structlog
+from pydantic import JsonValue
+
+from lucca.core.exceptions import SandboxPathError
 
 logger = structlog.get_logger(__name__)
 
@@ -24,8 +26,6 @@ try:
     truststore.inject_into_ssl()
 except Exception as exc:
     logger.debug("truststore_injection_failed", error=str(exc))
-
-from lucca.core.exceptions import SandboxPathError
 
 MAX_URL_LEN: int = 4096
 MAX_QUERY_LEN: int = 2048
@@ -134,7 +134,9 @@ def validate_url_ssrf(
 
     for entry in addr_info:
         sockaddr = entry[4]
-        ip_str = sockaddr[0]
+        if not isinstance(sockaddr, tuple) or not sockaddr:
+            continue
+        ip_str = str(sockaddr[0])
 
         try:
             ip = ipaddress.ip_address(ip_str)
@@ -245,7 +247,10 @@ def is_bot_challenge_or_empty_spa(
 
 
 def _extract_with_scrapling_selector(sanitized_html: str) -> str:
-    """Uses Scrapling's adaptive Selector parser to extract structured headings, paragraphs, and code blocks."""
+    """
+    Uses Scrapling's adaptive Selector parser to extract structured headings, paragraphs, and code
+    blocks.
+    """
     try:
         from scrapling.parser import Selector  # noqa: PLC0415
 
@@ -262,7 +267,8 @@ def _extract_with_scrapling_selector(sanitized_html: str) -> str:
 
         for node in root.css("h1, h2, h3, p, pre, li, blockquote"):
             tag = getattr(node, "tag", "").lower()
-            txt = (node.get_all_text(separator=" ", strip=True) if hasattr(node, "get_all_text") else node.text).strip()
+            txt = (node.get_all_text(separator=" ", strip=True) if hasattr(node,
+                "get_all_text") else node.text).strip()
             if not txt:
                 continue
             if tag in ("h1", "h2", "h3"):
@@ -290,7 +296,8 @@ def _extract_with_scrapling_selector(sanitized_html: str) -> str:
 def extract_readable_text(html: str) -> str:
     """
     Extracts clean, prompt-injection-sanitized article/page text using:
-      1. `sanitize_html_against_prompt_injection` (strips hidden DOM / CSS / comments / invisible Unicode)
+      1. `sanitize_html_against_prompt_injection` (strips hidden DOM / CSS / comments / invisible
+      Unicode)
       2. `trafilatura` (when > 50 chars) + Scrapling adaptive `Selector` code-block preservation
       3. Scrapling `Selector` / regex fallback.
     """
@@ -329,7 +336,10 @@ def extract_readable_text(html: str) -> str:
 
 
 def _fetch_via_curl_cffi_impersonation(url: str) -> tuple[int, dict[str, str], bytes, str] | None:
-    """Tier 1.5 TLS JA3/JA4 + HTTP/2 browser fingerprint impersonation via curl_cffi (Scrapling backend)."""
+    """
+    Tier 1.5 TLS JA3/JA4 + HTTP/2 browser fingerprint impersonation via curl_cffi (Scrapling
+    backend).
+    """
     try:
         from curl_cffi import requests as cffi_requests  # noqa: PLC0415
 
@@ -349,7 +359,8 @@ def _fetch_via_curl_cffi_impersonation(url: str) -> tuple[int, dict[str, str], b
                     current_url, _ = validate_url_ssrf(next_url)
                     continue
                 hdrs = {str(k).lower(): str(v) for k, v in resp.headers.items()}
-                return int(resp.status_code), hdrs, bytes(resp.content[:MAX_BODY_BYTES]), current_url
+                return int(
+                    resp.status_code), hdrs, bytes(resp.content[:MAX_BODY_BYTES]), current_url
     except SandboxPathError:
         raise
     except Exception as exc:  # noqa: BLE001
@@ -418,7 +429,8 @@ def fetch_url(
     final_url = str(resp.url)
     fetch_tier = "tier1_httpx"
 
-    # Tier 1.5 Escalation: If httpx received 403/429/503 anti-bot challenge, try TLS JA3/JA4 Chrome impersonation
+    # Tier 1.5 Escalation: If httpx received 403/429/503 anti-bot challenge, try TLS JA3/JA4 Chrome
+    # impersonation
     if status_code in (403, 429, 503):
         cffi_res = _fetch_via_curl_cffi_impersonation(current_url)
         if cffi_res is not None:
@@ -512,7 +524,8 @@ def fetch_url(
             if len(rendered_text.strip()) > len(text.strip()):
                 return rendered_struct, rendered_text
         except Exception as render_err:
-            logger.debug("dynamic_js_render_fallback_failed", url=current_url, error=str(render_err))
+            logger.debug("dynamic_js_render_fallbac"
+                "k_failed", url=current_url, error=str(render_err))
 
     truncated = len(text) > max_chars
     if truncated:

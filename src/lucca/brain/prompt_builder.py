@@ -6,6 +6,7 @@ Spec 10 §4 (Prompt Section Order & KV-Cache Friendly Layout)
 import json
 import re
 import tomllib
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
 
@@ -24,6 +25,7 @@ from lucca.core.schemas import (
     ToolDefinition,
     ToolResult,
 )
+from lucca.core.tool_shortlister import check_tool_fit
 from lucca.memory.retrieval import format_memory_context
 
 logger = structlog.get_logger(__name__)
@@ -86,35 +88,51 @@ ARCHITECTURAL_SELF_AWARENESS: Final[str] = (
     "running; if it is unavailable, say so plainly rather than retrying.\n"
     "- Computation vs Memory: Computational requests (reverse, count, sort, convert, "
     "compute, compare) are answered by doing — prioritize calc_math for arithmetic expressions "
-    "and mathematical formulas, route to run_python when uncertain or for multi-step algorithmic or vector simulations — "
+    "and mathematical formulas, route to run_python when uncertain or for multi-step algorithmic "
+    "or vector simulations — "
     "never by recalling. 'No verified record' is for memory, not math.\n"
-    "- Temporal & Timezone Arithmetic: When computing schedules, durations, or cross-timezone conversions, "
-    "use deterministic arithmetic in Python or calc_math to track UTC offsets and day-boundary rollovers, "
+    "- Temporal & Timezone Arithmetic: When computing schedules, durations, or cross-timezone "
+    "conversions, "
+    "use deterministic arithmetic in Python or calc_math to track UTC offsets and day-boundary "
+    "rollovers, "
     "and state the resulting day and time clearly.\n"
     "- Discrete Constraints & Combinatorics: For formal constraint satisfaction, logic puzzles, "
     "scheduling, and combinatorial problems, verify and solve constraints deterministically "
     "using run_python rather than mental simulation.\n"
-    "- Quantitative & Spatial Verification: For multi-step quantitative, geometric, or spatial transformations, "
+    "- Quantitative & Spatial Verification: For multi-step quantitative, geometric, or spatial "
+    "transformations, "
     "compute the exact result in run_python, print the final target values in the script, "
     "and report the verified numerical results directly.\n"
     "- Normative Safety Precedence: Safety and data-preservation rules take strict precedence over "
     "general task execution requests; refuse destructive actions on critical data or system state "
     "when required safeguards or backups are absent.\n"
-    "- Contradictory Memory & Belnap TOP: When episodic memory contains conflicting assertions for the "
-    "same attribute without an explicit retraction, treat it as an epistemic contradiction (Belnap TOP). "
-    "Explicitly acknowledge the conflict and state the competing candidate values rather than guessing.\n"
-    "- Workspace Inspection & Hygiene Audits: When asked to scan the workspace, audit temporary files, clean logs, or list cache artifacts, ALWAYS execute filesystem tools (list_dir, search_files, run_python) to inspect the real filesystem. NEVER issue a memory abstention ('no record') for active filesystem or workspace queries.\n"
+    "- Contradictory Memory & Belnap TOP: When episodic memory contains conflicting "
+    "assertions for the "
+    "same attribute without an explicit retraction, treat it as an epistemic contradiction "
+    "(Belnap TOP). "
+    "Explicitly acknowledge the conflict and state the competing candidate values rather than "
+    "guessing.\n"
+    "- Workspace Inspection & Hygiene Audits: When asked to scan the workspace, audit temporary "
+    "files, clean logs, or list cache artifacts, ALWAYS execute filesystem tools (list_dir, "
+    "search_files, run_python) to inspect the real filesystem. NEVER issue a memory "
+    "abstention ('no record') for active filesystem or workspace queries.\n"
     "- Coding Verification Contract: When synthesizing code or solving programming challenges, "
     "prioritize correctness against specification intent: always verify the implementation against "
-    "all provided docstring examples and example inputs before finalizing. Proactively test boundary "
+    "all provided docstring examples and example inputs before finalizing. Proactively "
+    "test boundary "
     "conditions, empty sequences, zero/negative inputs, and trailing separators. For numerical "
-    "root-finding or floating-point comparisons, prefer robust primitives (e.g. scipy.optimize.bisect, "
+    "root-finding or floating-point comparisons, prefer robust primitives (e.g. "
+    "scipy.optimize.bisect, "
     "math.isclose, decimal.Decimal) over unconstrained iterative steps or raw equality.\n"
-    "- Defensive Engineering & Disambiguation Contract: When addressing open-ended, ambiguous business, "
+    "- Defensive Engineering & Disambiguation Contract: When addressing open-ended, ambiguous "
+    "business, "
     "financial, fee, or rounding logic where multiple standard operational interpretations exist "
-    "(such as net vs gross, daily vs monthly fee accruals, rounding half-up vs floor), explicitly state "
-    "your operational assumption on line 1 of the explanation before providing calculations. If the "
-    "ambiguity materially alters real-world actions, note the alternative interpretation or ask for clarification.\n"
+    "(such as net vs gross, daily vs monthly fee accruals, rounding half-up vs floor), "
+    "explicitly state "
+    "your operational assumption on line 1 of the explanation before providing "
+    "calculations. If the "
+    "ambiguity materially alters real-world actions, note the alternative interpretation or ask "
+    "for clarification.\n"
     "- Relationship: The user is your creator and partner developer. When asked who you are or "
     "to introduce yourself, explain your companion identity directly in natural spoken voice "
     "without calling any tools.\n"
@@ -158,14 +176,18 @@ ARCHITECTURAL_SELF_AWARENESS: Final[str] = (
     "- If a factual query is asked, AUTONOMOUSLY EXECUTE the necessary tool calls immediately "
     "(search_web, fetch_url, sys_info) and deliver the top verified facts directly.\n"
     "- NEVER EXPLAIN HOW YOU WOULD DO A TASK INSTEAD OF DOING IT: If the user asks if you can "
-    "figure something out (e.g. current time, system state, physical location, network, files, data), "
-    "DO NOT give a multi-step theoretical lecture on what tools you would use. Execute the tool calls "
+    "figure something out (e.g. current time, system state, physical location, network, "
+    "files, data), "
+    "DO NOT give a multi-step theoretical lecture on what tools you would use. Execute the "
+    "tool calls "
     "IMMEDIATELY (sys_info, search_web, fetch_url) and deliver the verified answer directly.\n"
     "- ANTI-LECTURE DIRECTIVE: When asked an analytical, mathematical, situational, or programming "
     "question, answer directly and concisely with the solution or calculation. DO NOT recite "
-    "multi-paragraph textbook essays, disclaimer lists, or tutorial breakdowns unless explicitly requested. "
+    "multi-paragraph textbook essays, disclaimer lists, or tutorial breakdowns unless explicitly "
+    "requested. "
     "Lead with the answer first when answering direct yes/no or quantitative questions.\n"
-    "- Multi-Source Date & Event Corroboration: When researching dates, schedules, or real-world events, "
+    "- Multi-Source Date & Event Corroboration: When researching dates, schedules, or "
+    "real-world events, "
     "verify claims across independent sources and distinguish local or regional occurrences from "
     "broader geographic events.\n"
     "- If the user spells a word or corrects a spelling, "
@@ -294,7 +316,10 @@ def preview_system_prompt(
         "4. Strict Citation & Provenance Invariant: NEVER invent, fabricate, or guess "
         "URLs, citations, degrees, dates, awards, or biographical details. "
         "Only cite URLs or facts returned in your verified tool results. "
-        "When reporting calendar dates or future astronomical events, ensure the date is corroborated across 2+ independent snippets/sources and verified against the current year (2026); do not hallucinate speculative future dates without verified multi-source evidence. "
+        "When reporting calendar dates or future astronomical events, ensure the date is "
+        "corroborated across 2+ independent snippets/sources and verified against the current "
+        "year (2026); do not hallucinate speculative future dates without verified "
+        "multi-source evidence. "
         "If you cannot find verified information with tools, explicitly state that you "
         "do not have verified records.\n"
         "5. Multi-Step Research Workflow: When searching, check the search results for "
@@ -769,8 +794,8 @@ TOOL_DEFINITIONS: list[ToolDefinition] = get_capability_registry().get_tool_defi
 
 
 def get_all_tool_definitions(
-    active_rules: list[object] | None = None,
-    shortlisted_tools: list[str] | None = None,
+    active_rules: Sequence[object] | None = None,
+    shortlisted_tools: Sequence[str] | None = None,
     user_query: str | None = None,
     verifier: object | None = None,
 ) -> list[ToolDefinition]:
@@ -784,8 +809,6 @@ def get_all_tool_definitions(
         allowed = set(shortlisted_tools)
         defs = [d for d in defs if d.function.name in allowed]
     if user_query and user_query.strip():
-        from lucca.core.tool_shortlister import check_tool_fit
-
         fit_defs = [
             d for d in defs if check_tool_fit(d.function.name, user_query, verifier=verifier)
         ]
@@ -843,8 +866,14 @@ def get_epistemic_calibration_directive(
     is_low_conf = False
     reasons: list[str] = []
 
+    is_belnap_bot = False
     if memories:
-        low_conf_memories = [m for m in memories if getattr(m, "confidence", 1.0) < 0.70]
+        low_conf_memories = [
+            m
+            for m in memories
+            if getattr(m, "confidence", 1.0) < 0.70
+            and str(getattr(m.provenance, "value", m.provenance)).upper() != "TOOL_VERIFIED"
+        ]
         if low_conf_memories:
             is_low_conf = True
             topics = [m.content[:80] for m in low_conf_memories]
@@ -857,6 +886,7 @@ def get_epistemic_calibration_directive(
             reasons.append("epistemic search cascade detected conflicting evidence (Belnap TOP)")
         elif "unknown" in ctx_lower or "\\bot" in ctx_lower or "epistemic gap" in ctx_lower:
             is_low_conf = True
+            is_belnap_bot = True
             reasons.append(
                 "epistemic search cascade detected an unverified knowledge gap (Belnap BOT)"
             )
@@ -865,6 +895,14 @@ def get_epistemic_calibration_directive(
         return None
 
     detail_str = "; ".join(reasons)
+    if is_belnap_bot and len(reasons) == 1:
+        return (
+            f"[Epistemic Calibration Directive: Non-parametric evidence analysis indicates "
+            f"epistemic uncertainty ({detail_str}). "
+            "Because there is an unverified knowledge gap (Belnap BOT), you MUST abstain: "
+            "explicitly state that you checked your memory/records and have no verified record "
+            "of this information, and that you do not know the answer. Do NOT guess or fabricate.]"
+        )
     return (
         f"[Epistemic Calibration Directive: Non-parametric evidence analysis indicates "
         f"epistemic uncertainty ({detail_str}). "
@@ -1201,9 +1239,13 @@ def build_messages(
             content.append({"type": "text", "text": suffix.strip()})
         messages.append(ChatMessage(role="user", content=content, image_b64=current_image_b64))
     elif current_text:
-        messages.append(ChatMessage(role="user", content=f"{current_text}{suffix}", image_b64=current_image_b64))
+        messages.append(
+            ChatMessage(role="user", content=f"{current_text}{suffix}", image_b64=current_image_b64)
+        )
     elif suffix.strip():
-        messages.append(ChatMessage(role="user", content=suffix.strip(), image_b64=current_image_b64))
+        messages.append(
+            ChatMessage(role="user", content=suffix.strip(), image_b64=current_image_b64)
+        )
     elif current_image_b64:
         messages.append(
             ChatMessage(

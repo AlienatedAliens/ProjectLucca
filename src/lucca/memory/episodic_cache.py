@@ -16,13 +16,13 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
+import re
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, replace
 from datetime import UTC, datetime
-import hashlib
-import json
 from pathlib import Path
-import re
 from typing import Final
 
 import structlog
@@ -171,7 +171,7 @@ class EpisodicSolutionCache:
         if self.db is None or not hasattr(self.db, "write_transaction"):
             return
         try:
-            with self.db.write_transaction() as cur:  # type: ignore[attr-defined]
+            with self.db.write_transaction() as cur:
                 cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS episodic_code_cache (
@@ -236,7 +236,7 @@ class EpisodicSolutionCache:
 
         if self.db is not None and hasattr(self.db, "read_cursor"):
             try:
-                with self.db.read_cursor() as cur:  # type: ignore[attr-defined]
+                with self.db.read_cursor() as cur:
                     cur.execute(
                         """
                         SELECT task_hash, task_id, invariant_signature, query, code, output,
@@ -279,7 +279,7 @@ class EpisodicSolutionCache:
 
         if changed is not None and self.db is not None and hasattr(self.db, "write_transaction"):
             try:
-                with self.db.write_transaction() as cur:  # type: ignore[attr-defined]
+                with self.db.write_transaction() as cur:
                     cur.execute(
                         """
                         INSERT INTO episodic_code_cache (
@@ -324,7 +324,8 @@ class EpisodicSolutionCache:
     ) -> CachedSolution | None:
         """
         Looks up a cached solution by exact task hash or structural invariant signature.
-        Re-verifies any matching candidate against current training pairs to guarantee 100% validity.
+        Re-verifies any matching candidate against current training pairs to guarantee 100%
+        validity.
         """
         train_pairs = task_data.get("train", [])
         if not train_pairs:
@@ -372,7 +373,9 @@ class EpisodicSolutionCache:
         top_k: int = 3,
         min_similarity: float = 0.25,
     ) -> list[CachedSolution]:
-        """Retrieves top-k structurally/lexically similar code precedents weighted by NARS expectation."""
+        """
+        Retrieves top-k structurally/lexically similar code precedents weighted by NARS expectation.
+        """
         if not query.strip():
             return []
 
@@ -450,7 +453,8 @@ class EpisodicSolutionCache:
 
         # 2. Structural numeric literal alignment between precedent.query and current_goal
         if precedent.query and current_goal and precedent.query.strip() != current_goal.strip():
-            old_nums = re.findall(r"(?<![a-zA-Z0-9_])-?\d+(?:\.\d+)?(?![a-zA-Z0-9_])", precedent.query)
+            old_nums = re.findall(r"(?<![a-zA-Z0-9_])-?\d+(?:\.\d+)?(?![a-"
+                r"zA-Z0-9_])", precedent.query)
             new_nums = re.findall(r"(?<![a-zA-Z0-9_])-?\d+(?:\.\d+)?(?![a-zA-Z0-9_])", current_goal)
             if old_nums and len(old_nums) == len(new_nums) and old_nums != new_nums:
                 candidate = adapted

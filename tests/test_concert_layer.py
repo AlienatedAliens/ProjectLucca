@@ -11,7 +11,6 @@ Functional acceptance tests for:
 """
 
 import json
-import logging
 import time
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -23,13 +22,10 @@ from pydantic import ValidationError
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.coherence import ToolReceipt
 from lucca.core.config import get_config
-from lucca.core.exceptions import ProvenanceRejected, SchemeRuntimeError, SchemeSyntaxError
+from lucca.core.exceptions import ProvenanceRejected, SchemeSyntaxError
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.reasoning_context import (
-    DEFAULT_CAPACITY,
-    ProofTraceStep,
     ReasoningContext,
-    ReasoningEntry,
 )
 from lucca.core.schemas import (
     AssertFact,
@@ -37,11 +33,9 @@ from lucca.core.schemas import (
     ExecutionTier,
     InferenceStep,
     LLMUsage,
-    Plan,
     Provenance,
     RetrievalQuery,
     RuleState,
-    Say,
     SignedPayload,
     TokenDelta,
     UnsignedPayload,
@@ -53,8 +47,8 @@ from lucca.memory.gate import ProvenanceGate
 from lucca.memory.retrieval import format_memory_context
 from lucca.memory.signers import DerivedFactSigner
 from lucca.memory.store import MemoryStore
-from lucca.reasoning.lifecycle import MAX_CHAIN_DEPTH, RuleLifecycleManager
-from lucca.reasoning.scheme.eval import evaluate_expr, evaluate_rule
+from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.scheme.eval import evaluate_expr
 from lucca.reasoning.scheme.parser import parse_rule
 from lucca.senses.embed import LocalEmbeddingPort
 from tests.fakes.fake_llm import FakeLLM
@@ -325,7 +319,7 @@ def test_invalid_predicate_in_assert_rejected() -> None:
 def test_rule_state_frozen_rebuild_discipline() -> None:
     """Trap 3: RuleState is frozen; asserted_facts must be rebuilt, never mutated."""
     state1 = RuleState(asserted_facts=frozenset({("a", "b", "c")}))
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         state1.asserted_facts.add(("x", "y", "z"))  # type: ignore[attr-defined]
 
     state2 = state1.model_copy(update={"asserted_facts": state1.asserted_facts | {("x", "y", "z")}})
@@ -1242,6 +1236,7 @@ def test_migration_0007_upgrades_pre_inferred_database(tmp_path: Path) -> None:
     Existing databases that ran migrations 1-6 prior to Phase 4 (without INFERRED in CHECK constraint)
     are successfully upgraded by migration 0007 and can commit INFERRED facts.
     """
+    import shutil
     import sqlite3
     import subprocess
 
@@ -1250,10 +1245,10 @@ def test_migration_0007_upgrades_pre_inferred_database(tmp_path: Path) -> None:
     mig_dir = Path("src/lucca/memory/migrations")
     try:
         p0001 = subprocess.check_output(
-            ["git", "show", "061a10d:src/lucca/memory/migrations/0001_init.sql"], text=True
+            [shutil.which("git") or "git", "show", "061a10d:src/lucca/memory/migrations/0001_init.sql"], text=True
         )
         p0006 = subprocess.check_output(
-            ["git", "show", "061a10d:src/lucca/memory/migrations/0006_autobiographical.sql"],
+            [shutil.which("git") or "git", "show", "061a10d:src/lucca/memory/migrations/0006_autobiographical.sql"],
             text=True,
         )
     except Exception:

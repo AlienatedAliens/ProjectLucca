@@ -184,6 +184,8 @@ class PipelineTracer:
             "failure_class": failure_class,
         }
 
+        tags_json: list[JsonValue] = list(tags) if tags else []
+        tanks_json: list[JsonValue] = [dict(t) for t in self.tanks]
         trace_data: dict[str, JsonValue] = {
             "trace_id": self.active_trace_id,
             "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -195,8 +197,8 @@ class PipelineTracer:
             "passed": passed,
             "verdict": verdict,
             "total_latency_s": total_dur,
-            "tags": tags or [],
-            "tanks": self.tanks,
+            "tags": tags_json,
+            "tanks": tanks_json,
         }
 
         # Update running stats

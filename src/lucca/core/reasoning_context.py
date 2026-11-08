@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.schemas import AssertFact
 
@@ -63,8 +64,11 @@ class ReasoningEntry:
                 self.step_kind,
             ) == other
         if isinstance(other, str):
-            return self.conclusion == other or self.envelope_id == other
+            return other in (self.conclusion, self.envelope_id)
         return False
+
+    def __hash__(self) -> int:
+        return hash(self.envelope_id)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -138,21 +142,32 @@ class ProofTraceStep:
             ) == other
         return False
 
-    def to_dict(self) -> dict[str, object]:
+    def __hash__(self) -> int:
+        return hash(
+            (self.step_kind, self.rule_id, tuple(self.premises), self.conclusion, self.envelope_id)
+        )
+
+    def to_dict(self) -> dict[str, JsonValue]:
+        cqs: list[JsonValue] = [
+            {str(k): v for k, v in cq.items()}  # type: ignore[misc]
+            for cq in self.critical_questions
+        ]
         return {
             "step_kind": self.step_kind,
             "rule_id": self.rule_id,
-            "premises": list(self.premises),
+            "premises": [str(p) for p in self.premises],
             "conclusion": self.conclusion,
             "envelope_id": self.envelope_id,
             "confidence": self.confidence,
-            "conditions": list(self.conditions),
-            "critical_questions": list(self.critical_questions),
+            "conditions": [str(c) for c in self.conditions],
+            "critical_questions": cqs,
         }
 
 
 class ReasoningContext:
-    """Chain-scoped scratchpad holding signed intermediates with provenance (Spec D-REAS-09, WO-20 Phase 2).
+    """
+    Chain-scoped scratchpad holding signed intermediates with provenance (Spec D-REAS-09, WO-20
+    Phase 2).
 
     Isolated from long-term memory until a conclusion commits.
     Bounded at MAX_CHAIN_DEPTH * 4 entries.
@@ -229,7 +244,7 @@ class ReasoningContext:
     def resolve_premise(self, premise: str) -> ReasoningEntry | None:
         clean = premise.strip()
         for item in self._intermediates:
-            if item.conclusion == clean or item.envelope_id == clean:
+            if clean in (item.conclusion, item.envelope_id):
                 return item
         return None
 
@@ -255,7 +270,7 @@ class ReasoningContext:
         elif isinstance(conclusion, str):
             target_str = conclusion.strip()
             for item in self._intermediates:
-                if item.conclusion == target_str or item.envelope_id == target_str:
+                if target_str in (item.conclusion, item.envelope_id):
                     target_entry = item
                     break
 

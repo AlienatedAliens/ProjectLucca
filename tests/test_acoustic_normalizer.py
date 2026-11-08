@@ -13,19 +13,14 @@ from __future__ import annotations
 
 import threading
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.text_utils import (
-    apply_acoustic_normalizations,
-    collapse_stutter_loops,
     normalize_spelled_words,
     normalize_transcript,
 )
 from lucca.core.trace import TurnTrace, now_ns
-
 
 # ============================================================================
 # 1. Stutter Loop Compression & Spelled-Word Sibling Tests
@@ -234,7 +229,7 @@ def test_rapid_ptt_press_aborts_without_history_pollution() -> None:
 
     # Worker running in background
     def slow_worker() -> None:
-        time.sleep(0.05)
+        orch._cancel_token.wait(timeout=0.4)
         # Attempt to append to history if not cancelled
         if not orch.active_trace.interrupted and not orch._cancel_token.is_set():
             orch.history.append({"role": "assistant", "content": "orphan token"})

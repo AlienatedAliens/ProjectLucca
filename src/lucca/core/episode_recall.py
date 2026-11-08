@@ -40,7 +40,7 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     """Computes cosine similarity between two float vectors."""
     if len(vec_a) != len(vec_b) or not vec_a:
         return 0.0
-    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
     norm_a = sum(a * a for a in vec_a) ** 0.5
     norm_b = sum(b * b for b in vec_b) ** 0.5
     if norm_a <= 1e-9 or norm_b <= 1e-9:
@@ -65,7 +65,8 @@ class EpisodeRecall:
     ) -> None:
         self.db = db
         self.embedder = embedder
-        self.active_goals = active_goals if active_goals is not None else (ActiveGoalManager(db=db) if db is not None else None)
+        self.active_goals = active_goals if active_goals is not None else (
+            ActiveGoalManager(db=db) if db is not None else None)
         self._in_memory_episodes: list[RecallEpisode] = []
 
     def add_episode(self, episode: RecallEpisode) -> None:
@@ -79,7 +80,8 @@ class EpisodeRecall:
     ) -> list[RecallEpisode]:
         """
         Retrieves top-matching past episodes from persistent database and in-memory cache,
-        combining sparse lexical matching with 384-D dense cosine similarity when embedder is present.
+        combining sparse lexical matching with 384-D dense cosine similarity when embedder is
+        present.
         """
         if not query_text.strip():
             return []
@@ -87,12 +89,14 @@ class EpisodeRecall:
         results: list[RecallEpisode] = []
 
         # Collect active shared goal terms for goal-biased recall (Milestone 36.2)
-        active_goal_list = self.active_goals.list_active_goals() if self.active_goals is not None else []
+        active_goal_list = (
+            self.active_goals.list_active_goals() if self.active_goals is not None else []
+        )
         goal_terms: dict[str, int] = {}
         for g in active_goal_list[:3]:
             for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} {g.description}".lower()):
                 if tok not in ("the", "and", "for", "with", "that", "this", "from", "into"):
-                    goal_terms[tok] = max(goal_terms.get(tok, 0), max(1, g.priority))
+                    goal_terms[tok] = max(goal_terms.get(tok, 0), 1, g.priority)
 
         # 1. Search persistent SQLite database if available
         if self.db is not None:
@@ -132,7 +136,8 @@ class EpisodeRecall:
                 goal_hits = sum(prio for tok, prio in goal_terms.items() if tok in ep_text_low)
                 if goal_hits > 0:
                     goal_boosted.append(
-                        ep.model_copy(update={"match_score": float(ep.match_score) + 0.5 * float(goal_hits)})
+                        ep.model_copy(
+                            update={"match_score": float(ep.match_score) + 0.5 * float(goal_hits)})
                     )
                 else:
                     goal_boosted.append(ep)
@@ -152,7 +157,7 @@ class EpisodeRecall:
                 if all_vecs and len(all_vecs) == len(results) + 1:
                     q_vec = all_vecs[0]
                     boosted_results: list[RecallEpisode] = []
-                    for ep, vec in zip(results, all_vecs[1:]):
+                    for ep, vec in zip(results, all_vecs[1:], strict=False):
                         sim = _cosine_similarity(q_vec, vec)
                         combined_score = ep.match_score + 2.0 * max(0.0, sim)
                         boosted_results.append(

@@ -12,8 +12,9 @@ Zero Handcoded Benchmark Primitives:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, Sequence, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -245,7 +246,7 @@ def find_cavities(arr: npt.NDArray[np.generic], background_val: int = 0) -> npt.
 def color_counts(arr: npt.NDArray[np.generic]) -> dict[int, int]:
     """Returns frequency count of each discrete color in the grid."""
     unique, counts = np.unique(arr, return_counts=True)
-    return {int(u): int(c) for u, c in zip(unique, counts)}
+    return {int(u): int(c) for u, c in zip(unique, counts, strict=False)}
 
 
 def canvas(height: int, width: int, fill_val: int = 0) -> npt.NDArray[np.int_]:

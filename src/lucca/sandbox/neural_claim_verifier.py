@@ -1,9 +1,11 @@
 """
-OpenVINO 10-Class Clause-Level Neurosymbolic Action-Claim & Speech-Act Verifier (WO-42 Milestone 1.1).
+OpenVINO 10-Class Clause-Level Neurosymbolic Action-Claim & Speech-Act Verifier (WO-42 Milestone
+1.1).
 
 Replaces the whole-paragraph 4-class verifier from WO-41 with a factored neurosymbolic architecture:
   1. Neural Speech-Act & Tool-Family Classifier (`cross-encoder/nli-MiniLM2-L6-H768`, 82.1M params):
-     Evaluates `(user_request, assistant_clause)` on Intel NPU / iGPU / CPU (static shape `[1, 192]`)
+     Evaluates `(user_request, assistant_clause)` on Intel NPU / iGPU / CPU (static shape `[1,
+     192]`)
      WITHOUT injecting `verified_tools` strings into the neural prompt.
   2. Deterministic Symbolic Tool-Receipt Set Verifier:
      Checks each clause's predicted `CLAIM_*` tool family against the normalized set of executed
@@ -12,29 +14,39 @@ Replaces the whole-paragraph 4-class verifier from WO-41 with a factored neurosy
 
 10-Class Speech-Act Output Taxonomy (`logits[:, 0:10]`):
   - 0: BENIGN               (Safe answer, translation, rewrite, quote, roleplay/fiction, UI copy,
-                             technical explanation, figurative idiom, past-session recollection, refusal)
+                             technical explanation, figurative idiom, past-session recollection,
+                             refusal)
   - 1: UNFULFILLED_PROMISE  (Pure hanging promise to check/act with 0 tools and no completed result)
-  - 2: CLAIM_FILE_WRITE     (Completed/active/implicit claim of saving, writing, updating, or creating a file/note)
-  - 3: CLAIM_DELETE         (Completed/active/implicit claim of deleting, removing, wiping, purging, or emptying)
-  - 4: CLAIM_LAUNCH_EXEC    (Completed/active/implicit claim of launching/opening an app or running code/processes)
-  - 5: CLAIM_SEARCH_READ    (Completed/active/implicit claim of reading a file, searching, or live telemetry inspection)
-  - 6: CLAIM_MEMORY         (Completed/active/implicit claim of committing/storing a fact to long-term memory)
-  - 7: CLAIM_COMM_EXTERNAL  (Completed/active/implicit claim of sending an email/message or scheduling an event)
-  - 8: CLAIM_SYSTEM_STATE   (Completed/active/implicit OS/device/audio/display/network/power state-change claim)
-  - 9: DEONTIC_CAPITULATION (Policy/guardrail capitulation assertion: safety/sandbox checks disabled/bypassed)
+  - 2: CLAIM_FILE_WRITE     (Completed/active/implicit claim of saving, writing, updating, or
+  creating a file/note)
+  - 3: CLAIM_DELETE         (Completed/active/implicit claim of deleting, removing, wiping, purging,
+  or emptying)
+  - 4: CLAIM_LAUNCH_EXEC    (Completed/active/implicit claim of launching/opening an app or running
+  code/processes)
+  - 5: CLAIM_SEARCH_READ    (Completed/active/implicit claim of reading a file, searching, or live
+  telemetry inspection)
+  - 6: CLAIM_MEMORY         (Completed/active/implicit claim of committing/storing a fact to
+  long-term memory)
+  - 7: CLAIM_COMM_EXTERNAL  (Completed/active/implicit claim of sending an email/message or
+  scheduling an event)
+  - 8: CLAIM_SYSTEM_STATE   (Completed/active/implicit OS/device/audio/display/network/power
+  state-change claim)
+  - 9: DEONTIC_CAPITULATION (Policy/guardrail capitulation assertion: safety/sandbox checks
+  disabled/bypassed)
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import dataclass
-from pathlib import Path
 import re
 import threading
 import time
+from collections.abc import Sequence
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Final
 
 import numpy as np
+import numpy.typing as npt
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -411,6 +423,7 @@ def resolve_clause_claim_family(clause_text: str, neural_claim_cls: str) -> str:
         return "CLAIM_SEARCH_READ"
     return neural_claim_cls
 
+
 _ADDITIVE_MARKER_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:also|additionally|furthermore|moreover|plus|next|afterwards|as\s+well)\b",
     re.IGNORECASE,
@@ -426,7 +439,10 @@ _CAPABILITY_DISCLAIMER_RE: Final[re.Pattern[str]] = re.compile(
     r"do\s+not\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
     r"no\s+way\s+to|not\s+able\s+to|cannot\s+directly|can't\s+directly|"
     r"haven't\s+(?:executed|called|run)\s+the\s+tool|"
-    r"failed\s+with\s+an?\s+error|execution\s+failed|tool\s+call\s+failed)\b",
+    r"failed\s+with\s+an?\s+(?:syntax\s+)?error|execution\s+failed|tool\s+call\s+failed|"
+    r"was\s+blocked|blocked\s+by\s+policy|was\s+denied|read-only\s+path|"
+    r"had\s+a\s+syntax\s+error|did\s+not\s+succeed|failed\s+due\s+to|failed\s+because|"
+    r"have\s+no\s+(?:verified\s+)?record|no\s+verified\s+record)\b",
     re.IGNORECASE,
 )
 
@@ -512,7 +528,8 @@ def verify_clause_claims_against_receipts(
     Deterministic Symbolic Tool-Receipt Set Verifier (WO-42 Milestone 1.1).
 
     Args:
-        clause_claims: Sequence of `(clause_text, predicted_claim_family, is_coordinated_or_additive)`
+        clause_claims: Sequence of `(clause_text, predicted_claim_family,
+        is_coordinated_or_additive)`
                        for every clause that predicted a `CLAIM_*` family.
         verified_tools: Sequence of executed tool receipt strings (bare names or `name(args)`).
 
@@ -527,7 +544,8 @@ def verify_clause_claims_against_receipts(
         return (False, [c[0] for c in clause_claims])
 
     ungrounded: list[str] = []
-    # Track how many distinct coordinated/additive actions of each destructive/write family were claimed
+    # Track how many distinct coordinated/additive actions of each destructive/write family were
+    # claimed
     family_action_counts: dict[str, int] = {}
 
     for idx, (clause_text, family, is_coord_or_add) in enumerate(clause_claims):
@@ -586,7 +604,11 @@ def verify_clause_claims_against_receipts(
 
         if idx == 0 or family not in family_action_counts:
             family_action_counts[family] = 1
-        elif is_coord_or_add and family in {"CLAIM_DELETE", "CLAIM_FILE_WRITE", "CLAIM_COMM_EXTERNAL"}:
+        elif is_coord_or_add and family in {
+            "CLAIM_DELETE",
+            "CLAIM_FILE_WRITE",
+            "CLAIM_COMM_EXTERNAL",
+        }:
             family_action_counts[family] += 1
             if family_action_counts[family] > len(matching_receipts):
                 ungrounded.append(clause_text)
@@ -628,7 +650,7 @@ class NeuralActionClaimVerifier:
             if not (candidate / "openvino_model.xml").exists():
                 from lucca.core.config import get_config  # noqa: PLC0415
 
-                candidate = get_config().system.root_dir / "models" / "action_claim_verifier_ov"
+                candidate = get_config().resolve_path("models") / "action_claim_verifier_ov"
             self.model_dir = candidate
         else:
             self.model_dir = Path(model_dir)
@@ -655,7 +677,7 @@ class NeuralActionClaimVerifier:
 
             tok = Tokenizer.from_file(str(tok_path))
             tok.enable_truncation(max_length=MAX_LEN)
-            tok.enable_padding(length=MAX_LEN, pad_id=1, pad_token="<pad>")
+            tok.enable_padding(length=MAX_LEN, pad_id=1, **{"pad_token": "<pad>"})
             self._tokenizer = tok
 
             core = ov.Core()
@@ -698,7 +720,8 @@ class NeuralActionClaimVerifier:
         """
         Formats `(user_context, completion_or_clause)` for the 10-class speech-act NPU model.
         Crucially, `verified_tools` is NOT injected into `text_a` — tool grounding is verified
-        deterministically in Python per clause so the neural model is 100% invariant to receipt syntax.
+        deterministically in Python per clause so the neural model is 100% invariant to receipt
+        syntax.
         """
         if isinstance(user_context, list):
             valid_msgs = [
@@ -733,7 +756,7 @@ class NeuralActionClaimVerifier:
         text_b = f"Assistant reply: {clean_comp}"
         return text_a, text_b
 
-    def _infer_probs(self, user_context: object, text_segment: str) -> np.ndarray:
+    def _infer_probs(self, user_context: object, text_segment: str) -> npt.NDArray[np.float64]:
         text_a, text_b = self.format_pair_texts(user_context=user_context, completion=text_segment)
         enc = self._tokenizer.encode(text_a, text_b)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
@@ -749,7 +772,8 @@ class NeuralActionClaimVerifier:
             logits = np.asarray(list(res.values())[0], dtype=np.float64)[0]
 
         exp_l = np.exp(logits - np.max(logits))
-        return exp_l / np.sum(exp_l)
+        probs: npt.NDArray[np.float64] = np.asarray(exp_l / np.sum(exp_l), dtype=np.float64)
+        return probs
 
     def evaluate(
         self,
@@ -758,7 +782,12 @@ class NeuralActionClaimVerifier:
         verified_tools: list[str] | None = None,
     ) -> NeuralClaimVerdict:
         clean_comp = (completion or "").strip()
-        if not clean_comp or not self.available or self._tokenizer is None or self._infer_req is None:
+        if (
+            not clean_comp
+            or not self.available
+            or self._tokenizer is None
+            or self._infer_req is None
+        ):
             return NeuralClaimVerdict(
                 predicted_class="BENIGN",
                 prob_benign=1.0,
@@ -808,14 +837,25 @@ class NeuralActionClaimVerifier:
 
         from lucca.sandbox.output_supervisor import is_meta_or_creative_context  # noqa: PLC0415
 
+        meta_ctx: str | Sequence[dict[str, str]] | None = None
+        if isinstance(user_context, str):
+            meta_ctx = user_context
+        elif isinstance(user_context, list):
+            meta_ctx = [
+                {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
+                for m in user_context
+                if isinstance(m, dict)
+            ]
         is_meta = is_meta_or_creative_context(
-            clean_comp, user_context=user_context, full_narration=clean_comp
+            clean_comp, user_context=meta_ctx, full_narration=clean_comp
         )
         has_disclaimer = bool(_CAPABILITY_DISCLAIMER_RE.search(clean_comp))
 
         # Case 1: No tools executed (`tools == []`)
         if not tools:
-            if (is_meta and p_benign_full >= 0.005) or _PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE.search(clean_comp):
+            if (
+                is_meta and p_benign_full >= 0.005
+            ) or _PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE.search(clean_comp):
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return NeuralClaimVerdict(
                     predicted_class="BENIGN",
@@ -847,7 +887,9 @@ class NeuralActionClaimVerifier:
                     predicted_class="UNGROUNDED_CLAIM",
                     prob_benign=round(p_benign_full, 4),
                     prob_grounded=0.0,
-                    prob_ungrounded_claim=round(max(p_claim_full, p_claim_full + p_promise_full), 4),
+                    prob_ungrounded_claim=round(
+                        max(p_claim_full, p_claim_full + p_promise_full), 4
+                    ),
                     prob_unfulfilled_promise=round(p_promise_full, 4),
                     is_ungrounded_claim=True,
                     is_unfulfilled_promise=False,
@@ -858,14 +900,17 @@ class NeuralActionClaimVerifier:
                 )
 
             # If multi-clause completion predicted BENIGN overall, inspect individual clauses
-            # unless the turn is a meta/creative/translation/quoted context or explicit capability refusal
+            # unless the turn is a meta/creative/translation/quoted context or explicit capability
+            # refusal
             max_clause_promise_prob = p_promise_full
             if len(clauses) > 1 and not is_meta:
                 max_clause_claim_prob = 0.0 if has_disclaimer else p_claim_full
                 detected_families: list[str] = []
                 bad_clauses: list[str] = []
                 for c_text, _ in clauses:
-                    if c_text.endswith("?") or c_text.lstrip().startswith(("*", "-", "1.", "2.", "3.")):
+                    if c_text.endswith("?") or c_text.lstrip().startswith(
+                        ("*", "-", "1.", "2.", "3.")
+                    ):
                         continue
                     if _CAPABILITY_DISCLAIMER_RE.search(c_text):
                         continue

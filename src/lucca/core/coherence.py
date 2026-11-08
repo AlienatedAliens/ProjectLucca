@@ -15,10 +15,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import structlog
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.schemas import JsonValue, VerifierLabel
+from lucca.core.schemas import VerifierLabel
 from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
@@ -119,7 +119,10 @@ class CoherenceClaim(BaseModel, frozen=True):
 
 
 def format_tool_receipts_for_nli(receipts: Sequence[ToolReceipt]) -> str:
-    """Formats verified tool execution receipts into a structured NLI premise string (SPIKE-A / Milestone 36.6)."""
+    """
+    Formats verified tool execution receipts into a structured NLI premise string (SPIKE-A /
+    Milestone 36.6).
+    """
     ok_lines = [
         f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
         for r in receipts
@@ -184,7 +187,7 @@ def _apply_semantic_verifier_port(
             for hyp in hypothesis_candidates:
                 try:
                     v_res = verifier.check_consistency(premise=r_summary, hypothesis=hyp)
-                    if not v_res.degraded:
+                    if not v_res.degraded and v_res.label != VerifierLabel.UNCERTAIN:
                         checked_any = True
                         if v_res.label != VerifierLabel.CONTRADICTION:
                             contradicted_all = False

@@ -2161,7 +2161,7 @@ wheels = [
 
 [[package]]
 name = "project-lucca"
-version = "1.45.0"
+version = "1.51.0"
 source = { editable = "." }
 dependencies = [
     { name = "absl-py" },

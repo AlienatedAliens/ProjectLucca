@@ -6,6 +6,7 @@ Reads system clipboard text with truncation and safety boundaries.
 from __future__ import annotations
 
 import sys
+
 import structlog
 
 logger = structlog.get_logger(__name__)

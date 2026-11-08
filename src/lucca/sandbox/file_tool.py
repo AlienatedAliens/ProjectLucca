@@ -11,6 +11,8 @@ import re
 import subprocess
 import sys
 import time
+import unicodedata
+import urllib.parse
 from pathlib import Path
 from typing import Final, Literal
 
@@ -20,7 +22,18 @@ except ImportError:
     resource = None  # type: ignore[assignment]
 
 import structlog
+from pydantic import JsonValue
+
 from lucca.core.exceptions import SandboxPathError
+from lucca.memory.git_dag import (
+    OperationType,
+    WorkspaceTransactionManager,
+)
+from lucca.sandbox.win32_security import (
+    read_workspace_file_handle,
+    verified_workspace_file,
+    write_workspace_file_handle,
+)
 
 
 class SandboxSecurityError(SandboxPathError, PermissionError):
@@ -80,9 +93,9 @@ def validate_rel_path(p: str, workspace_root: Path | str = "/workspace") -> Path
         raise SandboxPathError("too_long", f"Path length {len(p)} exceeds maximum {MAX_PATH_LEN}")
 
     # Check forbidden characters
-    import unicodedata
     if unicodedata.normalize("NFKC", p) != p:
-        raise SandboxPathError("invalid_chars", "Unicode compatibility homoglyphs (NFKC mismatch) are forbidden")
+        raise SandboxPathError("invalid_chars", "Unicode compatibility homoglyphs (NFKC mismatch) "
+            "are forbidden")
     if "\x00" in p:
         raise SandboxPathError("invalid_chars", "NUL byte in path is forbidden")
 
@@ -210,13 +223,13 @@ class SafeFileTool:
                 return None  # network URL — refuse
 
             # Decode percent-encoded characters in the path portion
-            import urllib.parse
 
             parsed = urllib.parse.urlparse(url)
             local_path_str = urllib.parse.unquote(parsed.path)
 
             # On Windows: file:///c:/path → path starts with /c:/...
-            if local_path_str.startswith("/") and len(local_path_str) > 2 and local_path_str[2] == ":":
+            if local_path_str.startswith(
+                "/") and len(local_path_str) > 2 and local_path_str[2] == ":":
                 local_path_str = local_path_str[1:]  # strip leading /
 
             resolved = Path(local_path_str)
@@ -245,10 +258,12 @@ class SafeFileTool:
                 if not resolved_target.is_relative_to(self.workspace_root.resolve()):
                     raise SandboxSecurityError(
                         "traversal",
-                        f"Shortcut target '{resolved_target}' escapes workspace boundary '{self.workspace_root.resolve()}'",
+                        f"Shortcut target '{resolved_target}' escapes workspace boundary "
+                        f"'{self.workspace_root.resolve()}'",
                     )
                 if not resolved_target.exists() or not resolved_target.is_file():
-                    raise SandboxPathError("not_found", f"Shortcut target not found: {resolved_target}")
+                    raise SandboxPathError("not_found",
+                        f"Shortcut target not found: {resolved_target}")
                 logger.debug(
                     "read_file_url_redirect",
                     shortcut=str(target),
@@ -259,14 +274,25 @@ class SafeFileTool:
 
         file_size = target.stat().st_size
 
-        with open(target, "rb") as f:
-            # Sniff first chunk for binary content
-            sniff = f.read(SNIFF_CHUNK_SIZE)
+        if os.name == "nt":
+            rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+            with verified_workspace_file(rel_target, self.workspace_root, mode="r") as h_read:
+                raw_read = read_workspace_file_handle(
+                    h_read, max_bytes=max(SNIFF_CHUNK_SIZE, max_bytes + 1)
+                )
+            sniff = raw_read[:SNIFF_CHUNK_SIZE]
             if b"\x00" in sniff:
                 raise SandboxPathError("is_binary", f"Binary file detected: {path}")
+            data = raw_read[: max_bytes + 1]
+        else:
+            with open(target, "rb") as f:
+                # Sniff first chunk for binary content
+                sniff = f.read(SNIFF_CHUNK_SIZE)
+                if b"\x00" in sniff:
+                    raise SandboxPathError("is_binary", f"Binary file detected: {path}")
 
-            f.seek(0)
-            data = f.read(max_bytes + 1)
+                f.seek(0)
+                data = f.read(max_bytes + 1)
 
         truncated = len(data) > max_bytes
         if truncated:
@@ -301,9 +327,18 @@ class SafeFileTool:
         if mode == "create" and target.exists():
             raise SandboxPathError("traversal", f"File '{path}' already exists in create mode")
 
-        file_mode = "ab" if mode == "append" else "wb"
-        with open(target, file_mode) as f:
-            f.write(encoded)
+        if os.name == "nt" and mode != "append":
+            rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+            with verified_workspace_file(rel_target, self.workspace_root, mode="w") as h_write:
+                write_workspace_file_handle(h_write, encoded)
+        else:
+            if os.name == "nt" and target.exists():
+                rel_target = target.relative_to(self.workspace_root.resolve()).as_posix()
+                with verified_workspace_file(rel_target, self.workspace_root, mode="a"):
+                    pass
+            file_mode = "ab" if mode == "append" else "wb"
+            with open(target, file_mode) as f:
+                f.write(encoded)
 
         return {
             "size": target.stat().st_size,
@@ -517,7 +552,7 @@ class SafeFileTool:
         pattern: str,
         dir_path: str = ".",
         max_hits: int = 100,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Recursively searches code tree for regex pattern, returning file:line:matched_content."""
         target_dir = self._resolve_path(dir_path)
         if not target_dir.is_dir():
@@ -526,14 +561,16 @@ class SafeFileTool:
         try:
             rx = re.compile(pattern, re.IGNORECASE)
         except re.error as err:
-            raise SandboxPathError("invalid_regex", f"Invalid regex pattern '{pattern}': {err}") from err
+            raise SandboxPathError("invalid_regex",
+                f"Invalid regex pattern '{pattern}': {err}") from err
 
-        hits: list[dict[str, object]] = []
+        hits: list[JsonValue] = []
         snippets: list[str] = []
         for root, dirs, files in os.walk(str(target_dir)):
             dirs[:] = [
                 d for d in dirs
-                if not d.startswith(".") and d not in ("__pycache__", "venv", ".venv", "node_modules", ".git")
+                if not d.startswith(".") and d not in ("__pycache__", "venv", ".venv",
+                    "node_modules", ".git")
             ]
             for fname in files:
                 if fname.startswith("."):
@@ -562,7 +599,7 @@ class SafeFileTool:
         path: str,
         start_line: int = 1,
         end_line: int = 100,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Reads a slice of lines from a file with 1-indexed line numbers."""
         target_file = self._resolve_path(path)
         if not target_file.is_file():
@@ -593,7 +630,7 @@ class SafeFileTool:
         path: str,
         target_chunk: str,
         replacement_chunk: str,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Atomically replaces single unambiguous target_chunk with replacement_chunk in file."""
         target_file = self._resolve_path(path)
         if not target_file.is_file():
@@ -610,7 +647,17 @@ class SafeFileTool:
             )
 
         new_content = content.replace(target_chunk, replacement_chunk, 1)
-        self.write_file(path, new_content, mode="overwrite")
+        tx = WorkspaceTransactionManager(
+            workspace_root=self.workspace_root, enforce_python_ast=True
+        )
+        tx.begin()
+        tx.stage_write(target_file, new_content)
+        commit_res = tx.commit()
+        if not commit_res.success:
+            raise SandboxPathError(
+                "patch_validation_failed",
+                commit_res.error_message or f"Transactional patch failed for '{path}'",
+            )
         return {
             "path": path,
             "applied": True,
@@ -618,12 +665,63 @@ class SafeFileTool:
             "new_bytes": len(replacement_chunk),
         }, f"Successfully applied patch to '{path}'."
 
+    def execute_transaction(
+        self,
+        operations: list[dict[str, object]],
+        enforce_python_ast: bool = True,
+    ) -> dict[str, object]:
+        """
+        Executes a multi-file atomic workspace transaction backed by WorkspaceTransactionManager.
+        """
+        tx = WorkspaceTransactionManager(
+            workspace_root=self.workspace_root,
+            enforce_python_ast=enforce_python_ast,
+        )
+        tx.begin()
+        for op_spec in operations:
+            op_type_raw = str(op_spec.get("op_type", OperationType.WRITE_FILE.value)).upper()
+            rel_path = str(op_spec.get("path", ""))
+            resolved = validate_rel_path(rel_path, self.workspace_root)
+            deps_raw = op_spec.get("dependencies")
+            deps = [str(d) for d in deps_raw] if isinstance(deps_raw, list) else []
+            if op_type_raw in (OperationType.WRITE_FILE.value, OperationType.APPLY_DIFF.value):
+                tx.stage_write(
+                    resolved,
+                    str(op_spec.get("content", "")),
+                    dependencies=deps,
+                )
+            elif op_type_raw == OperationType.DELETE_FILE.value:
+                tx.stage_delete(resolved, dependencies=deps)
+            elif op_type_raw == OperationType.CREATE_DIR.value:
+                tx.stage_mkdir(resolved, dependencies=deps)
+            else:
+                raise SandboxPathError(
+                    "invalid_operation", f"Unsupported transaction operation: '{op_type_raw}'"
+                )
+
+        res = tx.commit()
+        return {
+            "success": res.success,
+            "operations_executed": res.operations_executed,
+            "files_created": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_created
+            ],
+            "files_modified": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_modified
+            ],
+            "files_deleted": [
+                p.relative_to(self.workspace_root).as_posix() for p in res.files_deleted
+            ],
+            "error_message": res.error_message,
+            "elapsed_ms": res.elapsed_ms,
+        }
+
     def run_pytest(
         self,
         test_path: str = "",
         cwd: str = ".",
         timeout: int = 60,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Runs pytest on test_path in the specified workspace directory."""
         try:
             target_dir = self._resolve_path(cwd)

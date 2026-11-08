@@ -11,11 +11,12 @@ from hypothesis import strategies as st
 
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import (
+    GROUNDING_ELIGIBLE,
+    MEMORY_ELIGIBLE,
     LLMNarration,
     Provenance,
     UnsignedPayload,
 )
-from lucca.core.schemas import GROUNDING_ELIGIBLE, MEMORY_ELIGIBLE
 from lucca.memory.gate import ProvenanceGate
 from lucca.memory.signers import (
     DerivedFactSigner,

@@ -10,11 +10,12 @@ Exhaustive verification of SMT Verifier bounds:
 """
 
 import time
+
 import pytest
 import z3
 
 from lucca.core.schemas import Risk, ToolParameter, ToolSchema
-from lucca.reasoning.smt_verifier import SMTVerifier, VerificationStatus
+from lucca.reasoning.smt_verifier import SMTVerifier
 
 
 @pytest.fixture

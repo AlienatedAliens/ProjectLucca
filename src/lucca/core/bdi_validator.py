@@ -36,7 +36,7 @@ try:
     import z3
     _HAS_Z3 = True
 except ImportError:  # pragma: no cover
-    z3 = None  # type: ignore[assignment]
+    z3 = None
     _HAS_Z3 = False
 
 
@@ -114,7 +114,7 @@ SExprNode = str | list["SExprNode"]
 
 def _parse_sexpr(text: str) -> SExprNode:
     """Lightweight deterministic S-expression parser for deontic preconditions."""
-    tokens = re.findall(r'\(|\)|"[^"]*"|[^\s()]+', text.strip())
+    tokens: list[str] = [str(m) for m in re.findall(r'\(|\)|"[^"]*"|[^\s()]+', text.strip())]
     if not tokens:
         return []
     pos = 0
@@ -217,7 +217,8 @@ class SpeculativeBDIValidator:
             steps += s
             if str(kind).lower() == "private":
                 return (
-                    bool(taint_flags & (TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE)),
+                    bool(
+                        taint_flags & (TaintFlags.SENSITIVE_MEMORY | TaintFlags.WORKSPACE_PRIVATE)),
                     steps,
                 )
             return bool(taint_flags), steps
@@ -238,8 +239,10 @@ class SpeculativeBDIValidator:
             return (str(arg_key) in tool_args), steps + s
 
         if head in ("<=", ">=", "<", ">", "=") and len(node) >= 3:
-            lhs_Key, s1 = self._eval_sexpr_node(node[1], tool_name, tool_args, taint_flags, path_arg)
-            rhs_val, s2 = self._eval_sexpr_node(node[2], tool_name, tool_args, taint_flags, path_arg)
+            lhs_Key, s1 = self._eval_sexpr_node(node[1], tool_name, tool_args, taint_flags,
+                path_arg)
+            rhs_val, s2 = self._eval_sexpr_node(node[2], tool_name, tool_args, taint_flags,
+                path_arg)
             steps += s1 + s2
             raw_arg = tool_args.get(str(lhs_Key), lhs_Key)
             try:
@@ -282,7 +285,8 @@ class SpeculativeBDIValidator:
                         node_count,
                     )
             elif isinstance(node, ast.While):
-                is_const_true = isinstance(node.test, ast.Constant) and bool(node.test.value) is True
+                is_const_true = isinstance(node.test,
+                    ast.Constant) and bool(node.test.value) is True
                 if is_const_true:
                     has_exit = any(
                         isinstance(sub, (ast.Break, ast.Return, ast.Raise))
@@ -292,7 +296,8 @@ class SpeculativeBDIValidator:
                     if not has_exit:
                         return (
                             False,
-                            "Unbounded infinite 'while True' loop without break/return detected in AST",
+                            "Unbounded infinite 'while True' loop without break/return "
+                                "detected in AST",
                             node_count,
                         )
         return True, None, max(1, node_count)
@@ -329,7 +334,8 @@ class SpeculativeBDIValidator:
                 if not (lo <= val <= hi):
                     return (
                         False,
-                        f"Resource bound constraint violated for '{k}={val}' (allowed [{lo}, {hi}])",
+                        f"Resource bound constraint violated for '{
+                            k}={val}' (allowed [{lo}, {hi}])",
                         steps,
                     )
             return True, None, steps
@@ -352,7 +358,8 @@ class SpeculativeBDIValidator:
             if solver.check() == z3.unsat:
                 return (
                     False,
-                    "Outbound network egress prohibited while session context contains tainted memory or workspace data",
+                    "Outbound network egress prohibited while session context contains tainted "
+                        "memory or workspace data",
                     z3_steps,
                 )
 

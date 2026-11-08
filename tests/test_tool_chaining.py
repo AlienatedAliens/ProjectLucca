@@ -266,7 +266,12 @@ def test_sequence_guard_across_llm_rounds(workspace_tmp: Path):
         ],
         # Round 3: narrate refusal based on tool rejection
         [
-            TokenDelta(delta="I cannot search the web after inspecting local workspace files."),
+            TokenDelta(
+                delta=(
+                    "I read notes.txt containing the project notes, "
+                    "and searching the web is not permitted in the same turn."
+                )
+            ),
             Done(usage=LLMUsage(prompt_tokens=30, completion_tokens=10)),
         ],
     ]
@@ -275,6 +280,8 @@ def test_sequence_guard_across_llm_rounds(workspace_tmp: Path):
     orch = Orchestrator(tts=FakeTTS, asr=FakeASR, execute_tools=True)
     orch.sandbox.workspace_mgr.workspace_root = workspace_tmp
     orch.sandbox.file_tool.workspace_root = workspace_tmp
+    orch.sandbox.rpc.use_direct_fallback = True
+    orch.sandbox.rpc._container_verified = False
     test_file = workspace_tmp / "notes.txt"
     test_file.write_text("Confidential project notes.", encoding="utf-8")
     orch.llm = llm

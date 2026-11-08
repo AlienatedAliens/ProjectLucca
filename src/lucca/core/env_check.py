@@ -90,11 +90,13 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             if used_mb > budget_mb:
                 return (
                     False,
-                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
+                    f"dGPU VRAM used is {
+                        used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
                 )
             return (
                 True,
-                f"dGPU VRAM used: {used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
+                f"dGPU VRAM used: {
+                    used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
             )
 
         if used_mb > 1500:
@@ -379,14 +381,18 @@ def check_wsl_status() -> tuple[bool, str]:
             check=False,
         )
         if res.returncode == 0:
-            raw_stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-16", errors="replace")
+            raw_stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-16",
+                errors="replace")
             # Filter null bytes if captured via text=True
             clean_text = raw_stdout.replace("\x00", "")
-            lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
-            summary_parts = [l for l in lines if "Default Distribution" in l or "Default Version" in l]
+            lines = [ln.strip() for ln in clean_text.splitlines() if ln.strip()]
+            summary_parts = [
+                ln for ln in lines if "Default Distribution" in ln or "Default Version" in ln
+            ]
             summary = " | ".join(summary_parts) if summary_parts else "Ubuntu (WSL2)"
             return True, f"WSL is responsive: {summary}"
-        raw_err = res.stderr if isinstance(res.stderr, str) else res.stderr.decode("utf-16", errors="replace")
+        raw_err = res.stderr if isinstance(res.stderr, str) else res.stderr.decode("utf-16",
+            errors="replace")
         err_msg = (raw_err.strip() or "").replace("\x00", "")
         return False, f"WSL status check failed (exit {res.returncode}): {err_msg[:100]}"
     except subprocess.TimeoutExpired as e:

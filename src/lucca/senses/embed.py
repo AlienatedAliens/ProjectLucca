@@ -16,12 +16,12 @@ import structlog
 try:
     from tokenizers import Tokenizer
 except ImportError:
-    Tokenizer = None  # type: ignore[assignment, misc]
+    Tokenizer = None
 
 try:
     from transformers import AutoTokenizer
 except ImportError:
-    AutoTokenizer = None
+    AutoTokenizer = None  # type: ignore[assignment, misc]
 
 logger = structlog.get_logger(__name__)
 

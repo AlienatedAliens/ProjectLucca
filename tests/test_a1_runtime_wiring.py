@@ -13,11 +13,9 @@ Verifies the 5 runtime wiring scenarios:
 
 from __future__ import annotations
 
-import asyncio
 import queue
 import time
 from collections import deque
-from collections.abc import Coroutine
 from pathlib import Path
 from unittest.mock import MagicMock
 

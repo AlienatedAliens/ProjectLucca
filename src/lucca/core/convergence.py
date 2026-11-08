@@ -14,14 +14,14 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
-from enum import Enum
 import hashlib
 import math
-from typing import Final
 from collections import Counter
+from enum import StrEnum
+from typing import Final
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel
 
 logger = structlog.get_logger(__name__)
 
@@ -31,7 +31,7 @@ DEFAULT_WINDOW_SIZE: Final[int] = 10
 DEFAULT_SIMILARITY_THRESHOLD: Final[float] = 0.95
 
 
-class DivergenceReason(str, Enum):
+class DivergenceReason(StrEnum):
     """Classification of detected search/loop divergence."""
 
     STATE_CYCLE = "state_cycle"
@@ -189,7 +189,8 @@ class TracebackDivergenceGuard:
                 reason=DivergenceReason.STATE_CYCLE,
                 cycle_count=recurrent_count,
                 step_count=self._step_count,
-                detail=f"State hash {h} repeated {recurrent_count} times (limit: {self.max_recurrence})",
+                detail=f"State hash {
+                    h} repeated {recurrent_count} times (limit: {self.max_recurrence})",
             )
 
         # Check periodic cycle at tail (e.g. A -> B -> A -> B)
@@ -207,7 +208,8 @@ class TracebackDivergenceGuard:
                 reason=DivergenceReason.STATE_CYCLE,
                 cycle_count=len(pattern),
                 step_count=self._step_count,
-                detail=f"Periodic cycle detected of period {period} repeating >= {self.max_recurrence} times",
+                detail=f"Periodic cycle detected of period {
+                    period} repeating >= {self.max_recurrence} times",
             )
 
         # 3. Repetitive Drift / Stagnation
@@ -220,7 +222,8 @@ class TracebackDivergenceGuard:
                     diverged=True,
                     reason=DivergenceReason.REPETITIVE_DRIFT,
                     step_count=self._step_count,
-                    detail=f"Consecutive states stagnant with token similarity >= {self.similarity_threshold:.2f}",
+                    detail=f"Consecutive states stagnant with token similarity >= {
+                        self.similarity_threshold:.2f}",
                 )
 
         # 4. Error Entropy Explosion / Stagnation
@@ -237,7 +240,8 @@ class TracebackDivergenceGuard:
                     cycle_count=self.window_size,
                     entropy=0.0,
                     step_count=self._step_count,
-                    detail=f"Identical error signature repeated continuously across {self.window_size} steps",
+                    detail=f"Identical error signature repeated continuously across {
+                        self.window_size} steps",
                 )
 
             # If entropy is persistently high and error count is maximal without progress

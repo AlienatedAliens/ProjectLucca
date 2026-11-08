@@ -8,18 +8,14 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-import pytest
 
-from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.orchestrator import Orchestrator
-from lucca.core.turn_pipeline import TurnPipeline
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import (
     CoherenceDrive,
     CompetenceDrive,
     DreamRetrospective,
     IdlePulse,
-    log_learning_event,
 )
 
 
