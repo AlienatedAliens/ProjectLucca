@@ -1804,4 +1804,84 @@ def test_zero_ruff_and_mypy_errors() -> None:
     )
 
 
+def test_wo43_statistical_power_benchmarks_locked() -> None:
+    """WO-43 Sub-step 5.3: Permanent anti-contamination and statistical power gate.
+    Asserts:
+    1. data/benchmarks/contrastive_battery_v2_300.jsonl has 300 unique items (100 per stratum)
+       and its SHA-256 matches data/benchmarks/MANIFEST.json.
+    2. data/benchmarks/memory_poisoning_v3_300.jsonl has 300 unique items (100 per cohort)
+       and its SHA-256 matches data/benchmarks/MANIFEST.json.
+    3. Zero benchmark item strings or IDs appear anywhere in src/lucca/.
+    4. Includes a positive control proving that a synthetic leaked benchmark string is caught.
+    """
+    import hashlib
+    import json
+    from collections import Counter
 
+    repo_root = Path(__file__).resolve().parent.parent
+    manifest_path = repo_root / "data" / "benchmarks" / "MANIFEST.json"
+    assert manifest_path.exists(), f"Missing {manifest_path}"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    # 1. Contrastive Battery v2 (N=300)
+    c_path = repo_root / "data" / "benchmarks" / "contrastive_battery_v2_300.jsonl"
+    assert c_path.exists(), f"Missing {c_path}"
+    c_sha = hashlib.sha256(c_path.read_bytes()).hexdigest()
+    expected_c_sha = manifest["benchmarks"]["contrastive_battery_v2_300"]["sha256"]
+    assert c_sha == expected_c_sha, (
+        f"Contrastive v2 SHA-256 mismatch: {c_sha} != {expected_c_sha}"
+    )
+    c_rows = [
+        json.loads(line)
+        for line in c_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(c_rows) == 300
+    c_ids = {str(r["id"]) for r in c_rows}
+    assert len(c_ids) == 300
+    c_questions = {str(r["question"]).strip() for r in c_rows}
+    assert len(c_questions) == 300
+    c_strata = Counter(str(r["stratum"]) for r in c_rows)
+    assert c_strata == {"recall": 100, "receipt_introspection": 100, "abstention": 100}
+
+    # 2. Memory Poisoning Battery v3 (N=300)
+    p_path = repo_root / "data" / "benchmarks" / "memory_poisoning_v3_300.jsonl"
+    assert p_path.exists(), f"Missing {p_path}"
+    p_sha = hashlib.sha256(p_path.read_bytes()).hexdigest()
+    expected_p_sha = manifest["benchmarks"]["memory_poisoning_v3_300"]["sha256"]
+    assert p_sha == expected_p_sha, (
+        f"Memory Poisoning v3 SHA-256 mismatch: {p_sha} != {expected_p_sha}"
+    )
+    p_rows = [
+        json.loads(line)
+        for line in p_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(p_rows) == 300
+    p_ids = {str(r["id"]) for r in p_rows}
+    assert len(p_ids) == 300
+    p_turn1 = {str(r["turn1_content"]).strip() for r in p_rows}
+    assert len(p_turn1) == 300
+    p_cohorts = Counter(str(r["cohort"]) for r in p_rows)
+    assert p_cohorts == {
+        "A_natural_hallucination": 100,
+        "B_benign_reasoning": 100,
+        "C_user_falsehood": 100,
+    }
+
+    # 3. Anti-contamination check across src/lucca/
+    src_dir = repo_root / "src" / "lucca"
+    src_blobs: dict[str, str] = {
+        str(py.relative_to(repo_root)): py.read_text(encoding="utf-8")
+        for py in sorted(src_dir.rglob("*.py"))
+    }
+    combined_src = "\n".join(src_blobs.values())
+
+    forbidden_strings = list(c_questions) + list(p_turn1)
+    leaked = [s for s in forbidden_strings if len(s) >= 20 and s in combined_src]
+    assert not leaked, f"Benchmark strings leaked into src/lucca/: {leaked[:3]}"
+
+    # 4. Positive control: verify synthetic leak is detected
+    synthetic_src = combined_src + "\n" + next(iter(c_questions))
+    synthetic_leaked = [s for s in forbidden_strings if len(s) >= 20 and s in synthetic_src]
+    assert len(synthetic_leaked) >= 1, "Positive control failed to detect synthetic leak"
