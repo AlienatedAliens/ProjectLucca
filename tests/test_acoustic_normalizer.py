@@ -229,7 +229,7 @@ def test_rapid_ptt_press_aborts_without_history_pollution() -> None:
 
     # Worker running in background
     def slow_worker() -> None:
-        time.sleep(0.05)
+        orch._cancel_token.wait(timeout=0.4)
         # Attempt to append to history if not cancelled
         if not orch.active_trace.interrupted and not orch._cancel_token.is_set():
             orch.history.append({"role": "assistant", "content": "orphan token"})

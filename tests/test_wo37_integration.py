@@ -113,7 +113,7 @@ def test_orchestrator_multiturn_vision_continuity(tmp_path: Path) -> None:
     """Verifies complete multi-turn dialogue with real Orchestrator, session reload, and continuity."""
     fake_llm = FakeLLM(
         script=[
-            TokenDelta(delta="I can see the icon clearly on screen! "),
+            TokenDelta(delta="The attached image shows a pixel-art character. "),
             Done(usage=LLMUsage(prompt_tokens=15, completion_tokens=8)),
         ]
     )
