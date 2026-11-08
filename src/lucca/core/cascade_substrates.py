@@ -831,7 +831,7 @@ class CascadeSubstrateAdapters:
                         haystack = display_content.lower()
                         score = sum(1 for t in tokens if t in haystack)
                         if str(prov) == "ASSISTANT_BELIEF" and re.search(
-                            r"\b(?:opinion|opinions|belief|beliefs|preference|preferences|preferred|view|views|stance|prefer|favour|favor|benchmark|throughput)\b",
+                            r"\b(?:opinion|opinions|belief|beliefs|believe|think|reliable|preference|preferences|preferred|view|views|stance|prefer|favour|favor|benchmark|throughput)\b",
                             query_text.lower(),
                         ):
                             score = score + 3 if score > 0 else 0

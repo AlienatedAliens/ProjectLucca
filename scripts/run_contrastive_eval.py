@@ -50,7 +50,7 @@ from tests.test_a1_live_hw import (  # noqa: E402
     _seed_a1_history,
 )
 
-EXPECTED_GRADER_SHA: Final[str] = "f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2"
+EXPECTED_GRADER_SHA: Final[str] = "e9ce6f5245561b605c7578ebf31d3fed9c2fdaeb1f27f8a91dba799446fd5e0d"
 
 LLM_ONLY_SYSTEM_PROMPT: Final[str] = (
     "You are a helpful desktop assistant. Answer the user's question directly and concisely."
@@ -253,7 +253,18 @@ def run_contrastive_evaluation(
             for idx, probe in enumerate(probes, 1):
                 pid = str(probe["id"])
                 if pid in existing_by_id:
-                    results.append(existing_by_id[pid])
+                    cached = dict(existing_by_id[pid])
+                    q_c = str(cached.get("question", probe["question"]))
+                    m_c = str(cached.get("expect_mode", probe["expect_mode"]))
+                    raw_e_c = cached.get("expect_any", probe.get("expect_any", []))
+                    e_c = [str(x) for x in raw_e_c] if isinstance(raw_e_c, list) else []
+                    for arm_k in arms_to_run:
+                        rep_k = str(cached.get(f"{arm_k}_reply", ""))
+                        g_k, r_k = grade_probe(m_c, e_c, q_c, rep_k)
+                        cached[f"{arm_k}_grade"] = g_k.value
+                        cached[f"{arm_k}_pass"] = g_k == Grade.PASS
+                        cached[f"{arm_k}_reason"] = r_k
+                    results.append(cached)
                     continue
 
                 stratum = str(probe["stratum"])

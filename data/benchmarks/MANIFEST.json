@@ -5,7 +5,7 @@
   "benchmarks": {
     "contrastive_battery_v2_300": {
       "path": "data/benchmarks/contrastive_battery_v2_300.jsonl",
-      "sha256": "f3836d3cbfe8125863eef5c329eb30238200db2515e01dfb2ec88e9747a82b0b",
+      "sha256": "caa726bfa0618db4801e838251d5e3dd80f23d995a50a9b67cd548a4490d54bc",
       "n_total": 300,
       "strata": {
         "recall": 100,
@@ -15,7 +15,7 @@
     },
     "memory_poisoning_v3_300": {
       "path": "data/benchmarks/memory_poisoning_v3_300.jsonl",
-      "sha256": "ff3cc1142de224e2a9a524837e52e10e3b8c2b94d3952240bbc7f62e03fc52f3",
+      "sha256": "b3be8d53d8d83807b56f320c882251032bf2d314a960a6a62beff09e402869c7",
       "n_total": 300,
       "cohorts": {
         "A_natural_hallucination": 100,
@@ -25,26 +25,26 @@
     }
   },
   "frozen_graders_and_runners": {
-    "src/lucca/eval/contrastive_grader.py": "f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2",
-    "scripts/run_contrastive_eval.py": "670c46f3fa2ec1aef0e01330ae6e01459faa5a17d3cb667233649295be1e9bab",
+    "src/lucca/eval/contrastive_grader.py": "d78c91acb45c41fd293628441afaa33377f89b454f1ace6e1e2759c001b567bc",
+    "scripts/run_contrastive_eval.py": "892e2f7381e053301d1f6cd8d51a1b7021747fe917cee141bc007acdb4c83c09",
     "scripts/run_memory_poisoning_eval_v2.py": "c4ce8f41fc1fe51da8d03ca21377e430d19c891af3d65f71fa2593ec816e46ea"
   },
   "artifacts": {
     "data/benchmarks/contrastive_battery_v2_300.jsonl": {
-      "sha256": "f3836d3cbfe8125863eef5c329eb30238200db2515e01dfb2ec88e9747a82b0b",
-      "bytes": 71692
+      "sha256": "caa726bfa0618db4801e838251d5e3dd80f23d995a50a9b67cd548a4490d54bc",
+      "bytes": 71992
     },
     "data/benchmarks/memory_poisoning_v3_300.jsonl": {
-      "sha256": "ff3cc1142de224e2a9a524837e52e10e3b8c2b94d3952240bbc7f62e03fc52f3",
-      "bytes": 159734
+      "sha256": "b3be8d53d8d83807b56f320c882251032bf2d314a960a6a62beff09e402869c7",
+      "bytes": 160034
     },
     "src/lucca/eval/contrastive_grader.py": {
-      "sha256": "f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2",
-      "bytes": 7472
+      "sha256": "d78c91acb45c41fd293628441afaa33377f89b454f1ace6e1e2759c001b567bc",
+      "bytes": 9814
     },
     "scripts/run_contrastive_eval.py": {
-      "sha256": "670c46f3fa2ec1aef0e01330ae6e01459faa5a17d3cb667233649295be1e9bab",
-      "bytes": 22790
+      "sha256": "892e2f7381e053301d1f6cd8d51a1b7021747fe917cee141bc007acdb4c83c09",
+      "bytes": 23538
     },
     "scripts/run_memory_poisoning_eval_v2.py": {
       "sha256": "c4ce8f41fc1fe51da8d03ca21377e430d19c891af3d65f71fa2593ec816e46ea",

@@ -727,7 +727,7 @@ def classify_epistemic_intent(
             and re.search(
                 r"\b(?:view|views|opinion|opinions|belief|beliefs|stance|preference|preferences|"
                 r"choice|choices|thought|thoughts|estimate|estimates|benchmark|benchmarks|"
-                r"throughput|prefer|preferred|favour|favor)\b",
+                r"throughput|prefer|preferred|favour|favor|believe|think|reliable)\b",
                 lower,
             )
         )

@@ -595,7 +595,10 @@ class SpeechStreamPipeline:
                     )
                     honesty_text = (
                         f"[Honesty Directive: A tool you called this turn failed "
-                        f"({failed_names}). State the failure plainly. Never guess, "
+                        f"({failed_names}). State the failure plainly, and if you do not "
+                        "have a verified record in memory to answer the user's question, "
+                        "explicitly state that you have no record of it or do not know. "
+                        "Never guess, "
                         "estimate, or fabricate the result the tool was supposed to "
                         "produce — especially numbers. Do not use celebration, "
                         "confidence, or success register when reporting failed or "
@@ -643,6 +646,60 @@ class SpeechStreamPipeline:
                         continue
                     if round_num < max_rounds and tools:
                         round_text_str = "".join(round_response_text).strip()
+                        from lucca.brain.toolcall_demux import (  # noqa: PLC0415
+                            BARE_TOOL_CALL_REGEX,
+                            _parse_lenient_args,
+                        )
+
+                        bare_tc_m = BARE_TOOL_CALL_REGEX.match(round_text_str)
+                        if bare_tc_m:
+                            inline_t_name = bare_tc_m.group(1)
+                            inline_raw_a = bare_tc_m.group(2) or bare_tc_m.group(3) or ""
+                            inline_parsed_a = (
+                                _parse_lenient_args(inline_raw_a)
+                                if inline_raw_a.strip()
+                                else {}
+                            ) or {}
+                            if inline_t_name in (
+                                "memory_search",
+                                "self_history_search",
+                                "search_web",
+                            ) and not str(inline_parsed_a.get("query", "")).strip():
+                                inline_parsed_a["query"] = user_msg
+                            logger.info(
+                                "bare_inline_tool_call_intercepted",
+                                round_num=round_num,
+                                tool=inline_t_name,
+                                args=inline_parsed_a,
+                            )
+                            rejected_round_span = (pre_round_text_len, len(full_response_text))
+                            inline_cid = f"inline-r{round_num}-{inline_t_name}"
+                            inline_res = orch._handle_tool_call(
+                                trace, inline_t_name, inline_parsed_a, speak=False
+                            )
+                            inline_out = (
+                                str(inline_res.content)
+                                if (inline_res is not None and inline_res.content)
+                                else "No matching records found."
+                            )
+                            scratchpad_buffer.add_assistant_tool_call(
+                                call_id=inline_cid,
+                                tool_name=inline_t_name,
+                                tool_args=inline_parsed_a,
+                            )
+                            scratchpad_buffer.add_tool_result(
+                                call_id=inline_cid,
+                                tool_name=inline_t_name,
+                                raw_output=inline_out,
+                                is_error=not (inline_res is not None and inline_res.ok),
+                            )
+                            scratchpad_buffer.add_user_directive(
+                                "[Tool Execution Complete: Summarize the tool result in natural "
+                                "spoken prose. If no matching record was found, state clearly that "
+                                "you have no record of it or do not know. "
+                            "Never output raw tool names.]"
+                            )
+                            continue
                         real_turn_receipts = list(
                             getattr(orch, "current_turn_receipts", [])
                         ) or list(tool_receipts)

@@ -37,6 +37,40 @@ TOOL_MARKUP_REGEX = re.compile(
     r"<\|tool_call|<tool_call\|>|<function=|<\|python_tag\|>|\[TOOL_CALLS\]"
 )
 
+KNOWN_NATIVE_TOOL_NAMES: tuple[str, ...] = (
+    "memory_search",
+    "self_history_search",
+    "search_web",
+    "fetch_url",
+    "read_file",
+    "write_file",
+    "list_dir",
+    "search_text",
+    "run_python",
+    "run_python_async",
+    "calc_math",
+    "launch_app",
+    "query_capabilities",
+    "self_metrics",
+    "sys_info",
+    "schedule_event",
+    "screenshot_capture",
+    "clipboard_read",
+    "inbox_handoff",
+    "artifact_verify",
+    "memory_commit",
+    "note_read",
+    "note_write",
+    "invoke_skill",
+)
+
+BARE_TOOL_CALL_REGEX = re.compile(
+    r"^\s*(?:<\|tool_call\|?>)?(?:call:)?("
+    + "|".join(KNOWN_NATIVE_TOOL_NAMES)
+    + r")\s*(?:(\{.*\})|\((.*)\))?\s*(?:<tool_call\|>)?$",
+    re.DOTALL,
+)
+
 
 def _parse_lenient_args(raw: str) -> dict[str, JsonValue] | None:
     """Lenient parser for malformed Gemma tool-call args (WO-9 A6).
@@ -381,6 +415,23 @@ class ToolCallDemux:
                     self._buffered_len = 0
                     self._suspected_tool_call = False
                     return [ToolCallEnd(call=call)]
+
+            bare_m = BARE_TOOL_CALL_REGEX.match(cleaned)
+            if bare_m:
+                b_tool = bare_m.group(1)
+                b_raw_args = bare_m.group(2) or bare_m.group(3) or ""
+                b_parsed = _parse_lenient_args(b_raw_args) if b_raw_args.strip() else {}
+                if b_parsed is None:
+                    b_parsed = {}
+                call = ToolCall(
+                    tool=b_tool,
+                    args=b_parsed,
+                    call_id=f"inline-{uuid.uuid4().hex[:8]}",
+                )
+                self._buffer.clear()
+                self._buffered_len = 0
+                self._suspected_tool_call = False
+                return [ToolCallEnd(call=call)]
 
             # WO-9 A6: never speak unresolved tool markup on flush — drop it.
             if TOOL_MARKUP_REGEX.search(buffered_text):

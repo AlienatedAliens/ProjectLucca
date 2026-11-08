@@ -60,7 +60,7 @@ from tests.test_a1_live_hw import (
 )
 
 EXPECTED_GRADER_SHA: Final[str] = (
-    "f015710fbb634d00639004c5afbd604304803a23ffb968ad22d71246807727c2"
+    "e9ce6f5245561b605c7578ebf31d3fed9c2fdaeb1f27f8a91dba799446fd5e0d"
 )
 
 LLM_ONLY_SYSTEM_PROMPT: Final[str] = (

@@ -450,6 +450,85 @@ def check_tool_fit(
     if tool_name.lower() in q_lower or tool_name.replace("_", " ") in q_lower:
         return True
 
+    # 2b. Strict negative domain guards for tools prone to misfiring on personal/physical queries
+    if tool_name == "fetch_url":
+        has_url_or_fetch_cue = any(
+            c in q_lower
+            for c in (
+                "http://",
+                "https://",
+                "www.",
+                ".com",
+                ".org",
+                ".io",
+                ".net",
+                ".edu",
+                ".gov",
+                "url",
+                "webpage",
+                "website",
+                "fetch",
+                "scrape",
+                "download",
+                "link",
+            )
+        )
+        if not has_url_or_fetch_cue:
+            return False
+
+    if tool_name == "screenshot_capture":
+        has_screen_cue = any(
+            c in q_lower
+            for c in (
+                "screen",
+                "screenshot",
+                "display",
+                "monitor",
+                "desktop",
+                "window",
+                "dialog",
+                "ui",
+                "on my computer",
+            )
+        )
+        if not has_screen_cue:
+            return False
+
+    if tool_name == "search_text":
+        has_file_or_code_cue = any(
+            c in q_lower
+            for c in (
+                "file",
+                "files",
+                "code",
+                "codebase",
+                "workspace",
+                "directory",
+                "folder",
+                "repo",
+                "script",
+                "grep",
+                "search text",
+                "find in",
+                "line",
+                "function",
+                "class",
+                "import",
+                "module",
+                "config",
+                "log",
+                ".py",
+                ".txt",
+                ".md",
+                ".json",
+                ".csv",
+                ".ini",
+                ".toml",
+            )
+        )
+        if not has_file_or_code_cue:
+            return False
+
     # 3. Domain cue relevance matching
     cues = _TOOL_RELEVANCE_CUES.get(tool_name, ())
     for cue in cues:

@@ -1885,3 +1885,28 @@ def test_wo43_statistical_power_benchmarks_locked() -> None:
     synthetic_src = combined_src + "\n" + next(iter(c_questions))
     synthetic_leaked = [s for s in forbidden_strings if len(s) >= 20 and s in synthetic_src]
     assert len(synthetic_leaked) >= 1, "Positive control failed to detect synthetic leak"
+
+
+def test_zenodo_published_papers_01_to_03_frozen() -> None:
+    """Immutable archival gate: Papers 01, 02, and 03 are published on Zenodo
+    (DOIs 10.5281/zenodo.23901452, 10.5281/zenodo.23901605, 10.5281/zenodo.23901683)
+    and must remain byte-identical to their published 543f5cc source state.
+    All post-Zenodo results (WO-41..WO-43+) belong in papers/04_clause_level_npu_supervision/main.tex
+    or subsequent manuscripts.
+    """
+    import hashlib
+
+    repo_root = Path(__file__).resolve().parent.parent
+    expected_sha256 = {
+        "papers/01_memory_poisoning_ablation/main.tex": "dbc75f24afe28ce138e4ae54180ea08e28f667a1f7980ea790b3d450b46fe739",
+        "papers/02_deontic_supervision_evasion/main.tex": "2f503b7b879bed5bff502fe245e1b86ef3a0f7a954d7e73a61d54d0d25e37cea",
+        "papers/03_provenance_gated_five_layer_memory/main.tex": "b115ab9ee2c2956a0925aaa3be7cea78c23a57a5551f7d6dc13b66928938b4ec",
+    }
+    for rel, exp_hash in expected_sha256.items():
+        fpath = repo_root / rel
+        assert fpath.exists(), f"Missing frozen Zenodo paper: {rel}"
+        actual_hash = hashlib.sha256(fpath.read_bytes()).hexdigest()
+        assert actual_hash == exp_hash, (
+            f"Zenodo-published paper {rel} was modified ({actual_hash} != {exp_hash}); "
+            "place new results in Paper 04 or a successor manuscript."
+        )

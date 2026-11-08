@@ -528,6 +528,11 @@ class ToolDispatcher:
             if "expr" in args and "code" not in args:
                 logger.info("tool_semantic_reroute", from_tool="run_python", fix="expr_to_code")
                 args = {"code": str(args["expr"])}
+        elif name in ("memory_search", "self_history_search", "search_web"):
+            if not str(args.get("query", "")).strip():
+                fallback_q = str(orch.current_turn_transcript or "memory query").strip()
+                args = dict(args)
+                args["query"] = fallback_q
 
         orch.executed_tools.append((name, args))
         call_id = str(ulid.ULID())
