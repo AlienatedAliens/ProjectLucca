@@ -338,6 +338,7 @@ class Orchestrator:
         self.current_turn_tool_ok: bool = True
         self.current_turn_shadow_outcomes: list[RuleOutcome] = []
         self.current_turn_receipts: list[ToolReceipt] = []
+        self.current_turn_historical_receipts: list[ToolReceipt] = []
         self.last_turn_receipts: list[ToolReceipt] = []
         self.current_turn_plan: GoalPlan | None = None
         self.last_spoken_plan_narration: str | None = None
@@ -483,7 +484,6 @@ class Orchestrator:
         # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
         self.ratification_domains: set[str] = load_ratification_domains()
         try:
-
             get_neural_hazard_classifier()
         except Exception as _nh_exc:  # noqa: BLE001
             logger.debug("orchestrator_hazard_classifier_warmup_skipped", error=str(_nh_exc))
@@ -498,8 +498,9 @@ class Orchestrator:
             self.memory_store.retriever.active_goals = self.active_goals
 
         # WO-21 Phase 4 & WO-36: Semantic Theory of Mind User Model & Goal-Biased CBR Episode Recall
-        embed_port = getattr(self.memory_store, "embedding_port",
-            None) if self.memory_store else None
+        embed_port = (
+            getattr(self.memory_store, "embedding_port", None) if self.memory_store else None
+        )
         self.user_model = UserModel(db=self.db, embedder=embed_port, verifier=verifier_inst)
         self.episode_recall = EpisodeRecall(
             db=self.db,
@@ -712,7 +713,7 @@ class Orchestrator:
 
     @property
     def tool_dispatcher(self) -> ToolDispatcher:
-        disp = getattr(self, '_tool_dispatcher', None)
+        disp = getattr(self, "_tool_dispatcher", None)
         if disp is None:
             disp = ToolDispatcher(orchestrator=self)
             self._tool_dispatcher = disp
@@ -724,7 +725,7 @@ class Orchestrator:
 
     @property
     def deduction_runner(self) -> DeductionAndPlanningRunner:
-        runner = getattr(self, '_deduction_runner', None)
+        runner = getattr(self, "_deduction_runner", None)
         if runner is None:
             runner = DeductionAndPlanningRunner(orchestrator=self)
             self._deduction_runner = runner
@@ -736,7 +737,7 @@ class Orchestrator:
 
     @property
     def code_preflight(self) -> CodePreflightService:
-        srv = getattr(self, '_code_preflight', None)
+        srv = getattr(self, "_code_preflight", None)
         if srv is None:
             srv = CodePreflightService(orchestrator=self)
             self._code_preflight = srv
@@ -1047,9 +1048,8 @@ class Orchestrator:
             # _on_ptt_released can stash the captured slice for the waiting
             # turn worker (F-CORE-015 voice-answer path).
             self._abort_confirmation_prompt_playback()
-        elif (
-            self.state in ("speaking", "thinking")
-            or (self.active_turn_thread is not None and self.active_turn_thread.is_alive())
+        elif self.state in ("speaking", "thinking") or (
+            self.active_turn_thread is not None and self.active_turn_thread.is_alive()
         ):
             # Instant cooperative barge-in / cancellation (WO-26 Phase 2)
             self._abort_turn()
@@ -1235,9 +1235,26 @@ class Orchestrator:
         if not self.memory_store or not text.strip():
             return []
         try:
-            q = RetrievalQuery(query_text=text.strip(), k=8)
+            low = text.strip().lower()
+            wants_superseded = bool(
+                re.search(
+                    r"\b(?:change|changed|revision|revised|initial|initially|original|originally|"
+                    r"earlier|previous|previously|before|progression|history|used\s+to|switched|"
+                    r"updated|first|summarize\s+your)\b",
+                    low,
+                )
+            )
+            q = RetrievalQuery(
+                query_text=text.strip(),
+                k=12,
+                include_superseded=wants_superseded,
+            )
             res = self.memory_store.search(q)
             if isinstance(res, list):
+                if getattr(self.memory_store, "db", None) is not None:
+                    from lucca.memory.retrieval import filter_relevant_memory_hits  # noqa: PLC0415
+
+                    return filter_relevant_memory_hits(text, res)
                 return res
             return []
         except Exception as e:  # noqa: BLE001
@@ -1348,9 +1365,7 @@ class Orchestrator:
         context: ReasoningContext | None = None,
         llm: SpeechLLMPort | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
-        return self.deduction_runner.run_deduction_step(
-            goal, trace=trace, context=context, llm=llm
-        )
+        return self.deduction_runner.run_deduction_step(goal, trace=trace, context=context, llm=llm)
 
     # delegate — kept for test/back-compat
     def _format_conditioned_speech(
@@ -1374,9 +1389,7 @@ class Orchestrator:
         llm: SpeechLLMPort | None = None,
         context: ReasoningContext | None = None,
     ) -> GoalPlan | None:
-        return self.deduction_runner.run_planning_step(
-            goal, trace=trace, llm=llm, context=context
-        )
+        return self.deduction_runner.run_planning_step(goal, trace=trace, llm=llm, context=context)
 
     def run_self_diagnosis(
         self,
@@ -1511,9 +1524,12 @@ class Orchestrator:
                 turn_ctx.append({"role": "user", "content": user_transcript_text})
 
             # Functional coherence check (Spec §3.3 / D-MEM-04 / WP-2)
+            coherence_receipts = list(self.current_turn_receipts) + list(
+                getattr(self, "current_turn_historical_receipts", [])
+            )
             breach_msg = self._check_functional_coherence(
                 reply_text,
-                self.current_turn_receipts,
+                coherence_receipts,
                 user_context=turn_ctx if turn_ctx else user_transcript_text,
             )
             if breach_msg:
@@ -1777,7 +1793,7 @@ class Orchestrator:
         query: str,
         code: str,
         error_trace: str,
-        resolved_code: str = '',
+        resolved_code: str = "",
         surprise_score: float = 0.85,
     ) -> None:
         self.code_preflight.log_impasse_to_backlog(

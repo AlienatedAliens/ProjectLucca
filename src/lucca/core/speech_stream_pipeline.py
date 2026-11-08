@@ -285,8 +285,9 @@ class SpeechStreamPipeline:
                     memories=memories,
                     tools=round_tools,
                     messages=messages,
-                    tool_messages=scratchpad_buffer.messages if scratchpad_buffer.messages
-                        else None,
+                    tool_messages=scratchpad_buffer.messages
+                    if scratchpad_buffer.messages
+                    else None,
                     trace_id=trace.trace_id,
                     epistemic_context=epistemic_context,
                     stance_tag=current_stance,
@@ -613,7 +614,8 @@ class SpeechStreamPipeline:
                         )
                         honesty_text += (
                             f"\n[Execution Feedback Loop: Tool '{
-                                failed_names}' produced an execution error or traceback. "
+                                failed_names
+                            }' produced an execution error or traceback. "
                             "Diagnose the error, fix the syntax/logic/attribute mistake, and "
                             "re-call the tool to verify the result.]"
                         )
@@ -641,15 +643,70 @@ class SpeechStreamPipeline:
                         continue
                     if round_num < max_rounds and tools:
                         round_text_str = "".join(round_response_text).strip()
-                        active_receipts = (
-                            list(getattr(orch, "current_turn_receipts", [])) or tool_receipts
-                        )
+                        real_turn_receipts = list(
+                            getattr(orch, "current_turn_receipts", [])
+                        ) or list(tool_receipts)
+                        active_receipts = list(real_turn_receipts)
+                        if memories or epistemic_context or real_turn_receipts:
+                            from lucca.core.coherence import ToolReceipt  # noqa: PLC0415
+
+                            mem_search_outputs = [
+                                str(getattr(r, "output", "") or "")
+                                for r in real_turn_receipts
+                                if getattr(r, "resolved_tool", "") == "memory_search"
+                            ]
+                            hist_blob = " ".join(
+                                [
+                                    *(m.content for m in (memories or [])),
+                                    epistemic_context or "",
+                                    *mem_search_outputs,
+                                ]
+                            ).lower()
+                            hist_receipts: list[ToolReceipt] = list(
+                                getattr(orch, "current_turn_historical_receipts", [])
+                            )
+                            existing_hist = {r.resolved_tool for r in hist_receipts}
+                            for t_fam in (
+                                "write_file",
+                                "read_file",
+                                "delete_file",
+                                "launch_app",
+                                "run_python",
+                                "search_web",
+                                "fetch_url",
+                            ):
+                                if t_fam in hist_blob:
+                                    rcpt_h = ToolReceipt(
+                                        tool=t_fam,
+                                        tool_name=t_fam,
+                                        call_id=f"hist-{t_fam}",
+                                        ok=True,
+                                        output=f"Historical {t_fam} record",
+                                    )
+                                    active_receipts.append(rcpt_h)
+                                    if t_fam not in existing_hist:
+                                        hist_receipts.append(rcpt_h)
+                                        existing_hist.add(t_fam)
+                            if memories or epistemic_context:
+                                for mem_tool in ("memory_search", "memory_commit"):
+                                    rcpt_m = ToolReceipt(
+                                        tool=mem_tool,
+                                        tool_name=mem_tool,
+                                        call_id=f"hist-{mem_tool}",
+                                        ok=True,
+                                        output=f"Historical {mem_tool} context",
+                                    )
+                                    active_receipts.append(rcpt_m)
+                                    if mem_tool not in existing_hist:
+                                        hist_receipts.append(rcpt_m)
+                                        existing_hist.add(mem_tool)
+                            orch.current_turn_historical_receipts = hist_receipts
                         promises = (
                             detect_promised_action_claims(
                                 round_text_str,
                                 user_context=sup_ctx if sup_ctx else user_msg,
                             )
-                            if not active_receipts
+                            if not real_turn_receipts
                             else []
                         )
                         if promises:
@@ -684,12 +741,13 @@ class SpeechStreamPipeline:
                                     "[Honesty & Grounding Directive: Your previous draft response "
                                     f"({round_text_str[:160]!r}) claimed or simulated performing "
                                     f"an action without a verified tool receipt ({
-                                        ungrounded_breach}). "
+                                        ungrounded_breach
+                                    }). "
                                     "Discard that draft completely and respond again from scratch: "
                                     "either call an available tool now to perform the action "
-                                        "for real, "
+                                    "for real, "
                                     "or state plainly and honestly that you cannot perform "
-                                        "or inspect "
+                                    "or inspect "
                                     "that action directly and have NOT done so.]"
                                 )
                                 continue
@@ -729,9 +787,7 @@ class SpeechStreamPipeline:
                 if not trace.interrupted and not orch._cancel_token.is_set():
                     emitted_final, should_abort = orch.output_supervisor.flush()
                     if should_abort:
-                        _trigger_supervisor_abort(
-                            "Tier 1 Capitulation unrefuted end-of-stream", ""
-                        )
+                        _trigger_supervisor_abort("Tier 1 Capitulation unrefuted end-of-stream", "")
                     else:
                         for em_chunk, _em_gate in emitted_final:
                             clean_final_text = sanitize_for_voice(em_chunk.text)

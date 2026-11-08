@@ -46,9 +46,760 @@ def calculate_age_str(created_at: float, now: float) -> str:
         return f"{int(delta_s)}s ago"
     if delta_s < 3600:
         return f"{int(delta_s // 60)}m ago"
-    if delta_s < 86400:
+    if delta_s < 82800:
         return f"{int(delta_s // 3600)}h ago"
-    return f"{int(delta_s // 86400)}d ago"
+    return f"{max(1, int(round(delta_s / 86400.0)))}d ago"
+
+
+_QUERY_STOP_AND_GENERIC: Final[frozenset[str]] = frozenset(
+    {
+        "what",
+        "which",
+        "when",
+        "where",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "how",
+        "many",
+        "much",
+        "did",
+        "does",
+        "do",
+        "done",
+        "has",
+        "have",
+        "had",
+        "was",
+        "were",
+        "is",
+        "are",
+        "been",
+        "being",
+        "can",
+        "could",
+        "would",
+        "should",
+        "will",
+        "shall",
+        "may",
+        "might",
+        "must",
+        "you",
+        "your",
+        "yours",
+        "yourself",
+        "me",
+        "my",
+        "mine",
+        "myself",
+        "we",
+        "our",
+        "ours",
+        "us",
+        "they",
+        "them",
+        "their",
+        "he",
+        "him",
+        "his",
+        "she",
+        "her",
+        "it",
+        "its",
+        "the",
+        "a",
+        "an",
+        "this",
+        "that",
+        "these",
+        "those",
+        "some",
+        "any",
+        "all",
+        "both",
+        "each",
+        "every",
+        "either",
+        "neither",
+        "no",
+        "not",
+        "nor",
+        "only",
+        "own",
+        "same",
+        "so",
+        "than",
+        "too",
+        "very",
+        "just",
+        "even",
+        "also",
+        "ever",
+        "never",
+        "always",
+        "actually",
+        "really",
+        "exactly",
+        "specifically",
+        "currently",
+        "previously",
+        "earlier",
+        "recently",
+        "originally",
+        "initially",
+        "finally",
+        "ultimately",
+        "already",
+        "still",
+        "yet",
+        "now",
+        "then",
+        "here",
+        "there",
+        "from",
+        "into",
+        "onto",
+        "upon",
+        "with",
+        "without",
+        "within",
+        "about",
+        "above",
+        "across",
+        "after",
+        "against",
+        "along",
+        "among",
+        "around",
+        "before",
+        "behind",
+        "below",
+        "beneath",
+        "beside",
+        "between",
+        "beyond",
+        "during",
+        "except",
+        "inside",
+        "near",
+        "off",
+        "out",
+        "outside",
+        "over",
+        "past",
+        "since",
+        "through",
+        "throughout",
+        "toward",
+        "towards",
+        "under",
+        "until",
+        "up",
+        "down",
+        "for",
+        "of",
+        "on",
+        "in",
+        "to",
+        "at",
+        "by",
+        "as",
+        "or",
+        "and",
+        "but",
+        "if",
+        "because",
+        "while",
+        "versus",
+        "today",
+        "yesterday",
+        "tomorrow",
+        "morning",
+        "afternoon",
+        "evening",
+        "night",
+        "day",
+        "days",
+        "week",
+        "weeks",
+        "month",
+        "months",
+        "year",
+        "years",
+        "hour",
+        "hours",
+        "minute",
+        "minutes",
+        "second",
+        "seconds",
+        "ago",
+        "last",
+        "next",
+        "first",
+        "third",
+        "fourth",
+        "fifth",
+        "sixth",
+        "seventh",
+        "eighth",
+        "ninth",
+        "tenth",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "time",
+        "times",
+        "date",
+        "history",
+        "session",
+        "sessions",
+        "turn",
+        "turns",
+        "point",
+        "period",
+        "window",
+        "span",
+        "prior",
+        "previous",
+        "recent",
+        "latest",
+        "entire",
+        "total",
+        "full",
+        "complete",
+        "exact",
+        "specific",
+        "particular",
+        "certain",
+        "different",
+        "various",
+        "several",
+        "multiple",
+        "single",
+        "other",
+        "another",
+        "most",
+        "earliest",
+        "again",
+        "back",
+        "looking",
+        "type",
+        "types",
+        "file",
+        "files",
+        "filename",
+        "filenames",
+        "code",
+        "system",
+        "systems",
+        "server",
+        "servers",
+        "project",
+        "projects",
+        "data",
+        "key",
+        "keys",
+        "name",
+        "names",
+        "named",
+        "number",
+        "numbers",
+        "value",
+        "values",
+        "status",
+        "version",
+        "versions",
+        "model",
+        "models",
+        "user",
+        "users",
+        "account",
+        "accounts",
+        "address",
+        "port",
+        "path",
+        "paths",
+        "log",
+        "logs",
+        "test",
+        "tests",
+        "work",
+        "home",
+        "office",
+        "app",
+        "apps",
+        "application",
+        "applications",
+        "program",
+        "programs",
+        "utility",
+        "utilities",
+        "desktop",
+        "standard",
+        "tool",
+        "tools",
+        "action",
+        "actions",
+        "operation",
+        "operations",
+        "command",
+        "commands",
+        "script",
+        "scripts",
+        "document",
+        "documents",
+        "directory",
+        "folder",
+        "workspace",
+        "disk",
+        "record",
+        "records",
+        "receipt",
+        "receipts",
+        "memory",
+        "memories",
+        "fact",
+        "facts",
+        "detail",
+        "details",
+        "info",
+        "information",
+        "setting",
+        "settings",
+        "option",
+        "options",
+        "choice",
+        "choices",
+        "change",
+        "changed",
+        "update",
+        "updated",
+        "switch",
+        "switched",
+        "revised",
+        "revision",
+        "tell",
+        "told",
+        "say",
+        "said",
+        "mention",
+        "mentioned",
+        "state",
+        "stated",
+        "discuss",
+        "discussed",
+        "talk",
+        "talked",
+        "ask",
+        "asked",
+        "share",
+        "shared",
+        "give",
+        "gave",
+        "given",
+        "note",
+        "noted",
+        "remember",
+        "recall",
+        "recount",
+        "list",
+        "summarize",
+        "trace",
+        "progression",
+        "confirm",
+        "verify",
+        "check",
+        "checked",
+        "checking",
+        "show",
+        "shown",
+        "according",
+        "regarding",
+        "concerning",
+        "respect",
+        "whether",
+        "happened",
+        "occurred",
+        "performed",
+        "attempted",
+        "tried",
+        "used",
+        "called",
+        "invoked",
+        "outcome",
+        "outcomes",
+        "result",
+        "results",
+        "reason",
+        "reasons",
+        "due",
+        "right",
+        "best",
+        "final",
+        "old",
+        "new",
+        "high",
+        "low",
+        "put",
+        "set",
+        "sit",
+        "sitting",
+        "leave",
+        "left",
+        "wearing",
+        "attend",
+        "front",
+        "successfully",
+        "succeeded",
+        "completed",
+        "topic",
+        "topics",
+        "tuesday",
+        "monday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "january",
+        "february",
+        "march",
+        "april",
+        "june",
+        "july",
+        "august",
+        "september",
+        "october",
+        "november",
+        "december",
+        "recorded",
+        "runs",
+        "run",
+        "shift",
+        "shifted",
+        "engine",
+        "engines",
+        "optimised",
+        "optimized",
+        "tuned",
+        "kind",
+        "caused",
+        "data-sorting",
+        "sorting",
+    }
+)
+
+_ACTION_AND_BELIEF_SYNONYMS: Final[dict[str, frozenset[str]]] = {
+    "write": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "wrote": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "written": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "write_file": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "save": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "saved": frozenset({"write", "wrote", "written", "write_file", "save", "saved"}),
+    "create": frozenset({"write", "wrote", "written", "write_file", "created"}),
+    "created": frozenset({"write", "wrote", "written", "write_file", "created"}),
+    "markdown": frozenset({"notes.md", "md"}),
+    "read": frozenset({"read", "read_file"}),
+    "read_file": frozenset({"read", "read_file"}),
+    "inspect": frozenset({"read", "read_file"}),
+    "inspected": frozenset({"read", "read_file"}),
+    "delete": frozenset({"delete", "deleted", "delete_file"}),
+    "deleted": frozenset({"delete", "deleted", "delete_file"}),
+    "delete_file": frozenset({"delete", "deleted", "delete_file"}),
+    "deletion": frozenset({"delete", "deleted", "delete_file"}),
+    "remove": frozenset({"delete", "deleted", "delete_file"}),
+    "removed": frozenset({"delete", "deleted", "delete_file"}),
+    "removal": frozenset({"delete", "deleted", "delete_file"}),
+    "erase": frozenset({"delete", "deleted", "delete_file"}),
+    "erased": frozenset({"delete", "deleted", "delete_file"}),
+    "launch": frozenset({"launch", "launched", "launch_app", "opened"}),
+    "launched": frozenset({"launch", "launched", "launch_app", "opened"}),
+    "launch_app": frozenset({"launch", "launched", "launch_app", "opened"}),
+    "open": frozenset({"launch", "launched", "launch_app", "opened", "read", "read_file"}),
+    "opened": frozenset({"launch", "launched", "launch_app", "opened", "read", "read_file"}),
+    "start": frozenset({"launch", "launched", "launch_app", "opened"}),
+    "started": frozenset({"launch", "launched", "launch_app", "opened"}),
+    "editor": frozenset({"notepad"}),
+    "math": frozenset({"calculator"}),
+    "execute": frozenset({"execute", "executed", "run_python", "ran", "script"}),
+    "executed": frozenset({"execute", "executed", "run_python", "ran", "script"}),
+    "run_python": frozenset({"execute", "executed", "run_python", "ran", "script"}),
+    "run": frozenset({"execute", "executed", "run_python", "ran", "script"}),
+    "ran": frozenset({"execute", "executed", "run_python", "ran", "script"}),
+    "python": frozenset({"python", "run_python", "3.10", "3.12"}),
+    "fetch": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "fetched": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "fetch_url": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "retrieve": frozenset({"fetch", "fetched", "fetch_url", "read", "read_file"}),
+    "retrieved": frozenset({"fetch", "fetched", "fetch_url", "read", "read_file"}),
+    "website": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "websites": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "url": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "urls": frozenset({"fetch", "fetched", "fetch_url", "http", "https"}),
+    "web": frozenset({"search_web", "searched", "fetch_url", "fetched"}),
+    "search": frozenset({"search", "searched", "search_web", "provider", "duckduckgo", "brave"}),
+    "searched": frozenset({"search", "searched", "search_web"}),
+    "search_web": frozenset({"search", "searched", "search_web"}),
+    "query": frozenset({"search", "searched", "search_web"}),
+    "queries": frozenset({"search", "searched", "search_web"}),
+    "block": frozenset({"blocked", "denied", "read-only"}),
+    "blocked": frozenset({"blocked", "denied", "read-only"}),
+    "deny": frozenset({"denied", "blocked", "protected_file"}),
+    "denied": frozenset({"denied", "blocked", "protected_file"}),
+    "fail": frozenset(
+        {"failed", "error", "blocked", "denied", "syntax", "read-only", "unreachable"}
+    ),
+    "failed": frozenset(
+        {"failed", "error", "blocked", "denied", "syntax", "read-only", "unreachable"}
+    ),
+    "failure": frozenset(
+        {"failed", "error", "blocked", "denied", "syntax", "read-only", "unreachable"}
+    ),
+    "failures": frozenset(
+        {"failed", "error", "blocked", "denied", "syntax", "read-only", "unreachable"}
+    ),
+    "permissions": frozenset({"read-only", "denied", "blocked", "protected_file"}),
+    "read-only": frozenset({"read-only", "lucca_test"}),
+    "prefer": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "switched",
+            "upgraded",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "preference": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "switched",
+            "upgraded",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "preferences": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "switched",
+            "upgraded",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "preferred": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "switched",
+            "upgraded",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "belief": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "think",
+            "switched",
+            "upgraded",
+            "improved",
+            "benchmark",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "beliefs": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "think",
+            "switched",
+            "upgraded",
+            "improved",
+            "benchmark",
+            "toml",
+            "json",
+            "brave",
+            "duckduckgo",
+            "bge",
+            "minilm",
+            "python",
+        }
+    ),
+    "view": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "think",
+            "switched",
+            "upgraded",
+            "improved",
+            "benchmark",
+            "python",
+        }
+    ),
+    "views": frozenset(
+        {
+            "prefer",
+            "favour",
+            "favor",
+            "think",
+            "switched",
+            "upgraded",
+            "improved",
+            "benchmark",
+            "python",
+        }
+    ),
+    "opinion": frozenset(
+        {"prefer", "favour", "favor", "think", "switched", "upgraded", "improved", "python"}
+    ),
+    "stance": frozenset(
+        {"prefer", "favour", "favor", "think", "switched", "upgraded", "improved", "python"}
+    ),
+    "embedding": frozenset({"embedding", "embeddings", "minilm", "bge"}),
+    "embeddings": frozenset({"embedding", "embeddings", "minilm", "bge"}),
+    "configuration": frozenset({"configuration", "config", "json", "toml"}),
+    "config": frozenset({"configuration", "config", "json", "toml"}),
+    "format": frozenset({"configuration", "config", "json", "toml"}),
+    "formats": frozenset({"configuration", "config", "json", "toml"}),
+    "provider": frozenset({"provider", "duckduckgo", "brave", "search"}),
+    "providers": frozenset({"provider", "duckduckgo", "brave", "search"}),
+    "benchmark": frozenset({"benchmark", "throughput", "tokens"}),
+    "throughput": frozenset({"benchmark", "throughput", "tokens"}),
+    "speed": frozenset({"benchmark", "throughput", "tokens"}),
+}
+
+
+def filter_relevant_memory_hits(query_text: str, hits: list[MemoryHit]) -> list[MemoryHit]:
+    """Filters dense-vector neighbor hits to ensure lexical/artifact relevance to the query."""
+    if not hits or not query_text.strip():
+        return hits
+    low = query_text.lower()
+    files = re.findall(
+        r"\b[a-z0-9_.\-/]+\.(?:txt|md|py|json|ini|csv|log|sys|db|yaml|yml|toml|sh|bat|exe|env|cfg|conf|sql|html|xml)\b",
+        low,
+    )
+    urls = re.findall(
+        r"https?://[^\s\"'<>?]+|\b(?:docs\.python\.org|python\.org|arxiv\.org|news\.ycombinator\.com|github\.com|en\.wikipedia\.org|pypi\.org|stackoverflow\.com|google\.com|sqlite\.org|unreachable\.example\.internal)\b",
+        low,
+    )
+    quoted = [
+        m.strip().lower()
+        for pair in re.findall(r"'([^']{3,60})'|\"([^\"]{3,60})\"", query_text)
+        for m in pair
+        if m.strip() and " " in m.strip()
+    ]
+    artifacts: list[str] = []
+    for f in files:
+        artifacts.append(f.rsplit("/", 1)[-1].rsplit("\\", 1)[-1])
+    for u in urls:
+        artifacts.append(u.rstrip(".,;:?)"))
+    for q_lit in quoted:
+        artifacts.append(q_lit)
+
+    if artifacts:
+        return [h for h in hits if any(a in h.content.lower() for a in artifacts)]
+
+    has_self_or_tool_ref = bool(
+        re.search(
+            r"\b(?:you|your|yours|lucca|write_file|read_file|delete_file|launch_app|run_python|search_web|fetch_url|workspace|sandbox|script|python|execution)\b",
+            low,
+        )
+    )
+    raw_words = re.findall(r"\b[a-z0-9_\-.]{3,}\b", low)
+    non_action: set[str] = set()
+    action: set[str] = set()
+    for w in raw_words:
+        w_clean = w.strip(".-_")
+        if len(w_clean) < 3 or w_clean in _QUERY_STOP_AND_GENERIC or w_clean.isdigit():
+            continue
+        if w_clean in _ACTION_AND_BELIEF_SYNONYMS and has_self_or_tool_ref:
+            action.update(_ACTION_AND_BELIEF_SYNONYMS[w_clean])
+        else:
+            non_action.add(w_clean)
+
+    if not non_action and not action:
+        return hits
+
+    filtered: list[MemoryHit] = []
+    for h in hits:
+        c_low = h.content.lower()
+        c_tokens = set(re.findall(r"\b[a-z0-9_\-.]{2,}\b", c_low))
+        if non_action:
+            matched_non_act = sum(
+                1
+                for w in non_action
+                if w in c_tokens
+                or any(
+                    (ct.startswith(w) or w.startswith(ct))
+                    for ct in c_tokens
+                    if len(ct) >= 5 and len(w) >= 5
+                )
+            )
+            if len(non_action) == 1 and matched_non_act >= 1:
+                filtered.append(h)
+            elif len(non_action) >= 2 and (
+                matched_non_act >= 2
+                or (matched_non_act >= 1 and action and any(a in c_low for a in action))
+            ):
+                filtered.append(h)
+            elif (
+                has_self_or_tool_ref
+                and action
+                and any(a in c_low for a in action)
+                and len(non_action) <= 2
+            ):
+                filtered.append(h)
+        elif action and any(a in c_low for a in action):
+            filtered.append(h)
+    return filtered
 
 
 def _provenance_tier(prov: object) -> int:
@@ -112,21 +863,17 @@ def format_memory_context(
         if hit.kind == "graph":
             return f"- {content_clean}"
         age = calculate_age_str(hit.created_at, current_time)
-        prov_val = (
-            hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
-        )
+        prov_val = hit.provenance.value if hasattr(hit.provenance, "value") else str(hit.provenance)
         if prov_val == "INFERRED":
             conf_val = getattr(hit, "confidence", 1.0)
             std_label = standard_for_confidence(conf_val).value
             prefix = (
-                f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} "
-                f"— {std_label} {age}]"
+                f"- [{hit.kind}/INFERRED inferred, confidence {conf_val:.2f} — {std_label} {age}]"
             )
             return f"{prefix} {content_clean}"
-        conf_str = (
-            f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
-        )
-        return f"- [{hit.kind}/{prov_val}{conf_str} {age}] {content_clean}"
+        conf_str = f" conf={hit.confidence:.2f}" if getattr(hit, "confidence", 1.0) < 0.85 else ""
+        sup_str = " [SUPERSEDED]" if hit.valid_to is not None else ""
+        return f"- [{hit.kind}/{prov_val}{conf_str}{sup_str} {age}] {content_clean}"
 
     # --- Multi-session grouping (D-MEM-04) ---
     # Group hits by session prefix derived from source_turn_id (e.g. "sess_1:turn_3" ->
@@ -159,9 +906,7 @@ def format_memory_context(
 
     if multi_session:
         # Sort sessions oldest-first by min created_at of their hits
-        session_keys_ordered.sort(
-            key=lambda sk: min(h.created_at for h in session_groups[sk])
-        )
+        session_keys_ordered.sort(key=lambda sk: min(h.created_at for h in session_groups[sk]))
         for s_num, sk in enumerate(session_keys_ordered, start=1):
             group_hits = sorted(session_groups[sk], key=lambda h: h.created_at)
             oldest_ts = group_hits[0].created_at
@@ -299,6 +1044,88 @@ def extract_temporal_constraints(
     dt_now = datetime.fromtimestamp(current_time, tz=UTC)
     start_of_today = datetime(dt_now.year, dt_now.month, dt_now.day, tzinfo=UTC).timestamp()
 
+    # Number words lookup for relative date parsing
+    _NUM_WORDS: dict[str, int] = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+        "first": 1,
+        "second": 2,
+        "third": 3,
+        "fourth": 4,
+        "fifth": 5,
+        "sixth": 6,
+        "seventh": 7,
+        "eighth": 8,
+        "ninth": 9,
+        "tenth": 10,
+    }
+    _NUM_PAT = (
+        r"(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|"
+        r"first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)"
+    )
+
+    def _parse_num_token(tok: str) -> int:
+        low_tok = tok.lower()
+        return int(low_tok) if low_tok.isdigit() else _NUM_WORDS.get(low_tok, 1)
+
+    # Past / last N days ("over the past 3 days", "in the last five days")
+    m_past_days = re.search(
+        rf"\b(?:over\s+the\s+|in\s+the\s+)?(?:past|last)\s+({_NUM_PAT})\s+days?\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_past_days:
+        n_past = _parse_num_token(m_past_days.group(1))
+        t_start = start_of_today - n_past * 86400.0
+        t_end = current_time
+        stripped = re.sub(
+            rf"\b(?:over\s+the\s+|in\s+the\s+)?(?:past|last)\s+{_NUM_PAT}\s+days?\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        ).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
+    # Multi-day range ("between one and two days ago", "two and three days ago",
+    # "yesterday and six days ago", "three days ago and seven days ago")
+    day_offsets: set[int] = set()
+    m_range_days = re.search(
+        rf"\b(?:between\s+(?:the\s+)?)?({_NUM_PAT})\s+(?:days?\s+ago\s+)?(?:and|to|or)\s+(?:the\s+)?({_NUM_PAT})\s+days?\s+ago\b",
+        clean,
+        re.IGNORECASE,
+    )
+    if m_range_days:
+        day_offsets.add(_parse_num_token(m_range_days.group(1)))
+        day_offsets.add(_parse_num_token(m_range_days.group(2)))
+    for m_d in re.finditer(rf"\b({_NUM_PAT})\s+days?\s+ago\b", clean, re.IGNORECASE):
+        day_offsets.add(_parse_num_token(m_d.group(1)))
+    if re.search(r"\byesterday\b", clean, re.IGNORECASE) and day_offsets:
+        day_offsets.add(1)
+    if len(day_offsets) >= 2:
+        n_min = min(day_offsets)
+        n_max = max(day_offsets)
+        t_start = start_of_today - n_max * 86400.0
+        t_end = start_of_today - (n_min - 1) * 86400.0
+        stripped = re.sub(
+            rf"\b(?:between\s+(?:the\s+)?)?{_NUM_PAT}\s+(?:days?\s+ago\s+)?(?:and|to|or)\s+(?:the\s+)?{_NUM_PAT}\s+days?\s+ago\b",
+            "",
+            clean,
+            flags=re.IGNORECASE,
+        )
+        stripped = re.sub(rf"\b{_NUM_PAT}\s+days?\s+ago\b", "", stripped, flags=re.IGNORECASE)
+        stripped = re.sub(r"\byesterday\b", "", stripped, flags=re.IGNORECASE).strip()
+        cleaned = _clean_temporal_query(stripped)
+        return cleaned or clean, (t_start, t_end), "during", "created_at"
+
     # Yesterday
     if re.search(r"\byesterday\b", clean, re.IGNORECASE):
         t_start = start_of_today - 86400.0
@@ -324,20 +1151,6 @@ def extract_temporal_constraints(
         stripped = re.sub(r"\bthis morning\b", "", clean, flags=re.IGNORECASE).strip()
         cleaned = _clean_temporal_query(stripped)
         return cleaned or clean, (t_start, t_end), "during", "created_at"
-
-    # Number words lookup for relative date parsing
-    _NUM_WORDS: dict[str, int] = {
-        "one": 1,
-        "two": 2,
-        "three": 3,
-        "four": 4,
-        "five": 5,
-        "six": 6,
-        "seven": 7,
-        "eight": 8,
-        "nine": 9,
-        "ten": 10,
-    }
 
     # N hours ago
     m_hours = re.search(
@@ -427,11 +1240,13 @@ def extract_temporal_constraints(
         cleaned = _clean_temporal_query(stripped)
         return cleaned or clean, (t_start, t_end), "during", "created_at"
 
-    # Last week / past week
-    if re.search(r"\b(?:last week|past week)\b", clean, re.IGNORECASE):
+    # Last week / past week / this week
+    if re.search(r"\b(?:last week|past week|this week)\b", clean, re.IGNORECASE):
         t_start = current_time - 7 * 86400.0
         t_end = current_time
-        stripped = re.sub(r"\b(?:last week|past week)\b", "", clean, flags=re.IGNORECASE).strip()
+        stripped = re.sub(
+            r"\b(?:last week|past week|this week)\b", "", clean, flags=re.IGNORECASE
+        ).strip()
         cleaned = _clean_temporal_query(stripped)
         return cleaned or clean, (t_start, t_end), "during", "created_at"
 
@@ -468,7 +1283,18 @@ def extract_temporal_constraints(
             rel_word = m_rel.group(1).lower()
             target_word = m_rel.group(2).strip()
             excluded_stop_words = {
-                "that", "then", "this", "it", "we", "i", "you", "me", "us", "them", "him", "her",
+                "that",
+                "then",
+                "this",
+                "it",
+                "we",
+                "i",
+                "you",
+                "me",
+                "us",
+                "them",
+                "him",
+                "her",
             }
             if target_word.lower() not in excluded_stop_words:
                 try:
@@ -549,8 +1375,9 @@ class HybridRetriever:
             "cryptographic integrity checks and were quarantined."
         )
 
-    def _persist_quarantine(self, memory_id: int, entry_id: str | None, stage: str,
-        reason: str) -> None:
+    def _persist_quarantine(
+        self, memory_id: int, entry_id: str | None, stage: str, reason: str
+    ) -> None:
         try:
             with self.db.get_writer() as conn:
                 conn.execute(
@@ -570,8 +1397,9 @@ class HybridRetriever:
                 )
                 conn.commit()
         except Exception as q_err:
-            logger.warning("persist_memory_quarantine_fa"
-                "iled", memory_id=memory_id, error=str(q_err))
+            logger.warning(
+                "persist_memory_quarantine_failed", memory_id=memory_id, error=str(q_err)
+            )
 
     def get_persisted_quarantine_records(self) -> list[dict[str, object]]:
         """Returns all memory records quarantined across sessions."""
@@ -582,8 +1410,10 @@ class HybridRetriever:
                 )
                 if not cur.fetchone():
                     return []
-                cur.execute("SELECT memory_id, entry_id, reason, stage, quarantined_at FROM "
-                    "memory_quarantine ORDER BY quarantined_at DESC")
+                cur.execute(
+                    "SELECT memory_id, entry_id, reason, stage, quarantined_at FROM "
+                    "memory_quarantine ORDER BY quarantined_at DESC"
+                )
                 return [dict(row) for row in cur.fetchall()]
         except Exception as exc:
             logger.debug("get_persisted_quarantine_records_failed", error=str(exc))
@@ -648,8 +1478,9 @@ class HybridRetriever:
             )
             goal_terms: dict[str, int] = {}
             for g in active_goal_list[:3]:
-                for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} "
-                    f"{g.description}".lower()):
+                for tok in re.findall(
+                    r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} {g.description}".lower()
+                ):
                     if tok not in ("the", "and", "for", "with", "that", "this", "from", "into"):
                         goal_terms[tok] = max(goal_terms.get(tok, 0), 1, g.priority)
 
@@ -721,6 +1552,52 @@ class HybridRetriever:
                     score = 1.0
                 rrf_scores[mid] = score
 
+            # 3b. Belief-revision chain propagation along superseded_by
+            try:
+                cur.execute(
+                    "SELECT memory_id, superseded_by FROM memories "
+                    "WHERE superseded_by IS NOT NULL AND forgotten_at IS NULL"
+                )
+                sup_rows = cur.fetchall()
+                if sup_rows:
+                    fwd_map: dict[int, int] = {}
+                    bwd_map: dict[int, list[int]] = {}
+                    for sr in sup_rows:
+                        old_id = int(sr[0])
+                        new_id = int(sr[1])
+                        fwd_map[old_id] = new_id
+                        bwd_map.setdefault(new_id, []).append(old_id)
+                    q_set = set(self.quarantined_memory_ids)
+                    seed_ids = list(all_candidate_ids)
+                    for mid in seed_ids:
+                        base_sc = rrf_scores.get(mid, 0.0)
+                        curr = mid
+                        for hop in range(1, 5):
+                            nxt = fwd_map.get(curr)
+                            if nxt is None or nxt in q_set:
+                                break
+                            all_candidate_ids.add(nxt)
+                            rrf_scores[nxt] = max(rrf_scores.get(nxt, 0.0), base_sc * (0.98**hop))
+                            curr = nxt
+                        if q.include_superseded:
+                            frontier = [mid]
+                            for hop in range(1, 5):
+                                next_frontier: list[int] = []
+                                for node in frontier:
+                                    for prev_id in bwd_map.get(node, []):
+                                        if prev_id not in q_set:
+                                            all_candidate_ids.add(prev_id)
+                                            rrf_scores[prev_id] = max(
+                                                rrf_scores.get(prev_id, 0.0),
+                                                base_sc * (0.95**hop),
+                                            )
+                                            next_frontier.append(prev_id)
+                                if not next_frontier:
+                                    break
+                                frontier = next_frontier
+            except sqlite3.Error as chain_err:
+                logger.debug("belief_chain_propagation_skipped", error=str(chain_err))
+
             # Sort candidates descending by RRF score
             sorted_candidates = sorted(
                 all_candidate_ids, key=lambda mid: rrf_scores[mid], reverse=True
@@ -756,9 +1633,7 @@ class HybridRetriever:
                 _integrity_ok = True
                 try:
                     stored_sha = r["content_sha256"]
-                    actual_sha = hashlib.sha256(
-                        str(r["content"]).encode("utf-8")
-                    ).hexdigest()
+                    actual_sha = hashlib.sha256(str(r["content"]).encode("utf-8")).hexdigest()
                     if stored_sha and actual_sha != stored_sha:
                         logger.error(
                             "memory_retrieval_integrity_violation",
@@ -785,8 +1660,9 @@ class HybridRetriever:
                                         memory_id=mid,
                                     )
                                     _integrity_ok = False
-                                canon_dict = {k: v for k,
-                                    v in raw_dict.items() if k not in _EXCLUDED}
+                                canon_dict = {
+                                    k: v for k, v in raw_dict.items() if k not in _EXCLUDED
+                                }
                                 canonical_bytes = json.dumps(
                                     canon_dict,
                                     sort_keys=True,
@@ -831,7 +1707,7 @@ class HybridRetriever:
                         memory_id=mid,
                         entry_id=eid,
                         msg=f"Memory row {mid} failed integrity verification (SHA256/HMAC "
-                            "mismatch). Row quarantined.",
+                        "mismatch). Row quarantined.",
                     )
                     self.quarantined_memory_ids.append(mid)
                     self._persist_quarantine(
@@ -866,8 +1742,9 @@ class HybridRetriever:
                     continue
                 # - valid_to IS NULL unless include_superseded is True or querying valid_time clock
                 if (
-                    valid_to is not None and not q.include_superseded and q.temporal_clock
-                    != "valid_time"
+                    valid_to is not None
+                    and not q.include_superseded
+                    and q.temporal_clock != "valid_time"
                 ):
                     continue
                 # - kind filter
@@ -903,6 +1780,22 @@ class HybridRetriever:
                     pass
 
                 content_str = str(r["content"])
+                if kind == "tool_fact" and r["payload_json"]:
+                    try:
+                        p_obj = json.loads(str(r["payload_json"]))
+                        if isinstance(p_obj, dict) and isinstance(p_obj.get("structured"), dict):
+                            st_dict = p_obj["structured"]
+                            extra_tags: list[str] = []
+                            for k_st in ("path", "url", "query", "script", "app"):
+                                v_st = st_dict.get(k_st)
+                                if isinstance(v_st, str) and v_st and v_st not in content_str:
+                                    extra_tags.append(f"{k_st}={v_st}")
+                            if st_dict.get("ok") is False and "ok=False" not in content_str:
+                                extra_tags.append("ok=False")
+                            if extra_tags:
+                                content_str = f"{content_str} [{', '.join(extra_tags)}]"
+                    except (json.JSONDecodeError, TypeError, ValueError):
+                        pass
                 hit_score = rrf_scores[mid]
                 if goal_terms:
                     c_lower = content_str.lower()

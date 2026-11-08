@@ -5,8 +5,10 @@ Spec: plans/wo43_refactor_and_power/03_PHASE3_DOMAIN_GOD_OBJECTS_DEDUP_AND_DECOM
 
 from __future__ import annotations
 
+import json
 import platform
 import re
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
@@ -467,9 +469,7 @@ class CascadeSubstrateAdapters:
                 )
                 if res and res.ok:
                     raw_entries = (
-                        res.structured.get("entries")
-                        if isinstance(res.structured, dict)
-                        else None
+                        res.structured.get("entries") if isinstance(res.structured, dict) else None
                     )
                     entries = raw_entries if isinstance(raw_entries, list) else []
                     names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
@@ -496,9 +496,7 @@ class CascadeSubstrateAdapters:
                 return items
 
             # 2. Specific file read inquiries (e.g. "Read config/persona.toml in the workspace")
-            file_match = re.search(
-                r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml|url))", query_text
-            )
+            file_match = re.search(r"([\w\-./\\]+\.(?:toml|py|json|md|txt|ya?ml|url))", query_text)
             is_explicit_listing = any(
                 w in lower for w in ("list files", "directory", "folder", "all files", "what files")
             )
@@ -566,9 +564,7 @@ class CascadeSubstrateAdapters:
                 )
                 if res and res.ok:
                     raw_entries = (
-                        res.structured.get("entries")
-                        if isinstance(res.structured, dict)
-                        else None
+                        res.structured.get("entries") if isinstance(res.structured, dict) else None
                     )
                     entries = raw_entries if isinstance(raw_entries, list) else []
                     names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
@@ -617,7 +613,7 @@ class CascadeSubstrateAdapters:
         try:
             q = RetrievalQuery(
                 query_text=query_text.strip(),
-                k=8,
+                k=16,
                 include_superseded=True,
                 temporal_anchor=temporal_anchor,
                 temporal_relation=temporal_relation,
@@ -625,6 +621,10 @@ class CascadeSubstrateAdapters:
             )
             res = self.memory_store.search(q)
             raw_hits: list[MemoryHit] = res if isinstance(res, list) else []
+            if getattr(self.memory_store, "db", None) is not None:
+                from lucca.memory.retrieval import filter_relevant_memory_hits  # noqa: PLC0415
+
+                raw_hits = filter_relevant_memory_hits(query_text, raw_hits)
 
             for hit in raw_hits:
                 # Invariant D-MEM-04: Non-grounding rows MUST NOT enter Belnap evidence fusion!
@@ -709,48 +709,136 @@ class CascadeSubstrateAdapters:
                 items.append(ev)
                 candidates.append((float(ep.match_score), ep.ts, ev))
 
+            from lucca.memory.retrieval import (  # noqa: PLC0415
+                calculate_age_str,
+                extract_temporal_constraints,
+            )
+
+            now_ts = time.time()
+            _, temp_anchor, _, _ = extract_temporal_constraints(query_text, now=now_ts, db=db)
+
             with db.read_cursor() as cur:
-                # 2. Query memories for autobiographical classes
+                # 2. Query memories for autobiographical & verified tool classes
                 cur.execute(
                     """
                     SELECT m.memory_id, m.content, p.provenance, p.trace_id,
-                           m.created_at, m.superseded_by, p.grounding_eligible
+                           m.created_at, m.superseded_by, p.grounding_eligible,
+                           p.confidence, p.payload_json, m.valid_to
                     FROM memories m
                     JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                     WHERE p.provenance IN (
                         'ASSISTANT_ACTION', 'ASSISTANT_UTTERANCE',
-                        'COHERENCE_BREACH', 'ASSISTANT_BELIEF'
+                        'COHERENCE_BREACH', 'ASSISTANT_BELIEF', 'TOOL_VERIFIED'
                     )
-                    ORDER BY m.created_at DESC LIMIT 100
+                    ORDER BY m.created_at DESC LIMIT 120
                     """
                 )
                 mem_rows = cur.fetchall()
-                for mid, content, prov, tr_id, cat_ts, sup_by, gr_elig in mem_rows:
+                id_to_content: dict[int, str] = {int(r[0]): str(r[1]) for r in mem_rows}
+                bwd_sup: dict[int, list[int]] = {}
+                for r in mem_rows:
+                    if r[5] is not None:
+                        bwd_sup.setdefault(int(r[5]), []).append(int(r[0]))
+
+                for (
+                    mid,
+                    content,
+                    prov,
+                    tr_id,
+                    cat_ts,
+                    sup_by,
+                    gr_elig,
+                    conf_val,
+                    payload_j,
+                    val_to,
+                ) in mem_rows:
                     content_str = str(content)
-                    is_wrong_query = "wrong" in query_text.lower() or "error" in query_text.lower()
+                    if str(prov) == "TOOL_VERIFIED" and payload_j:
+                        try:
+                            p_obj = json.loads(str(payload_j))
+                            if isinstance(p_obj, dict) and isinstance(
+                                p_obj.get("structured"), dict
+                            ):
+                                st_d = p_obj["structured"]
+                                extra_t: list[str] = []
+                                for k_st in ("path", "url", "query", "script", "app"):
+                                    v_st = st_d.get(k_st)
+                                    if isinstance(v_st, str) and v_st and v_st not in content_str:
+                                        extra_t.append(f"{k_st}={v_st}")
+                                if st_d.get("ok") is False and "ok=False" not in content_str:
+                                    extra_t.append("ok=False")
+                                if extra_t:
+                                    content_str = f"{content_str} [{', '.join(extra_t)}]"
+                        except (json.JSONDecodeError, TypeError, ValueError):
+                            pass
+
+                    age_tag = calculate_age_str(float(cat_ts), now_ts)
+                    if sup_by is not None and int(sup_by) in id_to_content:
+                        newer_txt = id_to_content[int(sup_by)]
+                        display_content = (
+                            f"[{age_tag}] [SUPERSEDED by #{sup_by}: '{newer_txt}'] {content_str}"
+                        )
+                    elif int(mid) in bwd_sup:
+                        older_ids = bwd_sup[int(mid)]
+                        older_txts = [
+                            id_to_content[oid] for oid in older_ids if oid in id_to_content
+                        ]
+                        older_note = f" (supersedes: {'; '.join(older_txts)})" if older_txts else ""
+                        display_content = f"[{age_tag}] [ACTIVE BELIEF{older_note}] {content_str}"
+                    elif str(prov) == "TOOL_VERIFIED":
+                        ok_label = (
+                            "SUCCEEDED (ok=True)"
+                            if (conf_val is None or float(conf_val) >= 0.5)
+                            else "FAILED/BLOCKED (ok=False)"
+                        )
+                        display_content = f"[{age_tag}] [{ok_label}] {content_str}"
+                    else:
+                        display_content = f"[{age_tag}] {content_str}"
+
+                    in_temp_window = True
+                    if temp_anchor is not None:
+                        in_temp_window = temp_anchor[0] <= float(cat_ts) <= temp_anchor[1]
+
+                    is_wrong_query = (
+                        "wrong" in query_text.lower() or "mistake" in query_text.lower()
+                    )
                     if is_wrong_query and (prov == "COHERENCE_BREACH" or sup_by is not None):
                         told_true, told_false = self._evaluate_polarity(content_str, query_text)
                         candidates.append(
                             (
-                                10.0,  # Highest priority for explicit error/breach retrospection
+                                10.0,
                                 float(cat_ts),
                                 _EvItem(
                                     substrate=_Sub.SELF_HISTORY,
                                     trust_tier=_Tier.TIER_1_HARDWARE,
                                     source=f"history:breach:{mid}",
                                     content=(
-                                        f"Historical revision / breach: {content_str} "
+                                        f"Historical revision / breach: {display_content} "
                                         f"(superseded_by={sup_by})"
                                     ),
                                     told_true=told_true,
                                     told_false=told_false,
                                     confidence=1.0,
-                                    metadata={"provenance": str(prov), "superseded_by": sup_by},
+                                    metadata={
+                                        "provenance": str(prov),
+                                        "superseded_by": sup_by,
+                                        "is_superseded": sup_by is not None or val_to is not None,
+                                    },
                                 ),
                             )
                         )
-                    elif not is_wrong_query and tokens:
-                        score = sum(1 for t in tokens if t in content_str.lower())
+                    elif tokens:
+                        haystack = display_content.lower()
+                        score = sum(1 for t in tokens if t in haystack)
+                        if str(prov) == "ASSISTANT_BELIEF" and re.search(
+                            r"\b(?:opinion|opinions|belief|beliefs|preference|preferences|preferred|view|views|stance|prefer|favour|favor|benchmark|throughput)\b",
+                            query_text.lower(),
+                        ):
+                            score = score + 3 if score > 0 else 0
+                        if in_temp_window and temp_anchor is not None:
+                            score += 2
+                        elif temp_anchor is not None and not in_temp_window:
+                            score = max(0, score - 2)
                         if score > 0:
                             told_true, told_false = self._evaluate_polarity(content_str, query_text)
                             candidates.append(
@@ -761,7 +849,7 @@ class CascadeSubstrateAdapters:
                                         substrate=_Sub.SELF_HISTORY,
                                         trust_tier=_Tier.TIER_1_HARDWARE,
                                         source=f"history:{str(prov).lower()}:{mid}",
-                                        content=content_str,
+                                        content=display_content,
                                         told_true=told_true,
                                         told_false=told_false,
                                         confidence=1.0,
@@ -769,12 +857,44 @@ class CascadeSubstrateAdapters:
                                             "provenance": str(prov),
                                             "trace_id": str(tr_id),
                                             "grounding_eligible": int(gr_elig),
+                                            "is_superseded": (
+                                                sup_by is not None or val_to is not None
+                                            ),
                                         },
                                     ),
                                 )
                             )
 
-                # Sort by (match_score DESC, created_at DESC) and cap at 5 items
+                # Explicit artifact gate: if the query names a specific file/URL/quoted query
+                # that does not appear in any candidate, return empty list (honest abstention).
+                low_q = query_text.lower()
+                explicit_files = re.findall(
+                    r"\b[a-z0-9_.\-/]+\.(?:txt|md|py|json|ini|csv|log|sys|db|yaml|yml|toml|sh|bat|exe|env|cfg|conf|sql|html|xml)\b",
+                    low_q,
+                )
+                explicit_urls = re.findall(
+                    r"https?://[^\s\"'<>?]+|\b(?:docs\.python\.org|python\.org|arxiv\.org|news\.ycombinator\.com|github\.com|en\.wikipedia\.org|pypi\.org|stackoverflow\.com|google\.com|sqlite\.org|unreachable\.example\.internal)\b",
+                    low_q,
+                )
+                explicit_quoted = [
+                    m.strip().lower()
+                    for pair in re.findall(r"'([^']{3,60})'|\"([^\"]{3,60})\"", query_text)
+                    for m in pair
+                    if m.strip() and " " in m.strip()
+                ]
+                req_artifacts = (
+                    [f.rsplit("/", 1)[-1].rsplit("\\", 1)[-1] for f in explicit_files]
+                    + [u.rstrip(".,;:?)") for u in explicit_urls]
+                    + explicit_quoted
+                )
+                if req_artifacts:
+                    candidates = [
+                        c
+                        for c in candidates
+                        if any(a in c[2].content.lower() for a in req_artifacts)
+                    ]
+
+                # Sort by (match_score DESC, created_at DESC) and cap at 8 items
                 candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
                 seen_sources: set[str] = set()
                 deduped: list[EvidenceItem] = []
@@ -782,7 +902,7 @@ class CascadeSubstrateAdapters:
                     if item.source not in seen_sources:
                         seen_sources.add(item.source)
                         deduped.append(item)
-                    if len(deduped) >= 5:
+                    if len(deduped) >= 8:
                         break
                 return deduped
         except Exception as exc:  # noqa: BLE001

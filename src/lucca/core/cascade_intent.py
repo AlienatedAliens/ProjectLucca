@@ -205,22 +205,71 @@ def _any_term_matches(text: str, terms: tuple[str, ...]) -> bool:
 
 
 REGIONAL_OR_CULTURE_WORDS: tuple[str, ...] = (
-    "australia", "australian", "aussie", "uk", "british", "britain", "england",
-    "scotland", "scottish", "ireland", "irish", "new zealand", "kiwi",
-    "philippines", "filipino", "singapore", "singaporean", "malaysia", "malaysian",
-    "new york", "nyc", "chicago", "texas", "southern", "canada", "canadian",
-    "south africa", "japan", "japanese",
+    "australia",
+    "australian",
+    "aussie",
+    "uk",
+    "british",
+    "britain",
+    "england",
+    "scotland",
+    "scottish",
+    "ireland",
+    "irish",
+    "new zealand",
+    "kiwi",
+    "philippines",
+    "filipino",
+    "singapore",
+    "singaporean",
+    "malaysia",
+    "malaysian",
+    "new york",
+    "nyc",
+    "chicago",
+    "texas",
+    "southern",
+    "canada",
+    "canadian",
+    "south africa",
+    "japan",
+    "japanese",
 )
 
 SLANG_OR_DIALECT_WORDS: tuple[str, ...] = (
-    "slang", "colloquial", "colloquialism", "dialect", "idiom", "vernacular",
-    "lingo", "jargon", "local term", "street term",
+    "slang",
+    "colloquial",
+    "colloquialism",
+    "dialect",
+    "idiom",
+    "vernacular",
+    "lingo",
+    "jargon",
+    "local term",
+    "street term",
 )
 
 CULINARY_WORDS: tuple[str, ...] = (
-    "food", "dish", "snack", "fish", "meat", "pastry", "cuisine", "grub",
-    "cheese", "sandwich", "dessert", "bread", "roll", "pie", "stew",
-    "beverage", "drink", "street food", "recipe", "barm",
+    "food",
+    "dish",
+    "snack",
+    "fish",
+    "meat",
+    "pastry",
+    "cuisine",
+    "grub",
+    "cheese",
+    "sandwich",
+    "dessert",
+    "bread",
+    "roll",
+    "pie",
+    "stew",
+    "beverage",
+    "drink",
+    "street food",
+    "recipe",
+    "barm",
 )
 
 
@@ -350,8 +399,11 @@ def classify_epistemic_intent(
         has_numbered_premises = len(re.findall(r"(?:^|\n)\s*\d+\.\s+[A-Z]", clean)) >= 2
         has_algebraic_relations = bool(
             re.search(r"\b[a-z]\s*[+\-*/=<>]+\s*[a-z0-9]", lower)
-            or re.search(r"\b(?:premise|clause|constraint|hypothesis|interval)\s+["
-                r"a-z0-9]+\b", lower)
+            or re.search(
+                r"\b(?:premise|clause|constraint|hypothesis|interval)\s+["
+                r"a-z0-9]+\b",
+                lower,
+            )
         )
         if has_numbered_premises or has_algebraic_relations:
             return False, [], None
@@ -564,18 +616,28 @@ def classify_epistemic_intent(
         substrates.append(_sub().SELF)
     if re.search(capability_pattern, lower):
         substrates.append(_sub().CAPABILITIES)
-    if _any_term_matches(lower, telemetry_words):
+    is_personal_event_time = bool(
+        re.search(
+            r"\bwhat\s+time\s+(?:did|was|were|is\s+my|are\s+my|does\s+my|do\s+i)\b",
+            lower,
+        )
+    )
+    is_crypto_wallet = bool(
+        re.search(r"\b(?:crypto|recovery\s+phrase|seed\s+phrase|wallet)\b", lower)
+    )
+    if _any_term_matches(lower, telemetry_words) and not is_crypto_wallet:
         substrates.append(_sub().TELEMETRY)
-    if _any_term_matches(lower, temporal_words):
+    if _any_term_matches(lower, temporal_words) and not is_personal_event_time:
         substrates.append(_sub().TELEMETRY)
         if _sub().SELF not in substrates:
             substrates.append(_sub().SELF)
+    if is_personal_event_time or is_crypto_wallet:
+        if _sub().MEMORY not in substrates:
+            substrates.append(_sub().MEMORY)
     if _any_term_matches(lower, location_words):
         substrates.append(_sub().TELEMETRY)
         if _sub().SELF not in substrates:
             substrates.append(_sub().SELF)
-    if _any_term_matches(lower, workspace_words) or has_file_name:
-        substrates.append(_sub().WORKSPACE)
     self_history_words = (
         "what did you do",
         "what were you doing",
@@ -596,21 +658,118 @@ def classify_epistemic_intent(
         "execution history",
         "did you claim",
     )
-    if _any_term_matches(lower, self_history_words):
+    has_past_action_or_receipt_inquiry = bool(
+        _any_term_matches(lower, self_history_words)
+        or re.search(
+            r"\b(?:did|have|had)\s+you\s+(?:ever\s+|actually\s+|successfully\s+|previously\s+|already\s+)?"
+            r"(?:write|wrote|written|save|saved|create|created|edit|edited|modify|modified|"
+            r"overwrite|overwritten|append|appended|read|inspect|inspected|open|opened|"
+            r"delete|deleted|remove|removed|erase|erased|launch|launched|start|started|"
+            r"run|ran|execute|executed|fetch|fetched|retrieve|retrieved|download|downloaded|"
+            r"search|searched|query|queried|try|tried|attempt|attempted|tell|told|say|said|"
+            r"mention|mentioned|state|stated|claim|claimed|use|used|call|called|perform|performed|"
+            r"complete|completed|succeed|succeeded|fail|failed)\b",
+            lower,
+        )
+        or re.search(
+            r"\b(?:were\s+you\s+(?:able|allowed)\s+to|was\s+there\s+(?:any|a)\s+(?:record|receipt|attempt|call|execution)|"
+            r"do\s+your\s+(?:execution\s+|tool\s+|verified\s+)?(?:receipts?|logs?|records?|history)\b|"
+            r"check\s+your\s+(?:execution\s+|tool\s+|verified\s+)?(?:receipts?|logs?|records?|history)\b|"
+            r"is\s+there\s+a\s+(?:verified\s+|tool\s+|execution\s+)?(?:receipt|record|log)\b|"
+            r"according\s+to\s+your\s+(?:execution\s+|tool\s+|verified\s+)?(?:receipts?|logs?|records?|history)\b|"
+            r"\b(?:execution|tool|verified)\s+receipts?\b|"
+            r"\b(?:write_file|read_file|delete_file|launch_app|run_python|search_web|fetch_url)\b)",
+            lower,
+        )
+        or re.search(
+            r"\b(?:was|were)\s+(?:any\s+|the\s+|my\s+|your\s+)?[\w./:\-']+(?:\s+[\w./:\-']+){0,3}\s+"
+            r"(?:ever\s+|actually\s+|successfully\s+)?(?:written|saved|created|edited|modified|"
+            r"overwritten|read|inspected|deleted|removed|erased|launched|opened|started|"
+            r"executed|run|fetched|retrieved|searched|queried|blocked|denied|prevented|completed)\b",
+            lower,
+        )
+        or re.search(
+            r"\b(?:what|which|how\s+many|when|why\s+did|can\s+you\s+(?:name|list|confirm|verify|recount|summarize)|"
+            r"name\s+(?:the|all)|list\s+(?:the|all)|recount\s+(?:the|all))\b.*"
+            r"\b(?:did\s+you|have\s+you|you\s+(?:wrote|written|saved|created|read|inspected|deleted|removed|"
+            r"launched|opened|started|ran|executed|fetched|retrieved|searched|queried|tried|attempted|"
+            r"used|called|performed|told|said|mentioned|stated)|"
+            r"(?:files?|scripts?|documents?|urls?|websites?|queries|tools?|apps?|applications?|commands?|operations?|actions?)\s+"
+            r"(?:were|was)\s+(?:written|saved|created|read|inspected|deleted|removed|launched|opened|"
+            r"executed|run|fetched|retrieved|searched|blocked|denied|attempted|performed))\b",
+            lower,
+        )
+        or re.search(
+            r"\bdid\s+(?:the|your|any)\s+(?:[\w./:\-']+\s+){0,3}"
+            r"(?:write|read|delete|deletion|launch|execution|script|fetch|search|call|attempt|"
+            r"write_file|read_file|delete_file|launch_app|run_python|search_web|fetch_url)\b.*"
+            r"\b(?:succeed|complete|fail|work|go\s+through|run|finish|start|load|get\s+blocked|get\s+denied)\b",
+            lower,
+        )
+        or bool(
+            re.search(
+                r"\b(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|first|second|third|"
+                r"fourth|fifth|sixth|seventh|eighth|ninth|tenth)\s+days?\s+ago\b|"
+                r"\byesterday\b|\bearlier\s+this\s+week\b|\bthis\s+week\b|\blast\s+week\b|"
+                r"\bpast\s+(?:\w+\s+)?days?\b|\bten-day\s+history\b",
+                lower,
+            )
+            and re.search(
+                r"\b(?:you|your|were|was|wrote|written|saved|read|inspected|deleted|launched|"
+                r"opened|executed|ran|fetched|searched|blocked|denied|failed|succeeded|script|python|execution|completed)\b",
+                lower,
+            )
+        )
+    )
+    has_belief_revision_inquiry = bool(
+        (
+            re.search(r"\b(?:you|your)\b", lower)
+            and re.search(
+                r"\b(?:view|views|opinion|opinions|belief|beliefs|stance|preference|preferences|"
+                r"choice|choices|thought|thoughts|estimate|estimates|benchmark|benchmarks|"
+                r"throughput|prefer|preferred|favour|favor)\b",
+                lower,
+            )
+        )
+        or re.search(
+            r"\b(?:how\s+(?:has|did)\s+your\s+(?:view|opinion|belief|stance|preference|choice|estimate)|"
+            r"what\s+(?:was|is|were)\s+your\s+(?:original|initial|earlier|previous|current|revised|updated|final|first|preferred)\s+"
+            r"(?:view|opinion|belief|stance|preference|choice|thought|estimate|throughput|model|format|provider|version)|"
+            r"which\s+(?:[\w\-]+\s+){1,4}do\s+you\s+(?:now\s+|currently\s+)?(?:prefer|favour|favor|use|think|believe)|"
+            r"which\s+(?:[\w\-]+\s+){1,4}did\s+you\s+(?:originally|initially|previously|first)\s+(?:prefer|favour|favor|think|believe)|"
+            r"summarize\s+your\s+(?:current\s+)?(?:preferred|preferences|beliefs|views|choices)|"
+            r"trace\s+the\s+full\s+progression\s+of\s+your\s+(?:benchmark|belief|preference|view)|"
+            r"before\s+switching\s+to\s+[\w.\-]+,\s*which|before\s+revising\s+your\s+(?:belief|view|preference)|"
+            r"when\s+you\s+updated\s+your\s+(?:preference|belief|view)|"
+            r"why\s+did\s+you\s+switch\s+(?:away\s+)?from|"
+            r"what\s+prompted\s+you\s+to\s+(?:revise|change|update|switch)\s+your)\b",
+            lower,
+        )
+    )
+    has_self_history_or_belief = has_past_action_or_receipt_inquiry or has_belief_revision_inquiry
+
+    if (
+        _any_term_matches(lower, workspace_words) or has_file_name
+    ) and not has_self_history_or_belief:
+        substrates.append(_sub().WORKSPACE)
+    if has_self_history_or_belief:
         substrates.append(_sub().SELF_HISTORY)
-    if _any_term_matches(lower, memory_words) or is_private_memory or has_personal_fact_inquiry:
-        substrates.append(_sub().MEMORY)
+    if (
+        _any_term_matches(lower, memory_words)
+        or is_private_memory
+        or has_personal_fact_inquiry
+        or has_self_history_or_belief
+    ):
+        if _sub().MEMORY not in substrates:
+            substrates.append(_sub().MEMORY)
     has_slang_intent = (
         matches_slang_or_world_definition(lower)
-        and not _any_term_matches(lower, self_history_words)
+        and not has_self_history_or_belief
         and not re.search(self_pattern, lower)
         and not re.search(capability_pattern, lower)
         and not _any_term_matches(lower, temporal_words)
     )
-    if (
-        _any_term_matches(lower, web_words)
-        or has_slang_intent
-    ) and not _any_term_matches(lower, self_history_words):
+    if (_any_term_matches(lower, web_words) or has_slang_intent) and not has_self_history_or_belief:
         if _sub().WEB not in substrates:
             substrates.append(_sub().WEB)
 
@@ -620,4 +779,3 @@ def classify_epistemic_intent(
     topic = extract_clean_topic(clean)
 
     return is_epistemic, substrates, topic
-

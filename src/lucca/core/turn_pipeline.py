@@ -323,11 +323,9 @@ class SubTurnScratchpadBuffer:
             head = content[: self.head_chars]
             tail = content[-self.tail_chars :] if self.tail_chars > 0 else ""
             bounded_output = (
-
-                    f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters "
-                    "omitted to "
-                    f"preserve synthesis budget ...]\n\n{tail}"
-
+                f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters "
+                "omitted to "
+                f"preserve synthesis budget ...]\n\n{tail}"
             )
             self.truncated_count += 1
             logger.info(
@@ -384,32 +382,64 @@ def detect_operational_ambiguity(text: str) -> tuple[bool, str | None]:
             return False, None
 
     # 1. Financial interest without specifying simple vs compound
-    has_interest = bool(re.search(r"\b(interest|rate of interest|earns interest|accrues "
-        r"interest|loan)\b", lower))
-    has_explicit_convention = bool(re.search(r"\b(simple "
-        r"interest|compound(ed)?|compounding|apr|apy)\b", lower))
+    has_interest = bool(
+        re.search(
+            r"\b(interest|rate of interest|earns interest|accrues "
+            r"interest|loan)\b",
+            lower,
+        )
+    )
+    has_explicit_convention = bool(
+        re.search(
+            r"\b(simple "
+            r"interest|compound(ed)?|compounding|apr|apy)\b",
+            lower,
+        )
+    )
     if has_interest and not has_explicit_convention:
         return True, "Interest calculation without explicit simple vs compound convention specified"
 
     # 2. Multi-tier fee/tip/tax where base is ambiguous (subtotal vs grand total)
-    has_fee = bool(re.search(r"\b(fee|service fee|delivery fee|convenience fee|vendor "
-        r"fee|tax|tip)\b", lower))
-    has_multiple_costs = bool(re.search(r"\b(delivery|shipping|travel|expenses|freight|tip|subtota"
-        r"l)\b", lower))
+    has_fee = bool(
+        re.search(
+            r"\b(fee|service fee|delivery fee|convenience fee|vendor "
+            r"fee|tax|tip)\b",
+            lower,
+        )
+    )
+    has_multiple_costs = bool(
+        re.search(
+            r"\b(delivery|shipping|travel|expenses|freight|tip|subtota"
+            r"l)\b",
+            lower,
+        )
+    )
     if has_fee and has_multiple_costs and "%" in text:
-        if not re.search(r"\b(applied (strictly )?to|on (the "
-            r")?(subtotal|groceries|merchandise|work) only)\b", lower):
+        if not re.search(
+            r"\b(applied (strictly )?to|on (the "
+            r")?(subtotal|groceries|merchandise|work) only)\b",
+            lower,
+        ):
             return True, "Percentage fee application ambiguous across subtotal vs grand total"
 
     # 3. Discrete physical entity packing/rounding without explicit rounding direction
-    has_discrete_packing = bool(re.search(r"\b(how "
-        r"many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b", lower))
-    has_explicit_rounding = bool(re.search(r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at "
-        r"least|exact(ly)?)\b", lower))
+    has_discrete_packing = bool(
+        re.search(
+            r"\b(how "
+            r"many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b",
+            lower,
+        )
+    )
+    has_explicit_rounding = bool(
+        re.search(
+            r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at "
+            r"least|exact(ly)?)\b",
+            lower,
+        )
+    )
     if has_discrete_packing and not has_explicit_rounding:
         return True, (
-            "Discrete physical unit allocation without explicit floor/ceil rounding "
-            "direction"
+            "Discrete physical unit allocation without explicit floor/ceil rounding direction"
         )
 
     return False, None
@@ -585,6 +615,7 @@ class TurnPipeline:
         self.orch.play_ring.clear_flag(FLAG_EOS)
         self.orch.current_turn_tool_calls = []
         self.orch.current_turn_receipts = []
+        self.orch.current_turn_historical_receipts = []
         self.orch.current_turn_tier = ExecutionTier.FULL_LOOP
         self.orch.current_turn_tool_spoken = []
         self.orch.current_turn_tool_ok = True
@@ -733,9 +764,7 @@ class TurnPipeline:
                     elapsed_ms=0.0,
                 )
             elif winning_outcome.plan:
-                say_actions = [
-                    a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
-                ]
+                say_actions = [a.text for a in winning_outcome.plan.actions if isinstance(a, Say)]
                 if say_actions:
                     spoken = " ".join(say_actions)
                     self.orch._speak_text(trace, spoken)
@@ -848,8 +877,9 @@ class TurnPipeline:
             try:
                 return grammar_path.read_text(encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
-                logger.debug("action_claim_grammar_load_fa"
-                    "iled", path=str(grammar_path), error=str(exc))
+                logger.debug(
+                    "action_claim_grammar_load_failed", path=str(grammar_path), error=str(exc)
+                )
         return None
 
     # ------------------------------------------------------------------------
@@ -885,9 +915,10 @@ class TurnPipeline:
                 )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
-        if (
-            yielded_context and yielded_context.get("reason") not in ("define: no term", "no term",
-                "")
+        if yielded_context and yielded_context.get("reason") not in (
+            "define: no term",
+            "no term",
+            "",
         ):
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
@@ -924,8 +955,9 @@ class TurnPipeline:
                 goal_ctx = active_goals.get_goal_context_prompt(limit=3)
                 if goal_ctx:
                     goal_block = f"[Shared Active Goals]\n{goal_ctx}"
-                    epistemic_ctx = f"{epistemic_ctx}\n\n{
-                        goal_block}" if epistemic_ctx else goal_block
+                    epistemic_ctx = (
+                        f"{epistemic_ctx}\n\n{goal_block}" if epistemic_ctx else goal_block
+                    )
             except Exception as exc:  # noqa: BLE001
                 logger.debug("active_goals_context_error", error=str(exc))
 
@@ -959,11 +991,10 @@ class TurnPipeline:
                         l_rows = cur.fetchall()
                         if l_rows:
                             items_str = ", ".join(f"{r[0]}:{r[1]}" for r in l_rows)
-                            overnight_details.append(f"idle/dream learning events ({len(l_rows)}): "
-                                f"{items_str}")
-                        cur.execute(
-                            "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'"
-                        )
+                            overnight_details.append(
+                                f"idle/dream learning events ({len(l_rows)}): {items_str}"
+                            )
+                        cur.execute("SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'")
                         rq_row = cur.fetchone()
                         if rq_row and int(rq_row[0]) > 0:
                             overnight_details.append(f"pending review items: {int(rq_row[0])}")
@@ -971,16 +1002,18 @@ class TurnPipeline:
                     logger.debug("waking_continuity_db_query_failed", error=str(db_err))
 
             extra_suffix = (
-                " Overnight summary: "
-                f"{'; '.join(overnight_details)}."
-            ) if overnight_details else ""
+                (f" Overnight summary: {'; '.join(overnight_details)}.")
+                if overnight_details
+                else ""
+            )
             continuity_note = (
                 f"[Waking Continuity Note: {gap_minutes} minutes elapsed since last turn. "
                 "Resuming collaborative workspace; state and active goals "
                 f"preserved.{extra_suffix}]"
             )
-            epistemic_ctx = f"{epistemic_ctx}\n\n{
-                continuity_note}" if epistemic_ctx else continuity_note
+            epistemic_ctx = (
+                f"{epistemic_ctx}\n\n{continuity_note}" if epistemic_ctx else continuity_note
+            )
         self.orch.last_turn_timestamp = now_ts
 
         # D-DUAL-01 & D-REAS-10: Deliberation lane floor-hold cue & shared workspace hint
@@ -1057,8 +1090,9 @@ class TurnPipeline:
                     "State your operational assumption explicitly on line 1 before providing "
                     "calculations or numerical conclusions (e.g. 'Assumption: ...').]"
                 )
-                epistemic_ctx = f"{epistemic_ctx}\n\n{
-                    disambig_hint}" if epistemic_ctx else disambig_hint
+                epistemic_ctx = (
+                    f"{epistemic_ctx}\n\n{disambig_hint}" if epistemic_ctx else disambig_hint
+                )
 
         return epistemic_ctx
 
@@ -1374,10 +1408,7 @@ class TurnPipeline:
                     intent=getattr(route_decision, "intent", None),
                 )
             elif winning_outcome and winning_outcome.plan:
-                has_tool_calls = any(
-                    isinstance(a, ToolCall)
-                    for a in winning_outcome.plan.actions
-                )
+                has_tool_calls = any(isinstance(a, ToolCall) for a in winning_outcome.plan.actions)
                 tier = (
                     getattr(route_decision, "tier", ExecutionTier.ACT_THEN_NARRATE)
                     if has_tool_calls

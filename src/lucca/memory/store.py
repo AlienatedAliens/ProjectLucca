@@ -164,7 +164,18 @@ class MemoryStore:
                 elif signed_payload.provenance == Provenance.COHERENCE_BREACH:
                     importance = 0.8
 
-                aux_tokens = subtokens(signed_payload.content)
+                structured_parts: list[str] = []
+                if isinstance(signed_payload.structured, dict):
+                    for sk, sv in signed_payload.structured.items():
+                        if sk not in ("valid_from", "importance", "ok") and isinstance(
+                            sv, (str, int, float)
+                        ):
+                            structured_parts.append(str(sv))
+                structured_str = " ".join(structured_parts)
+                aux_tokens = (
+                    f"{subtokens(signed_payload.content)} {structured_str} "
+                    f"{subtokens(structured_str)}"
+                ).strip()
                 cursor.execute(
                     """
                     INSERT INTO memories(
@@ -217,8 +228,10 @@ class MemoryStore:
 
                     # Direct evidence (USER_EXPLICIT / USER_DERIVED) supersedes INFERRED facts on
                     # the same predicate
-                    if signed_payload.provenance in (Provenance.USER_EXPLICIT,
-                        Provenance.USER_DERIVED):
+                    if signed_payload.provenance in (
+                        Provenance.USER_EXPLICIT,
+                        Provenance.USER_DERIVED,
+                    ):
                         cursor.execute(
                             """
                             SELECT k.edge_id, k.memory_id

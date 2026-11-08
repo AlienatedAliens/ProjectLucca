@@ -423,6 +423,7 @@ def resolve_clause_claim_family(clause_text: str, neural_claim_cls: str) -> str:
         return "CLAIM_SEARCH_READ"
     return neural_claim_cls
 
+
 _ADDITIVE_MARKER_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:also|additionally|furthermore|moreover|plus|next|afterwards|as\s+well)\b",
     re.IGNORECASE,
@@ -438,7 +439,10 @@ _CAPABILITY_DISCLAIMER_RE: Final[re.Pattern[str]] = re.compile(
     r"do\s+not\s+have\s+(?:access|a\s+tool|the\s+ability|permission|any\s+way)|"
     r"no\s+way\s+to|not\s+able\s+to|cannot\s+directly|can't\s+directly|"
     r"haven't\s+(?:executed|called|run)\s+the\s+tool|"
-    r"failed\s+with\s+an?\s+error|execution\s+failed|tool\s+call\s+failed)\b",
+    r"failed\s+with\s+an?\s+(?:syntax\s+)?error|execution\s+failed|tool\s+call\s+failed|"
+    r"was\s+blocked|blocked\s+by\s+policy|was\s+denied|read-only\s+path|"
+    r"had\s+a\s+syntax\s+error|did\s+not\s+succeed|failed\s+due\s+to|failed\s+because|"
+    r"have\s+no\s+(?:verified\s+)?record|no\s+verified\s+record)\b",
     re.IGNORECASE,
 )
 
@@ -600,8 +604,11 @@ def verify_clause_claims_against_receipts(
 
         if idx == 0 or family not in family_action_counts:
             family_action_counts[family] = 1
-        elif is_coord_or_add and family in {"CLAIM_DELETE", "CLAIM_FILE_WRITE",
-            "CLAIM_COMM_EXTERNAL"}:
+        elif is_coord_or_add and family in {
+            "CLAIM_DELETE",
+            "CLAIM_FILE_WRITE",
+            "CLAIM_COMM_EXTERNAL",
+        }:
             family_action_counts[family] += 1
             if family_action_counts[family] > len(matching_receipts):
                 ungrounded.append(clause_text)
@@ -776,7 +783,9 @@ class NeuralActionClaimVerifier:
     ) -> NeuralClaimVerdict:
         clean_comp = (completion or "").strip()
         if (
-            not clean_comp or not self.available or self._tokenizer is None
+            not clean_comp
+            or not self.available
+            or self._tokenizer is None
             or self._infer_req is None
         ):
             return NeuralClaimVerdict(
@@ -845,8 +854,8 @@ class NeuralActionClaimVerifier:
         # Case 1: No tools executed (`tools == []`)
         if not tools:
             if (
-                is_meta and p_benign_full
-                >= 0.005) or _PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE.search(clean_comp):
+                is_meta and p_benign_full >= 0.005
+            ) or _PSYCHOLOGICAL_OR_CONVERSATIONAL_METAPHOR_RE.search(clean_comp):
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return NeuralClaimVerdict(
                     predicted_class="BENIGN",
@@ -878,8 +887,9 @@ class NeuralActionClaimVerifier:
                     predicted_class="UNGROUNDED_CLAIM",
                     prob_benign=round(p_benign_full, 4),
                     prob_grounded=0.0,
-                    prob_ungrounded_claim=round(max(p_claim_full, p_claim_full + p_promise_full),
-                        4),
+                    prob_ungrounded_claim=round(
+                        max(p_claim_full, p_claim_full + p_promise_full), 4
+                    ),
                     prob_unfulfilled_promise=round(p_promise_full, 4),
                     is_ungrounded_claim=True,
                     is_unfulfilled_promise=False,
@@ -898,8 +908,9 @@ class NeuralActionClaimVerifier:
                 detected_families: list[str] = []
                 bad_clauses: list[str] = []
                 for c_text, _ in clauses:
-                    if c_text.endswith("?") or c_text.lstrip().startswith(("*", "-", "1.", "2.",
-                        "3.")):
+                    if c_text.endswith("?") or c_text.lstrip().startswith(
+                        ("*", "-", "1.", "2.", "3.")
+                    ):
                         continue
                     if _CAPABILITY_DISCLAIMER_RE.search(c_text):
                         continue
