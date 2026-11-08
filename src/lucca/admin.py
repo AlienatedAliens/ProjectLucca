@@ -4,7 +4,6 @@ Spec 11 §7 (`lucca-admin`), F-CORE-026, F-CORE-027, F-DRIFT-003
 """
 
 import argparse
-import asyncio
 import json
 import logging
 import sys
@@ -342,20 +341,26 @@ def run_rules_cli(
         table.add_column("McNemar p", justify="right")
         table.add_column("Execution-Reliability Rate (S1)", justify="right")
 
+        def _f(v: object, default: float = 0.0) -> float:
+            return float(v) if isinstance(v, (int, float, str)) else default
+
+        def _i(v: object, default: int = 0) -> int:
+            return int(float(v)) if isinstance(v, (int, float, str)) else default
+
         for r in sorted(manager.rules.values(), key=lambda x: x.rule_id):
             summary = manager.get_contrastive_summary(r.rule_id)
-            total_turns = int(summary.get("total_turns", 0))
-            agreed_rate = float(summary.get("agreed_rate", 0.0))
+            total_turns = _i(summary.get("total_turns", 0))
+            agreed_rate = _f(summary.get("agreed_rate", 0.0))
             agreed_interval_raw = summary.get("agreed_interval", [0.0, 1.0])
             agreed_interval = (
                 agreed_interval_raw
                 if isinstance(agreed_interval_raw, list) and len(agreed_interval_raw) == 2
                 else [0.0, 1.0]
             )
-            b = int(summary.get("b_rule_better", 0))
-            c = int(summary.get("c_core_better", 0))
-            p_val = float(summary.get("mcnemar_p_value", 1.0))
-            rel_rate = float(summary.get("rule_reliability_rate", 0.0))
+            b = _i(summary.get("b_rule_better", 0))
+            c = _i(summary.get("c_core_better", 0))
+            p_val = _f(summary.get("mcnemar_p_value", 1.0), 1.0)
+            rel_rate = _f(summary.get("rule_reliability_rate", 0.0))
             rel_interval_raw = summary.get("rule_reliability_interval", [0.0, 1.0])
             rel_interval = (
                 rel_interval_raw
@@ -370,14 +375,14 @@ def run_rules_cli(
             fail_ucl = rule_of_three_ucl(n_clusters)
             cluster_str = f"{n_clusters}/5 (0 err -> fail <= {fail_ucl:.0%})"
 
-            ag_lb_str = f"{float(agreed_interval[0]):.1%}"
-            ag_ub_str = f"{float(agreed_interval[1]):.1%}"
+            ag_lb_str = f"{_f(agreed_interval[0]):.1%}"
+            ag_ub_str = f"{_f(agreed_interval[1], 1.0):.1%}"
             agreed_str = (
                 f"{agreed_rate:.1%} [{ag_lb_str}, {ag_ub_str}]" if total_turns > 0 else "N/A"
             )
             p_str = f"{p_val:.3f}" if (b + c) > 0 else "N/A"
             rel_str = (
-                f"{rel_rate:.1%} [{float(rel_interval[0]):.1%}, {float(rel_interval[1]):.1%}]"
+                f"{rel_rate:.1%} [{_f(rel_interval[0]):.1%}, {_f(rel_interval[1], 1.0):.1%}]"
                 if total_turns > 0
                 else "N/A"
             )
@@ -612,7 +617,7 @@ def run_memory_cli(
         store = MemoryStore(db=db, master_key=mk)
         reflection = ReflectionEngine(db=db, store=store, master_key=mk)
         try:
-            new_mid = asyncio.run(reflection.approve_review(review_id, decided_by=approver))
+            new_mid = reflection.approve_review(review_id, decided_by=approver)
             console.print(
                 f"[bold green]SUCCESS: Review '{review_id}' approved by '{approver}'.[/bold green] "
                 f"New memory ID: {new_mid}"
@@ -885,8 +890,8 @@ def run_memory_cli(
 
         if report.errors:
             console.print("[bold red]Migration Warnings / Errors:[/bold red]")
-            for err in report.errors:
-                console.print(f"  - {err}")
+            for err_item in report.errors:
+                console.print(f"  - {err_item}")
         return 0 if report.is_success else 1
 
     console.print(f"[red]Unknown memory action: {action}[/red]")

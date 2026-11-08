@@ -10,7 +10,12 @@ from pathlib import Path
 from typing import Final, Literal
 
 import ulid
-from pydantic import BaseModel, Field, JsonValue, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    JsonValue,
+    field_validator,
+)
 
 # ============================================================================
 # Audio & ASR Common Models (Spec 02)

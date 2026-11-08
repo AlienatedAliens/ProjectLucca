@@ -7,7 +7,7 @@ import datetime
 import sqlite3
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Final
 
@@ -425,7 +425,7 @@ class MemoryStore:
 
     def forget(
         self,
-        ids: list[MemoryId],
+        ids: Sequence[MemoryId],
         *,
         user_confirmed: bool,
         now: float | None = None,

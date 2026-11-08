@@ -246,7 +246,8 @@ def test_sort_objects() -> None:
         [1, 0, 2, 0],
         [0, 0, 2, 0],
     ]
-    find_objects(grid)
+    objs = find_objects(grid)
+    assert len(objs) == 2
     # obj for color 1 has height 3, width 1, area 3
     # obj for color 2 has height 3, width 1, area 3
     # Let's test with distinct heights

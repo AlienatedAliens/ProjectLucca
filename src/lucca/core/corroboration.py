@@ -583,7 +583,7 @@ def _check_verifier_nli(
             score = float(getattr(res, "score", getattr(res, "confidence", 0.85)))
             return (res.label, score)
         elif hasattr(verifier, "verify"):
-            raw = verifier.verify(premise, hypothesis)  # type: ignore[attr-defined]
+            raw = verifier.verify(premise, hypothesis)
             if isinstance(raw, (int, float)):
                 sc = float(raw)
                 if sc >= 0.75:

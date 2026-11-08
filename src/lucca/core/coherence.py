@@ -15,10 +15,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import structlog
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.schemas import JsonValue, VerifierLabel
+from lucca.core.schemas import VerifierLabel
 from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)

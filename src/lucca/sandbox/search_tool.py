@@ -19,12 +19,14 @@ import structlog
 from pydantic import JsonValue
 
 try:
-    from ddgs import DDGS
+    from ddgs import DDGS as _DDGS
 except ImportError:
     try:
-        from duckduckgo_search import DDGS  # type: ignore
+        from duckduckgo_search import DDGS as _DDGS  # type: ignore[import-not-found,no-redef]
     except ImportError:
-        DDGS = None
+        _DDGS = None  # type: ignore[assignment,misc]
+
+DDGS = _DDGS
 
 logger = structlog.get_logger(__name__)
 
@@ -152,7 +154,12 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
         from lucca.core.config import get_config  # noqa: PLC0415
 
         cfg_url = getattr(getattr(get_config(), "sandbox", None), "searxng_url", None)
-        if cfg_url and "127.0.0.1" not in cfg_url and "localhost" not in cfg_url:
+        if (
+            isinstance(cfg_url, str)
+            and cfg_url
+            and "127.0.0.1" not in cfg_url
+            and "localhost" not in cfg_url
+        ):
             if _probe_searxng_endpoint(cfg_url, timeout=0.5):
                 _RESOLVED_SEARXNG_URL = cfg_url
                 return cfg_url
@@ -504,7 +511,7 @@ def search_web(
 
         for attempt, q_try in enumerate(queries_to_try, 1):
             try:
-                with DDGS(timeout=SEARCH_TIMEOUT_S) as ddgs_client:
+                with DDGS(timeout=int(SEARCH_TIMEOUT_S)) as ddgs_client:
                     for item in ddgs_client.text(q_try, max_results=max_results):
                         title = item.get("title", "").strip()
                         snippet = item.get("body", "").strip()
@@ -570,26 +577,40 @@ def search_web(
         return res_dict, msg
 
     # Classify link followability and compute agent priority
+    annotated_results: list[dict[str, JsonValue]] = []
     for r in results:
         cat, followable, rec = classify_link_followability(r.get("url", ""))
-        r["category"] = cat
-        r["followable"] = followable
-        r["recommendation"] = rec
-        # Priority: HTML (0), PDF (1), Login wall / unreadable (2)
-        r["priority"] = 0 if cat == "html_page" else (1 if cat == "pdf_document" else 2)
+        prio = 0 if cat == "html_page" else (1 if cat == "pdf_document" else 2)
+        annotated_results.append(
+            {
+                "title": r.get("title", ""),
+                "snippet": r.get("snippet", ""),
+                "url": r.get("url", ""),
+                "category": cat,
+                "followable": followable,
+                "recommendation": rec,
+                "priority": prio,
+            }
+        )
 
     # Re-rank: followable HTML pages first, then PDFs, then login walls
-    results.sort(key=lambda item: item.get("priority", 2))
+    def _prio_key(item: dict[str, JsonValue]) -> int:
+        p_val = item.get("priority")
+        if isinstance(p_val, int) and not isinstance(p_val, bool):
+            return p_val
+        return 2
+
+    annotated_results.sort(key=_prio_key)
 
     formatted_lines: list[str] = [f"Search Results for '{clean_query}':\n"]
-    for idx, r in enumerate(results, 1):
-        formatted_lines.append(f"{idx}. {r['title']}")
-        formatted_lines.append(f"   Summary: {r['snippet']}")
-        if r.get("url"):
-            formatted_lines.append(f"   Source: {r['url']}")
-            rec = r.get("recommendation", "")
-            if rec:
-                formatted_lines.append(f"   Status: {rec}")
+    for idx, ar in enumerate(annotated_results, 1):
+        formatted_lines.append(f"{idx}. {ar['title']}")
+        formatted_lines.append(f"   Summary: {ar['snippet']}")
+        if ar.get("url"):
+            formatted_lines.append(f"   Source: {ar['url']}")
+            rec_val = ar.get("recommendation", "")
+            if rec_val:
+                formatted_lines.append(f"   Status: {rec_val}")
         formatted_lines.append("")
 
     entity_absent = False
@@ -597,8 +618,11 @@ def search_web(
         target_str = target_entity.strip()
         pattern = re.compile(rf"\b{re.escape(target_str)}\b", re.IGNORECASE)
         found = any(
-            bool(pattern.search(r.get("title", "")) or pattern.search(r.get("snippet", "")))
-            for r in results
+            bool(
+                pattern.search(str(ar.get("title", "")))
+                or pattern.search(str(ar.get("snippet", "")))
+            )
+            for ar in annotated_results
         )
         entity_absent = not found
         if entity_absent:
@@ -610,11 +634,12 @@ def search_web(
             )
 
     content_str = "\n".join(formatted_lines).strip()
+    results_json: list[JsonValue] = list(annotated_results)
     out_dict: dict[str, JsonValue] = {
         "query": clean_query,
         "ok": True,
-        "results_count": len(results),
-        "results": results,
+        "results_count": len(annotated_results),
+        "results": results_json,
     }
     if target_entity and target_entity.strip():
         out_dict["target_entity"] = target_entity.strip()

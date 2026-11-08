@@ -375,8 +375,9 @@ def build_launch_command(cfg: LLMSettings, home_dir: Path) -> list[str]:
     spec_type = getattr(cfg, "spec_type", "none") or "none"
     if spec_type != "none":
         cmd.extend(["--spec-type", spec_type])
-        if "draft" in spec_type and getattr(cfg, "draft_model", None):
-            draft_gguf = resolve_model_path(cfg.draft_model, home_dir)
+        draft_model_val = getattr(cfg, "draft_model", None)
+        if "draft" in spec_type and draft_model_val:
+            draft_gguf = resolve_model_path(draft_model_val, home_dir)
             cmd.extend(["--spec-draft-model", str(draft_gguf)])
             if getattr(cfg, "draft_ngl", None) is not None:
                 cmd.extend(["--spec-draft-ngl", str(cfg.draft_ngl)])
@@ -469,12 +470,13 @@ def verify_model_files(cfg: LLMSettings, home_dir: Path) -> None:
         mmproj_path = resolve_model_path(cfg.mmproj, home_dir)
         if mmproj_path.exists() or cfg.mode == "audio":
             models_to_check.append(mmproj_path)
+    draft_model_chk = getattr(cfg, "draft_model", None)
     if (
         getattr(cfg, "spec_type", "none") != "none"
         and "draft" in getattr(cfg, "spec_type", "")
-        and getattr(cfg, "draft_model", None)
+        and draft_model_chk
     ):
-        models_to_check.append(resolve_model_path(cfg.draft_model, home_dir))
+        models_to_check.append(resolve_model_path(draft_model_chk, home_dir))
 
     for mpath in models_to_check:
         if not mpath.exists():

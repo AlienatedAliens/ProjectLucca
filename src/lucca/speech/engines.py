@@ -230,8 +230,8 @@ class KokoroEngine(BaseVoiceEngine):
             return samples, sr
 
         resolved = parse_voice_blend(eng, voice_spec) if isinstance(voice_spec, str) else voice_spec
-        samples, sr = eng.create(text, voice=resolved, speed=speed)
-        return samples.astype(np.float32), sr
+        raw_samples, sr = eng.create(text, voice=resolved, speed=speed)
+        return np.asarray(raw_samples, dtype=np.float32), int(sr)
 
 
 class KittenTTSEngine(BaseVoiceEngine):

@@ -702,7 +702,11 @@ class VoiceTab(QWidget):
         self.lbl_voice_status.setText(msg)
         self.btn_test_speech.setEnabled(True)
 
-    def _play_samples(self, samples: np.ndarray, sr: int = 24000) -> None:
+    def _play_samples(
+        self,
+        samples: np.ndarray[tuple[int, ...], np.dtype[np.float32]],
+        sr: int = 24000,
+    ) -> None:
         try:
 
             ring = SharedAudioRing(PLAY_RING_NAME)

@@ -442,11 +442,11 @@ class BelnapLatentInvestigator:
         p_norm = existing_premise.strip().lower()
         h_norm = candidate_hypothesis.strip().lower()
 
+        final_clarification: str | None = None
         if p_norm == h_norm:
             val = BelnapValue.TRUE
             rec = ProbeActionRecommendation.ACCEPT_AS_TRUE
             receipt = "Identical assertion already exists in memory."
-            clarification = None
         elif lexical_conflict:
             val = BelnapValue.BOTH
             rec = ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION
@@ -454,14 +454,13 @@ class BelnapLatentInvestigator:
                 "Polarity or value mismatch detected between existing memory and "
                 "candidate claim."
             )
-            clarification = self.generate_clarification_prompt(
+            final_clarification = self.generate_clarification_prompt(
                 existing_premise, candidate_hypothesis
             )
         else:
             val = BelnapValue.NEITHER
             rec = ProbeActionRecommendation.NO_OP_INSUFFICIENT_EVIDENCE
             receipt = "Novel assertion with neutral overlap."
-            clarification = None
 
         elapsed = (time.perf_counter() - t0) * 1000.0
         return LatentProbeResponse(
@@ -470,7 +469,7 @@ class BelnapLatentInvestigator:
             confidence=0.80,
             evidence_receipt=receipt,
             recommendation=rec,
-            clarification_prompt=clarification,
+            clarification_prompt=final_clarification,
             probe_latency_ms=elapsed,
         )
 

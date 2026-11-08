@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import structlog
@@ -21,7 +22,14 @@ from lucca.brain.prompt_builder import get_all_tool_definitions
 from lucca.core.coherence import detect_promised_action_claims
 from lucca.core.convergence import TracebackDivergenceGuard
 from lucca.core.ipc_schemas import Envelope, PlayBeginPayload
-from lucca.core.schemas import ChatMessage, MemoryHit, TokenDelta, ToolCallEnd, ToolResult
+from lucca.core.schemas import (
+    ChatMessage,
+    MemoryHit,
+    TokenDelta,
+    ToolCallEnd,
+    ToolDefinition,
+    ToolResult,
+)
 from lucca.core.tool_shortlister import check_tool_fit
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.core.turn_pipeline import SubTurnScratchpadBuffer
@@ -61,7 +69,7 @@ class SpeechStreamPipeline:
     def register_receipt_citation_urls(
         self,
         tool_name: str,
-        tool_args: dict[str, object],
+        tool_args: Mapping[str, object],
         tool_res: ToolResult,
     ) -> None:
         """
@@ -85,12 +93,12 @@ class SpeechStreamPipeline:
             to_register: list[str] = []
             if isinstance(target_u, str) and target_u:
                 to_register.append(target_u)
-            structured = getattr(tool_res, "structured", None)
-            if isinstance(structured, dict):
-                u_val = structured.get("url")
+            res_structured = getattr(tool_res, "structured", None)
+            if isinstance(res_structured, dict):
+                u_val = res_structured.get("url")
                 if isinstance(u_val, str) and u_val:
                     to_register.append(u_val)
-                emb = structured.get("embedded_links")
+                emb = res_structured.get("embedded_links")
                 if isinstance(emb, list):
                     to_register.extend(str(x) for x in emb if x)
             if to_register and hasattr(orch.output_supervisor, "register_allowed_urls"):
@@ -106,7 +114,7 @@ class SpeechStreamPipeline:
         current_image_b64: str | None = None,
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
-        tools: list[object] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_rounds: int = 8,
         epistemic_context: str | None = None,
         enable_thinking: bool | None = None,

@@ -105,7 +105,12 @@ class AppLauncher:
         for app_id, entry in self.apps.items():
             if app_id.lower() == target:
                 return app_id, entry
-            aliases = [a.lower() for a in entry.get("aliases", [])]
+            raw_aliases = entry.get("aliases", [])
+            aliases = (
+                [str(a).lower() for a in raw_aliases if isinstance(a, str)]
+                if isinstance(raw_aliases, list)
+                else []
+            )
             if target in aliases:
                 return app_id, entry
         return None
@@ -174,8 +179,13 @@ class AppLauncher:
         # Build args
         cmd_args: list[str] = [resolved_exe]
         raw_arg_templates = entry.get("args", [])
+        arg_templates = (
+            [str(t) for t in raw_arg_templates if isinstance(t, str)]
+            if isinstance(raw_arg_templates, list)
+            else []
+        )
 
-        for template in raw_arg_templates:
+        for template in arg_templates:
             if "{file?}" in template or "{file}" in template:
                 if file_arg:
                     if file_arg.startswith(("\\\\", "//")):
@@ -247,7 +257,7 @@ class AppLauncher:
         try:
             for p in psutil.process_iter(["name"]):
                 name = p.info.get("name")
-                if name and name.lower() == target:
+                if isinstance(name, str) and name.lower() == target:
                     return True
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass

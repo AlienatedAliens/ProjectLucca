@@ -170,7 +170,7 @@ def in_cavity(
 def extract_cavity_mask(
     b: object,
     shape: tuple[int, int] | None = None,
-) -> np.ndarray:
+) -> np.ndarray[tuple[int, ...], np.dtype[np.bool_]]:
     """Returns a 2D boolean numpy mask of region B's cavities/holes.
     If shape is not specified, uses (max_r + 1, max_c + 1) from B's coordinates.
     """
@@ -196,7 +196,7 @@ def extract_cavity_mask(
 def extract_exterior_mask(
     b: object,
     shape: tuple[int, int],
-) -> np.ndarray:
+) -> np.ndarray[tuple[int, ...], np.dtype[np.bool_]]:
     """Returns a 2D boolean numpy mask of cells that are OUTSIDE B and not in B's cavities."""
 
     gr_b = to_grid_region(b)

@@ -202,7 +202,14 @@ class NeuralIntentClassifier:
         except Exception as exc:  # noqa: BLE001
             logger.warning("neural_intent_classifier_init_failed", error=str(exc))
 
-    def _infer_single(self, formatted_text: str) -> tuple[str, float, np.ndarray, np.ndarray]:
+    def _infer_single(
+        self, formatted_text: str
+    ) -> tuple[
+        str,
+        float,
+        np.ndarray[tuple[int, ...], np.dtype[np.float64]],
+        np.ndarray[tuple[int, ...], np.dtype[np.float64]],
+    ]:
         enc = self._tokenizer.encode(formatted_text)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
         attention_mask = np.array([enc.attention_mask], dtype=np.int64)

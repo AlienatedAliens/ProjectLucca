@@ -22,6 +22,7 @@ except ImportError:
     resource = None  # type: ignore[assignment]
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.exceptions import SandboxPathError
 from lucca.memory.git_dag import (
@@ -551,7 +552,7 @@ class SafeFileTool:
         pattern: str,
         dir_path: str = ".",
         max_hits: int = 100,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Recursively searches code tree for regex pattern, returning file:line:matched_content."""
         target_dir = self._resolve_path(dir_path)
         if not target_dir.is_dir():
@@ -563,7 +564,7 @@ class SafeFileTool:
             raise SandboxPathError("invalid_regex",
                 f"Invalid regex pattern '{pattern}': {err}") from err
 
-        hits: list[dict[str, object]] = []
+        hits: list[JsonValue] = []
         snippets: list[str] = []
         for root, dirs, files in os.walk(str(target_dir)):
             dirs[:] = [
@@ -598,7 +599,7 @@ class SafeFileTool:
         path: str,
         start_line: int = 1,
         end_line: int = 100,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Reads a slice of lines from a file with 1-indexed line numbers."""
         target_file = self._resolve_path(path)
         if not target_file.is_file():
@@ -629,7 +630,7 @@ class SafeFileTool:
         path: str,
         target_chunk: str,
         replacement_chunk: str,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Atomically replaces single unambiguous target_chunk with replacement_chunk in file."""
         target_file = self._resolve_path(path)
         if not target_file.is_file():
@@ -720,7 +721,7 @@ class SafeFileTool:
         test_path: str = "",
         cwd: str = ".",
         timeout: int = 60,
-    ) -> tuple[dict[str, object], str]:
+    ) -> tuple[dict[str, JsonValue], str]:
         """Runs pytest on test_path in the specified workspace directory."""
         try:
             target_dir = self._resolve_path(cwd)

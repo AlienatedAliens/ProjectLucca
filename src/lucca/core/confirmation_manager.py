@@ -75,8 +75,9 @@ class ConfirmationManager:
             orch.play_ring.set_flag(FLAG_ABORT)
 
         trace_id = ""
-        if orch is not None and getattr(orch, "active_trace", None) is not None:
-            trace_id = orch.active_trace.trace_id
+        active_tr = getattr(orch, "active_trace", None) if orch is not None else None
+        if active_tr is not None:
+            trace_id = active_tr.trace_id
 
         abort_env = Envelope(
             type="play.abort",

@@ -36,7 +36,7 @@ try:
     import z3
     _HAS_Z3 = True
 except ImportError:  # pragma: no cover
-    z3 = None  # type: ignore[assignment]
+    z3 = None
     _HAS_Z3 = False
 
 
@@ -114,7 +114,7 @@ SExprNode = str | list["SExprNode"]
 
 def _parse_sexpr(text: str) -> SExprNode:
     """Lightweight deterministic S-expression parser for deontic preconditions."""
-    tokens = re.findall(r'\(|\)|"[^"]*"|[^\s()]+', text.strip())
+    tokens: list[str] = [str(m) for m in re.findall(r'\(|\)|"[^"]*"|[^\s()]+', text.strip())]
     if not tokens:
         return []
     pos = 0

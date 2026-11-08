@@ -1772,3 +1772,36 @@ def test_all_src_modules_transitively_reachable_from_runtime() -> None:
     )
 
 
+def test_zero_ruff_and_mypy_errors() -> None:
+    """WO-43 Sub-step 4.4: Permanent static gate enforcing zero Ruff and mypy errors."""
+    import subprocess
+    import sys
+
+    repo_root = Path(__file__).parent.parent
+
+    ruff_res = subprocess.run(
+        [sys.executable, "-m", "ruff", "check", "src", "tests"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert ruff_res.returncode == 0, (
+        f"ruff check src tests failed (rc={ruff_res.returncode}):\n"
+        f"{ruff_res.stdout}\n{ruff_res.stderr}"
+    )
+
+    mypy_res = subprocess.run(
+        [sys.executable, "-m", "mypy", "src"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert mypy_res.returncode == 0, (
+        f"mypy src failed (rc={mypy_res.returncode}):\n"
+        f"{mypy_res.stdout}\n{mypy_res.stderr}"
+    )
+
+
+

@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 import structlog
-from PIL import Image  # type: ignore[import-untyped]
+from PIL import Image
 
 logger = structlog.get_logger(__name__)
 
@@ -58,7 +58,7 @@ def _resize_to_max_width(raw_pixels: bytes, width: int, height: int, max_width: 
     # Use Pillow for resize (already required for JPEG encoding)
 
     img = Image.frombytes("RGB", (width, height), raw_pixels)
-    img = img.resize((new_width, new_height), Image.LANCZOS)
+    img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
     resized_bytes = img.tobytes()
     return resized_bytes, new_width, new_height
 

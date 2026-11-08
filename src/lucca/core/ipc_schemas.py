@@ -160,7 +160,7 @@ class UIConfirmPayload(BaseModel):
 class UICaptionPayload(BaseModel):
     text: str
     is_final: bool = False
-    source: Literal["assistant", "user", "status"] = "assistant"
+    source: Literal["assistant", "user", "status", "system"] = "assistant"
 
 
 class UIUserTextPayload(BaseModel):

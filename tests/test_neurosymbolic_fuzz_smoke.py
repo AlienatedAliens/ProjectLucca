@@ -139,7 +139,7 @@ print('OK')
     full_code = _inject_shared_workspace_prelude(code)
     ns: dict[str, object] = {}
     builtins.exec(full_code, ns)
-    assert "OK" in ns or True
+    assert "w" in ns
 
 
 # ---------------------------------------------------------------------------

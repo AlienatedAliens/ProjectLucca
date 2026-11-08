@@ -714,30 +714,35 @@ def compile_dynamic_sketch_grammar(
     else:
         color_rule = 'hole-color ::= "?hole-color" | [0-9]'
 
-    return f"""root ::= ws sketch (newline ws sketch)* ws
-expr-list ::= sketch (newline ws sketch)*
-sketch ::= "(" ws prim-op (ws-plus arg)* ws ")"
-prim-op ::= {prim_op_alternatives} | [a-zA-Z][a-zA-Z0-9_-]*
-arg ::= kw-pair | atom | sketch
-kw-pair ::= (
-    ":axis" ws-plus "?hole-axis") | (
-        ":mode" ws-plus "?hole-mode") | (
-            ":fill" ws-plus hole-color) | (
-                ":conn" ws-plus "?hole-conn") | (
-                    ":reverse" ws-plus "?hole-bool") | (keyword ws-plus hole)
-atom ::= hole | var | int | boolean
-var ::= "input" | "grid" | "bg" | "obj"
-hole ::= (
-    "?hole-axis" | "?hole-mode" | hole-color | "?hole-conn"
-    | "?hole-int" | "?hole-key" | "?hole-bool"
-)
-{color_rule}
-keyword ::= ":" [a-zA-Z][a-zA-Z0-9_-]*
-int ::= "-"? [0-9]+
-boolean ::= "#t" | "#f"
-ws ::= [ \\t]*
-newline ::= [\\n]+
-ws-plus ::= [ \\t\\n\\r]+
-"""
+    kw_pair_rule = (
+        'kw-pair ::= (":axis" ws-plus "?hole-axis") | (":mode" ws-plus "?hole-mode")'
+        ' | (":fill" ws-plus hole-color) | (":conn" ws-plus "?hole-conn")'
+        ' | (":reverse" ws-plus "?hole-bool") | (keyword ws-plus hole)'
+    )
+    hole_rule = (
+        'hole ::= ("?hole-axis" | "?hole-mode" | hole-color | "?hole-conn"'
+        ' | "?hole-int" | "?hole-key" | "?hole-bool")'
+    )
+    return "\n".join(
+        [
+            "root ::= ws sketch (newline ws sketch)* ws",
+            "expr-list ::= sketch (newline ws sketch)*",
+            'sketch ::= "(" ws prim-op (ws-plus arg)* ws ")"',
+            f"prim-op ::= {prim_op_alternatives} | [a-zA-Z][a-zA-Z0-9_-]*",
+            "arg ::= kw-pair | atom | sketch",
+            kw_pair_rule,
+            "atom ::= hole | var | int | boolean",
+            'var ::= "input" | "grid" | "bg" | "obj"',
+            hole_rule,
+            color_rule,
+            'keyword ::= ":" [a-zA-Z][a-zA-Z0-9_-]*',
+            'int ::= "-"? [0-9]+',
+            'boolean ::= "#t" | "#f"',
+            "ws ::= [ \\t]*",
+            "newline ::= [\\n]+",
+            "ws-plus ::= [ \\t\\n\\r]+",
+            "",
+        ]
+    )
 
 

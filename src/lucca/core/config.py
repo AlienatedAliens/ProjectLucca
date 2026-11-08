@@ -307,8 +307,9 @@ def resolve_or_create_master_key(
         return env_k.strip().encode("utf-8")
 
     # 2. Config attribute
-    if config and getattr(config, "master_key", None):
-        cfg_k = config.master_key.strip()
+    raw_mk = getattr(config, "master_key", None) if config else None
+    if isinstance(raw_mk, str) and raw_mk.strip():
+        cfg_k = raw_mk.strip()
         if len(cfg_k) >= 32:
             return cfg_k.encode("utf-8")
 

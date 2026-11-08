@@ -317,7 +317,8 @@ def cluster_phrasings(
 
         if best_cluster_idx is not None:
             cl = clusters[best_cluster_idx]
-            cl["count"] = int(cl["count"]) + count
+            prev_cnt = cl["count"]
+            cl["count"] = (int(prev_cnt) if isinstance(prev_cnt, (int, float, str)) else 0) + count
             cast_members = cl["members"]
             if isinstance(cast_members, list):
                 cast_members.extend([item] * count)
@@ -354,7 +355,9 @@ def cluster_phrasings(
 
             representative = max(unique_members, key=_score_member)
 
-        result.append((representative, int(cl["count"]), sorted(unique_members)))
+        raw_cl_cnt = cl["count"]
+        cl_cnt = int(raw_cl_cnt) if isinstance(raw_cl_cnt, (int, float, str)) else 0
+        result.append((representative, cl_cnt, sorted(unique_members)))
 
     return result
 

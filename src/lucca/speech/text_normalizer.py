@@ -242,7 +242,7 @@ class KittenTextNormalizer:
 
     def _normalize_currency(self, text: str) -> str:
         # USD $
-        def repl_usd(match: re.Match) -> str:
+        def repl_usd(match: re.Match[str]) -> str:
             val_str = match.group(1).replace(",", "")
             if "." in val_str:
                 dollars, cents = val_str.split(".", 1)
@@ -266,7 +266,7 @@ class KittenTextNormalizer:
         text = re.sub(r"\$(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)", repl_usd, text)
 
         # EUR €
-        def repl_eur(match: re.Match) -> str:
+        def repl_eur(match: re.Match[str]) -> str:
             val_str = match.group(1).replace(",", "")
             if "." in val_str:
                 euros, cents = val_str.split(".", 1)
@@ -278,7 +278,7 @@ class KittenTextNormalizer:
         text = re.sub(r"€(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)", repl_eur, text)
 
         # GBP £
-        def repl_gbp(match: re.Match) -> str:
+        def repl_gbp(match: re.Match[str]) -> str:
             val_str = match.group(1).replace(",", "")
             if "." in val_str:
                 pounds, pence = val_str.split(".", 1)
@@ -293,7 +293,7 @@ class KittenTextNormalizer:
         text = re.sub(r"£(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)", repl_gbp, text)
 
         # YEN ¥
-        def repl_yen(match: re.Match) -> str:
+        def repl_yen(match: re.Match[str]) -> str:
             val_str = match.group(1).replace(",", "")
             return f"{num_to_words(int(float(val_str)))} yen"
 
@@ -301,7 +301,7 @@ class KittenTextNormalizer:
         return text
 
     def _normalize_percentages(self, text: str) -> str:
-        def repl_pct(match: re.Match) -> str:
+        def repl_pct(match: re.Match[str]) -> str:
             num = match.group(1)
             if "." in num:
                 whole, dec = num.split(".", 1)
@@ -314,22 +314,22 @@ class KittenTextNormalizer:
 
     def _normalize_dates(self, text: str) -> str:
         # ISO format: YYYY-MM-DD
-        def repl_iso(match: re.Match) -> str:
+        def repl_iso(match: re.Match[str]) -> str:
             y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
             m_name = _MONTHS.get(m, "")
             if m_name and 1 <= d <= 31:
                 return f"{m_name} {num_to_ordinal(d)}, {year_to_words(y)}"
-            return match.group(0)
+            return str(match.group(0))
 
         text = re.sub(r"\b(\d{4})-(\d{2})-(\d{2})\b", repl_iso, text)
 
         # Named month date: Oct 3, 2026 or October 3, 2026
-        def repl_named(match: re.Match) -> str:
+        def repl_named(match: re.Match[str]) -> str:
             m_str, d, y = match.group(1).lower(), int(match.group(2)), int(match.group(3))
             m_name = _MONTH_NAMES.get(m_str)
             if m_name and 1 <= d <= 31:
                 return f"{m_name} {num_to_ordinal(d)}, {year_to_words(y)}"
-            return match.group(0)
+            return str(match.group(0))
 
         text = re.sub(
             r"\b([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\b",
@@ -339,7 +339,7 @@ class KittenTextNormalizer:
         return text
 
     def _normalize_times(self, text: str) -> str:
-        def repl_time(match: re.Match) -> str:
+        def repl_time(match: re.Match[str]) -> str:
             h, m, ampm = int(match.group(1)), int(match.group(2)), match.group(3)
             h_words = num_to_words(h)
             if m == 0:
@@ -357,7 +357,7 @@ class KittenTextNormalizer:
     def _normalize_units(self, text: str) -> str:
         out = text
         for pattern, singular, plural in self.UNITS:
-            def repl(match: re.Match, _s: str = singular, _p: str = plural) -> str:
+            def repl(match: re.Match[str], _s: str = singular, _p: str = plural) -> str:
                 val = match.group(1)
                 num_f = float(val)
                 unit_str = _s if num_f == 1.0 else _p
@@ -372,7 +372,7 @@ class KittenTextNormalizer:
         return out
 
     def _normalize_ordinals(self, text: str) -> str:
-        def repl_ord(match: re.Match) -> str:
+        def repl_ord(match: re.Match[str]) -> str:
             n = int(match.group(1))
             return num_to_ordinal(n)
 
@@ -380,14 +380,14 @@ class KittenTextNormalizer:
 
     def _normalize_numbers(self, text: str) -> str:
         # Numbers with commas: 1,250
-        def repl_comma(match: re.Match) -> str:
+        def repl_comma(match: re.Match[str]) -> str:
             cleaned = match.group(0).replace(",", "")
             return num_to_words(int(cleaned))
 
         text = re.sub(r"\b\d{1,3}(?:,\d{3})+\b", repl_comma, text)
 
         # Standalone decimals: 3.14
-        def repl_dec(match: re.Match) -> str:
+        def repl_dec(match: re.Match[str]) -> str:
             whole, dec = match.group(1), match.group(2)
             w_words = num_to_words(int(whole))
             d_words = " ".join(_ONES[int(digit)] for digit in dec)

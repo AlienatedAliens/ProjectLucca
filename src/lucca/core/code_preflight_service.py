@@ -35,6 +35,22 @@ class CodePreflightService:
     def __init__(self, orchestrator: Orchestrator) -> None:
         self._orch = orchestrator
 
+    def _run_preflight_check(
+        self, code: str, docstring_examples: list[str] | None
+    ) -> PreflightResult:
+        fn = getattr(self._orch.sandbox, "preflight_verify_code", None)
+        if callable(fn):
+            res = fn(code=code, docstring_examples=docstring_examples)
+            if isinstance(res, PreflightResult):
+                return res
+        return PreflightResult(
+            success=True,
+            error_msg=None,
+            elapsed_ms=0.0,
+            assertions_run=0,
+            fail_open=True,
+        )
+
     def ensure_impasse_backlog_table(self) -> None:
         orch = self._orch
         if orch.db is None or not hasattr(orch.db, "write_transaction"):
@@ -134,7 +150,7 @@ class CodePreflightService:
                                 assertions_run=0,
                                 fail_open=False,
                             )
-                        cbr_check = orch.sandbox.preflight_verify_code(
+                        cbr_check = self._run_preflight_check(
                             code=adapted, docstring_examples=docstring_examples
                         )
                         if cbr_check.success:
@@ -180,7 +196,7 @@ class CodePreflightService:
             )
 
         # CBR Step 3 (Revise): Preflight verification against Docker sandbox
-        preflight_res = orch.sandbox.preflight_verify_code(
+        preflight_res = self._run_preflight_check(
             code=code_candidate, docstring_examples=docstring_examples
         )
 
@@ -261,7 +277,7 @@ class CodePreflightService:
             )
             return code_candidate, preflight_res
 
-        repaired_res = orch.sandbox.preflight_verify_code(
+        repaired_res = self._run_preflight_check(
             code=repaired_code, docstring_examples=docstring_examples
         )
         orch._log_impasse_to_backlog(

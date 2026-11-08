@@ -190,7 +190,9 @@ class NeuralHazardClassifier:
         except Exception as exc:  # noqa: BLE001
             logger.warning("neural_hazard_classifier_init_failed", error=str(exc))
 
-    def _infer_single(self, segment: str) -> tuple[np.ndarray, str, float, str, bool]:
+    def _infer_single(
+        self, segment: str
+    ) -> tuple[np.ndarray[tuple[int, ...], np.dtype[np.float64]], str, float, str, bool]:
         enc = self._tokenizer.encode(segment)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
         attention_mask = np.array([enc.attention_mask], dtype=np.int64)
@@ -281,12 +283,12 @@ class NeuralHazardClassifier:
 
         # Multi-sentence max-hazard pooling (`HIGH > MEDIUM > LOW`) + OR-pooling for
         # `CROSS_REFERENCE_CMD`
-        best_probs: np.ndarray = probs_full
+        best_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] = probs_full
         best_pred_cls = cls_full
         best_conf = conf_full
         best_hazard_lvl = lvl_full
         any_cross_ref = False
-        cr_probs: np.ndarray | None = None
+        cr_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] | None = None
         cr_conf = 0.0
 
         for sent in sentences:

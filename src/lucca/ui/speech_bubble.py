@@ -331,8 +331,8 @@ class SpeechBubble(QWidget):
 
         pages: list[str] = []
         curr: list[str] = []
-        for line in all_lines:
-            curr.append(line)
+        for text_line in all_lines:
+            curr.append(text_line)
             if len(curr) == self.MAX_LINES_PER_PAGE:
                 pages.append("\n".join(curr))
                 curr = []

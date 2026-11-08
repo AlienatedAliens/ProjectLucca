@@ -82,6 +82,7 @@ from lucca.core.schemas import (
     RuleState,
     SignedPayload,
     ToolCall,
+    ToolDefinition,
     ToolResult,
     TTSChunk,
     UnsignedPayload,
@@ -90,22 +91,24 @@ from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.speech_stream_pipeline import SpeechStreamPipeline
-from lucca.core.text_utils import normalize_transcript
+from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
 from lucca.core.tool_dispatcher import ToolDispatcher
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
     TurnInput,
     TurnPipeline,
-    normalize_spelled_words,
 )
 from lucca.core.user_model import UserModel
 from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.db import DatabaseManager
 from lucca.memory.episodic_code_cache import EpisodicCodeCache
+from lucca.memory.extraction import FactExtractor
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
+    InferredAssertionSigner,
+    LispAssertionSigner,
     ToolResultSigner,
     UserSpeechSigner,
 )
@@ -185,6 +188,14 @@ def _levenshtein_distance(s1: str, s2: str) -> int:
 class Orchestrator:
     quit_requested: bool = False
     _default_clock: ClockPort = SystemClock()
+    _cancel_token_evt: threading.Event | None = None
+    _early_transcript_commit: tuple[str, str] | None = None
+    current_turn_assistant_reply: str | None = None
+    current_turn_image_b64: str | None = None
+    _last_transcript_signed: SignedPayload | None = None
+    _fact_extractor: FactExtractor | None = None
+    _screenshot_pending_msgs: list[ChatMessage]
+    _working_memory: WorkingMemory | None = None
 
     @property
     def clock(self) -> ClockPort:
@@ -356,8 +367,9 @@ class Orchestrator:
             if isinstance(store_key, (bytes, bytearray)) and len(store_key) >= 32:
                 key = bytes(store_key)
 
-        if key is None and getattr(self.config, "master_key", None):
-            cfg_k = self.config.master_key.encode("utf-8")
+        raw_mk = getattr(self.config, "master_key", None)
+        if key is None and isinstance(raw_mk, str) and raw_mk:
+            cfg_k = raw_mk.encode("utf-8")
             if len(cfg_k) >= 32:
                 key = cfg_k
 
@@ -907,7 +919,7 @@ class Orchestrator:
     def _publish_caption(
         self,
         text: str,
-        source: Literal["assistant", "user", "status"] = "assistant",
+        source: Literal["assistant", "user", "status", "system"] = "assistant",
         is_final: bool = False,
     ) -> None:
         self.speech_output.publish_caption(text=text, source=source, is_final=is_final)
@@ -1264,6 +1276,7 @@ class Orchestrator:
         """
         if not self.memory_store:
             return None
+        signer: InferredAssertionSigner | LispAssertionSigner
         if llm_inferred:
             signer = self.signer_factory.inferred_assertion()
             provenance = Provenance.LLM_INFERRED_ASSERTION
@@ -1333,7 +1346,7 @@ class Orchestrator:
         goal: str,
         trace: TurnTrace | None = None,
         context: ReasoningContext | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
         return self.deduction_runner.run_deduction_step(
             goal, trace=trace, context=context, llm=llm
@@ -1358,7 +1371,7 @@ class Orchestrator:
         self,
         goal: str,
         trace: TurnTrace | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
         context: ReasoningContext | None = None,
     ) -> GoalPlan | None:
         return self.deduction_runner.run_planning_step(
@@ -1430,12 +1443,14 @@ class Orchestrator:
             if isinstance(r, ToolReceipt):
                 norm_receipts.append(r)
             elif isinstance(r, dict):
+                raw_args = r.get("args")
+                args_dict: dict[str, JsonValue] = raw_args if isinstance(raw_args, dict) else {}
                 norm_receipts.append(
                     ToolReceipt(
                         tool=str(r.get("tool") or r.get("tool_name") or r.get("action") or ""),
                         ok=bool(r.get("ok", True)),
                         call_id=str(r.get("call_id", "")),
-                        args=r.get("args") if isinstance(r.get("args"), dict) else {},
+                        args=args_dict,
                         output=str(r.get("output")) if r.get("output") is not None else None,
                         error=str(r.get("error")) if r.get("error") is not None else None,
                     )
@@ -1472,7 +1487,7 @@ class Orchestrator:
             user_transcript_text = self.current_turn_transcript
             committed_user_id = self._commit_transcript(self.current_turn_transcript, trace)
             self.current_turn_transcript = None
-        elif getattr(self, "_early_transcript_commit", None):
+        elif self._early_transcript_commit is not None:
             # WO-9 A2: transcript was committed early to ground a memory_commit
             # in this turn; reuse that commit for contradiction detection.
             committed_user_id, user_transcript_text = self._early_transcript_commit
@@ -1676,7 +1691,7 @@ class Orchestrator:
         last_pulse = getattr(self, "_last_idle_pulse_ts", 0.0)
         if (current_time - last_turn) >= idle_sec and (current_time - last_pulse) >= idle_sec:
             try:
-                res = pulse_engine.pulse(now=current_time)
+                res: object = pulse_engine.pulse(now=current_time)
                 self._last_idle_pulse_ts = current_time
                 return res
             except Exception as exc:  # noqa: BLE001
@@ -1720,7 +1735,7 @@ class Orchestrator:
         current_image_b64: str | None = None,
         current_text: str | None = None,
         memories: list[MemoryHit] | None = None,
-        tools: list[object] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_rounds: int = 8,
         epistemic_context: str | None = None,
         enable_thinking: bool | None = None,

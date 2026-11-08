@@ -206,7 +206,8 @@ class UserModel:
         for rec in reversed(self._in_memory_records):
             content = str(rec.get("content", "")).strip()
             prov = str(rec.get("provenance", ""))
-            ts = float(rec.get("created_at", 0.0) or 0.0)
+            raw_ts = rec.get("created_at", 0.0)
+            ts = float(raw_ts) if isinstance(raw_ts, (int, float, str)) and raw_ts else 0.0
             if not content or prov not in ALLOWED_USER_MODEL_PROVENANCES:
                 continue
 

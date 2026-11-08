@@ -10,6 +10,7 @@ import sys
 import traceback
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from types import TracebackType
 from typing import TextIO
 
 from lucca.core.config import get_config
@@ -109,7 +110,9 @@ def setup_process_logging(process_name: str) -> Path:
         logger.debug("tee_stream_init_failed: %s", exc)
 
     # Install global uncaught exception hook
-    def _crash_hook(exc_type: type[BaseException], exc_val: BaseException, tb: object) -> None:
+    def _crash_hook(
+        exc_type: type[BaseException], exc_val: BaseException, tb: TracebackType | None
+    ) -> None:
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_val, tb)
             return

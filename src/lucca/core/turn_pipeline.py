@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.brain.prompt_builder import (
     build_narration_messages,
@@ -44,7 +45,6 @@ from lucca.core.schemas import (
     ChatMessage,
     ExecutionTier,
     InferenceStep,
-    JsonValue,
     PendingRatification,
     RouteAction,
     RouteDecision,
@@ -52,10 +52,14 @@ from lucca.core.schemas import (
     RuleState,
     Say,
     ToolCall,
+    ToolDefinition,
     ToolResult,
 )
 from lucca.core.self_diagnosis import is_self_diagnosis_query
-from lucca.core.text_utils import normalize_spelled_words, normalize_transcript
+from lucca.core.text_utils import (
+    normalize_spelled_words,
+    normalize_transcript,
+)
 from lucca.core.trace import TurnTrace, now_ns
 from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.working import WorkingMemory
@@ -531,7 +535,7 @@ class TurnPipeline:
 
     @property
     def working_memory(self) -> WorkingMemory | None:
-        wm = getattr(self.orch, "working_memory", None)
+        wm = self.orch._working_memory
         if wm is not None:
             return wm
         db_mgr = getattr(self.orch, "db", None)
@@ -728,7 +732,7 @@ class TurnPipeline:
                     content=combined,
                     elapsed_ms=0.0,
                 )
-            else:
+            elif winning_outcome.plan:
                 say_actions = [
                     a.text for a in winning_outcome.plan.actions if isinstance(a, Say)
                 ]
@@ -748,12 +752,13 @@ class TurnPipeline:
                 if (last_tool_res is None or getattr(last_tool_res, "ok", True))
                 else "pydantic_valid"
             )
-            self.orch.rule_engine.emit_execution_triple(
-                rule_id=winning_outcome.rule_id,
-                plan=winning_outcome.plan,
-                signal=signal,
-                detail="ACT_THEN_NARRATE execution",
-            )
+            if winning_outcome.plan:
+                self.orch.rule_engine.emit_execution_triple(
+                    rule_id=winning_outcome.rule_id,
+                    plan=winning_outcome.plan,
+                    signal=signal,
+                    detail="ACT_THEN_NARRATE execution",
+                )
 
             mem_hits = self.orch._search_memories(user_text) if user_text else []
             eff_user_text = user_text
@@ -809,7 +814,7 @@ class TurnPipeline:
             logger.error("act_then_narrate_error", error=str(e))
             self.orch._finalize_turn(trace, decision_id)
 
-    def narration_grammar_request(self) -> tuple[list[object] | None, str | None]:
+    def narration_grammar_request(self) -> tuple[list[ToolDefinition] | None, str | None]:
         """
         Sampling-request decision for the ACT_THEN_NARRATE narration channel
         (WO-38 Phase 3 audit finding).
@@ -1061,12 +1066,12 @@ class TurnPipeline:
         self,
         rule_state: RuleState,
         text_for_gate: str,
-    ) -> list[object] | None:
+    ) -> list[ToolDefinition] | None:
         """
         Intent-based tool gating — suppress tools ONLY for dangerous or pure chit-chat.
         Returns empty list if tools are suppressed, or None to let _stream_llm_speech decide.
         """
-        turn_tools: list[object] | None = None
+        turn_tools: list[ToolDefinition] | None = None
         intent = rule_state.intent if hasattr(rule_state, "intent") else "unknown"
         toolless_intents = {"dangerous"}
 
@@ -1368,7 +1373,7 @@ class TurnPipeline:
                     text=user_text,
                     intent=getattr(route_decision, "intent", None),
                 )
-            else:
+            elif winning_outcome and winning_outcome.plan:
                 has_tool_calls = any(
                     isinstance(a, ToolCall)
                     for a in winning_outcome.plan.actions

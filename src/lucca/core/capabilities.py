@@ -452,7 +452,7 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
 def tool_schema_to_definition(schema: ToolSchema) -> ToolDefinition:
     """Converts internal ToolSchema to OpenAI-compatible ToolDefinition."""
     props: dict[str, JsonValue] = {}
-    required_fields: list[str] = []
+    required_fields: list[JsonValue] = []
     for param_name, param in schema.parameters.items():
         props[param_name] = {
             "type": param.type,
@@ -590,12 +590,14 @@ class CapabilityRegistry:
             active_app_keys = [a["key"] for a in apps if a.get("status") != "Disabled"]
 
         pathways = self.get_reasoning_pathways()
-        core_tools = [t.function.name for t in self.get_tool_definitions()]
+        core_tools: list[JsonValue] = [t.function.name for t in self.get_tool_definitions()]
+        active_apps_json: list[JsonValue] = list(active_app_keys)
+        pathways_json: dict[str, JsonValue] = {k: dict(v) for k, v in pathways.items()}
 
         manifest: dict[str, JsonValue] = {
             "tools": core_tools,
-            "whitelisted_apps": active_app_keys,
-            "reasoning_pathways": pathways,
+            "whitelisted_apps": active_apps_json,
+            "reasoning_pathways": pathways_json,
             "workspace": str(workspace_root),
             "memory_subsystem": "SQLite-vec episodic & semantic memory (data/memory.sqlite)",
             "hardware_substrates": {

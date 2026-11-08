@@ -163,7 +163,7 @@ def research_topic(
         candidate_sources = all_results[:max_sources]
 
     selected_sources = candidate_sources[:max_sources]
-    fetched_sources: list[dict[str, JsonValue]] = []
+    fetched_sources: list[JsonValue] = []
     dossier_sections: list[str] = [
         f"# Research Dossier: {clean_query}\n",
         f"**Search Angles Explored:** {', '.join(f'`{sq}`' for sq in sub_queries)}\n",
@@ -186,11 +186,12 @@ def research_topic(
         dossier_sections.extend(section_lines)
 
     summary_text = "\n".join(dossier_sections).strip()
+    sub_queries_json: list[JsonValue] = [str(sq) for sq in sub_queries]
 
     structured_out: dict[str, JsonValue] = {
         "query": clean_query,
         "ok": True,
-        "sub_queries": sub_queries,
+        "sub_queries": sub_queries_json,
         "sources_count": len(fetched_sources),
         "sources": fetched_sources,
         "results": fetched_sources,

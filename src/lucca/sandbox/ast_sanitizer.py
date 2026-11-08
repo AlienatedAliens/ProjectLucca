@@ -56,7 +56,7 @@ def _looks_like_code(block: str) -> bool:
     return matches >= 1
 
 
-def _try_parse(code: str) -> tuple[bool, ast.AST | None, str]:
+def _try_parse(code: str) -> tuple[bool, ast.Module | None, str]:
     """Helper to safely parse AST."""
     try:
         tree = ast.parse(code)
@@ -355,9 +355,10 @@ def sanitize_and_repair_python_code(raw_code: str) -> tuple[str, bool, str]:
         try:
             ast.fix_missing_locations(tree)
             code = ast.unparse(tree)
-            parsed, tree, err = _try_parse(code)
-            if not parsed or tree is None:
+            parsed, new_tree, err = _try_parse(code)
+            if not parsed or new_tree is None:
                 return code, False, err
+            tree = new_tree
         except Exception as exc:
             logger.debug("ast_unparse_failed", error=str(exc))
 
@@ -467,9 +468,10 @@ def sanitize_and_repair_python_code(raw_code: str) -> tuple[str, bool, str]:
 
     if imports_to_add:
         code = "\n".join(imports_to_add) + "\n\n" + code
-        parsed, tree, err = _try_parse(code)
-        if not parsed or tree is None:
+        parsed, new_tree, err = _try_parse(code)
+        if not parsed or new_tree is None:
             return code, False, err
+        tree = new_tree
 
     # 4d. AST Auto-Print Synthesis (Turn 1 Zero-Shot Optimization, Spec 32)
     has_print = False

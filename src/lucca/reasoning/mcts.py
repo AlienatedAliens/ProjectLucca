@@ -22,7 +22,8 @@ import math
 import random
 import threading
 import time
-from typing import Final
+from collections.abc import Callable, Sequence
+from typing import Final, cast
 
 import structlog
 import z3
@@ -35,8 +36,8 @@ from lucca.reasoning.cost import ast_cost, ast_depth
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.eval import SchemeEvaluator
 from lucca.reasoning.scheme.parser import (
-    SchemeAtom,
     SchemeNode,
+    SchemeValue,
     Symbol,
     parse_expr,
     parse_rule,
@@ -176,14 +177,17 @@ def _ast_references_any_var(node: SchemeNode, var_names: set[str]) -> bool:
 def _evaluate_node_safe(
     node_ast: SchemeNode,
     extra_env: dict[str, object] | None = None,
-) -> SchemeAtom | None:
+) -> SchemeValue | None:
     """Safely evaluates a closed pure MicroScheme expression with optional bound inputs."""
     evaluator = SchemeEvaluator(gas_limit=1000, timeout_ms=50.0)
     try:
         env: dict[str, object] = dict(PURE_PRIMITIVES)
         if extra_env:
             env.update(extra_env)
-        val = evaluator.eval(node_ast, env)
+        val = evaluator.eval(
+            node_ast,
+            cast(dict[str, Callable[[list[SchemeValue]], SchemeValue]], env),
+        )
         if isinstance(val, (int, float, bool, str, list)):
             return val
         return None
@@ -765,7 +769,7 @@ class ASTHoleMCTSEngine:
         self,
         current_ast: SchemeNode,
         hole: tuple[str, str | None],
-        hypotheses: list[object],
+        hypotheses: Sequence[object],
         literal_pool: list[int | float | str],
         current_depth: int,
         var_symbols: list[Symbol] | None = None,
@@ -816,7 +820,7 @@ class ASTHoleMCTSEngine:
 
     def _matches_goal(
         self,
-        val: SchemeAtom,
+        val: object,
         goal: int | float | str | bool | list[object],
     ) -> bool:
         """Determines semantic equality with target goal."""
@@ -871,7 +875,7 @@ class ASTHoleMCTSEngine:
         if self.smt_verifier is not None:
             try:
                 if hasattr(self.smt_verifier, "verify_expression"):
-                    expr_res = self.smt_verifier.verify_expression(winner.ast)  # type: ignore[attr-defined]
+                    expr_res = self.smt_verifier.verify_expression(winner.ast)
                     if not expr_res.verified:
                         reasons_str = "; ".join(
                             expr_res.reasons) if expr_res.reasons else expr_res.status

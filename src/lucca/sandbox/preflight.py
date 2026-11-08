@@ -114,9 +114,9 @@ def extract_docstring_assertions(
         for doc in docstrings:
             try:
                 parsed_examples = doctest.DocTestParser().get_examples(doc)
-                for ex in parsed_examples:
-                    src = re.sub(r"#.*$", "", ex.source.strip()).strip()
-                    want = ex.want.strip()
+                for ex_item in parsed_examples:
+                    src = re.sub(r"#.*$", "", ex_item.source.strip()).strip()
+                    want = ex_item.want.strip()
                     if not src:
                         continue
                     if want:

@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Mapping, Sequence
+
+from pydantic import JsonValue
 
 
 class ContainerWorld:
@@ -61,7 +64,7 @@ class ContainerWorld:
         return [s_val] if s_val and s_val not in ("none", "null", "nobody", "no one",
             "alone") else []
 
-    def process_event(self, ev: dict[str, object]) -> None:
+    def process_event(self, ev: Mapping[str, object]) -> None:
         """
         Process a single physical, initial, or perceptual event.
         Expected keys:
@@ -405,7 +408,7 @@ class ContainerWorld:
 
     def simulate(
         self,
-        events: list[dict[str, object]],
+        events: Sequence[Mapping[str, object]],
         query_agent: str | None = None,
         query_item: str = "",
     ) -> dict[str, object]:
@@ -420,7 +423,7 @@ class ContainerWorld:
             "initial_world": dict(self.initial_world),
         }
 
-    def process_events(self, events: list[dict[str, object]]) -> None:
+    def process_events(self, events: Sequence[Mapping[str, object]]) -> None:
         """Batch process an ordered sequence of events."""
         for ev in events:
             self.process_event(ev)
@@ -583,16 +586,26 @@ class ContainerWorld:
         # 3. Fallback to physical world state
         return self.query(None, t_item)
 
-    def export_state(self) -> dict[str, object]:
+    def export_state(self) -> dict[str, JsonValue]:
         """Export current state for serialization."""
+        world_json: dict[str, JsonValue] = {str(k): str(v) for k, v in self.world.items()}
+        init_json: dict[str, JsonValue] = {str(k): str(v) for k, v in self.initial_world.items()}
+        beliefs_json: dict[str, JsonValue] = {
+            str(k): {str(ik): str(iv) for ik, iv in v.items()}
+            for k, v in self.beliefs.items()
+        }
+        sob_json: dict[str, JsonValue] = {
+            str(k): {
+                str(k2): {str(ik): str(iv) for ik, iv in v2.items()}
+                for k2, v2 in v.items()
+            }
+            for k, v in self.second_order_beliefs.items()
+        }
         return {
-            "world": dict(self.world),
-            "initial_world": dict(self.initial_world),
-            "beliefs": {k: dict(v) for k, v in self.beliefs.items()},
-            "second_order_beliefs": {
-                k: {k2: dict(v2) for k2, v2 in v.items()}
-                for k, v in self.second_order_beliefs.items()
-            },
+            "world": world_json,
+            "initial_world": init_json,
+            "beliefs": beliefs_json,
+            "second_order_beliefs": sob_json,
         }
 
     def load_state(self, state: dict[str, object]) -> None:

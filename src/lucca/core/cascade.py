@@ -49,6 +49,18 @@ from lucca.reasoning.recall import recall_past_episodes, tokenize_query
 
 logger = structlog.get_logger(__name__)
 
+
+def _as_float(v: object, default: float = 0.0) -> float:
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        try:
+            return float(v)
+        except ValueError:
+            return default
+    return default
+
+
 class EpistemicSubstrate(enum.IntEnum):
     """
     Epistemic substrates in Project Lucca's cognitive architecture:
@@ -126,25 +138,15 @@ class EvidenceItem(BaseModel):
         if pol is not None and not has_explicit_bits and not has_explicit_counts:
             pol_str = pol.value if hasattr(pol, "value") else str(pol).upper()
             if pol_str in ("TOP", "CONFLICT"):
-                d["told_true"] = True
-                d["told_false"] = True
-                d["positive_evidence"] = 1
-                d["negative_evidence"] = 1
+                d.update(told_true=True, told_false=True, positive_evidence=1, negative_evidence=1)
             elif pol_str in ("F", "FALSE"):
-                d["told_true"] = False
-                d["told_false"] = True
-                d["positive_evidence"] = 0
-                d["negative_evidence"] = 1
+                d.update(told_true=False, told_false=True, positive_evidence=0, negative_evidence=1)
             elif pol_str in ("BOT", "UNKNOWN"):
-                d["told_true"] = False
-                d["told_false"] = False
-                d["positive_evidence"] = 0
-                d["negative_evidence"] = 0
+                d.update(
+                    told_true=False, told_false=False, positive_evidence=0, negative_evidence=0
+                )
             else:
-                d["told_true"] = True
-                d["told_false"] = False
-                d["positive_evidence"] = 1
-                d["negative_evidence"] = 0
+                d.update(told_true=True, told_false=False, positive_evidence=1, negative_evidence=0)
         elif has_explicit_counts and not has_explicit_bits:
             w_pos = int(d.get("positive_evidence", 0) or 0)
             w_neg = int(d.get("negative_evidence", 0) or 0)
@@ -153,10 +155,8 @@ class EvidenceItem(BaseModel):
         else:
             tt = bool(d.get("told_true", True))
             tf = bool(d.get("told_false", False))
-            if "positive_evidence" not in d:
-                d["positive_evidence"] = 1 if tt else 0
-            if "negative_evidence" not in d:
-                d["negative_evidence"] = 1 if tf else 0
+            d.setdefault("positive_evidence", 1 if tt else 0)
+            d.setdefault("negative_evidence", 1 if tf else 0)
         return d
 
     @property
@@ -235,14 +235,15 @@ class SearchCascadeResult(BaseModel):
     recollections: list[str] = Field(default_factory=list)
 
 
-
-
 class EpistemicSearchCascade(CascadeSubstrateAdapters):
     """Executes multi-tier epistemic search across Substrates 0 to 7 and Belnap FOUR synthesis."""
 
     def __init__(
-        self, sandbox: object | None = None, memory_store: MemoryStorePort | None = None,
-        enable_floor_cues: bool = True, verifier: SemanticVerifierPort | None = None,
+        self,
+        sandbox: object | None = None,
+        memory_store: MemoryStorePort | None = None,
+        enable_floor_cues: bool = True,
+        verifier: SemanticVerifierPort | None = None,
     ) -> None:
         self.sandbox = sandbox
         self.memory_store = memory_store
@@ -269,10 +270,11 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
             """Returns True if (a, b) is a canonical FUNCTIONAL_PREDICATES pair with distinct
             precedence/valid_from timestamps handled by _detect_memory_supersession."""
             for pred in FUNCTIONAL_PREDICATES:
-                if f" {
-                    pred} " in f" {a.content.strip()} " and f" {pred} " in f" {b.content.strip()} ":
-                    vf_a = float(a.metadata.get("valid_from", 0.0) or 0.0)
-                    vf_b = float(b.metadata.get("valid_from", 0.0) or 0.0)
+                if f" {pred} " in f" {a.content.strip()} " and (
+                    f" {pred} " in f" {b.content.strip()} "
+                ):
+                    vf_a = _as_float(a.metadata.get("valid_from", 0.0))
+                    vf_b = _as_float(b.metadata.get("valid_from", 0.0))
                     prov_a = str(a.metadata.get("provenance", "")).upper()
                     prov_b = str(b.metadata.get("provenance", "")).upper()
                     if vf_a != vf_b or prov_a != prov_b:
@@ -281,8 +283,8 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
 
         neg_tokens = {"not", "never", "no", "false", "disabled", "cannot", "none", "unsupported"}
         stop_tokens = {
-            "the", "a", "an", "is", "are", "was", "were", "to", "of", "in", "on", "at", "for",
-            "with", "by", "from", "that", "this", "it", "be", "as", "or", "and",
+            "the", "a", "an", "is", "are", "was", "were", "to", "of", "in", "on", "at",
+            "for", "with", "by", "from", "that", "this", "it", "be", "as", "or", "and",
         }
 
         for i in range(len(active)):
@@ -366,8 +368,8 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
         unbound class calls `EpistemicSearchCascade._evaluate_polarity(content, query)`.
         """
         if isinstance(self, str):
-            actual_content = self
-            actual_query = content if isinstance(content, str) else query_text
+            actual_content: str = self
+            actual_query: str = content if isinstance(content, str) else query_text
             verifier = None
         else:
             actual_content = content
@@ -376,9 +378,7 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
 
         if verifier is not None and actual_query.strip():
             try:
-                v_res = verifier.check_consistency(
-                    premise=actual_content, hypothesis=actual_query
-                )
+                v_res = verifier.check_consistency(premise=actual_content, hypothesis=actual_query)
                 if not v_res.degraded:
                     if v_res.label == VerifierLabel.ENTAILMENT:
                         return True, False
@@ -410,7 +410,6 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
 
         return True, False
 
-
     def _detect_memory_supersession(
         self,
         evidence: list[EvidenceItem],
@@ -433,7 +432,9 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
         # 1. Group by functional predicate (s, p)
         pred_groups: dict[tuple[str, str], list[tuple[EvidenceItem, float, str]]] = {}
         for item in mem_items:
-            vf = float(item.metadata.get("valid_from", 0.0) or item.timestamp_ns / 1e9)
+            vf = _as_float(item.metadata.get("valid_from"), default=item.timestamp_ns / 1e9)
+            if vf == 0.0:
+                vf = item.timestamp_ns / 1e9
             content = item.content.strip()
             parts = content.split(maxsplit=2)
             if len(parts) >= 3 and parts[1] in FUNCTIONAL_PREDICATES:
@@ -494,7 +495,7 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
                     ]
                     if active_candidates:
                         active_candidates.sort(
-                            key=lambda e: float(e.metadata.get("valid_from", 0.0) or 0.0),
+                            key=lambda e: _as_float(e.metadata.get("valid_from", 0.0)),
                             reverse=True,
                         )
                         best = active_candidates[0]
@@ -611,7 +612,7 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
         # Sort evidence by Trust Tier, active before superseded, then confidence, valid_from
         def _evidence_sort_key(e: EvidenceItem) -> tuple[int, int, float, float]:
             is_sup = 1 if bool(e.metadata.get("is_superseded")) else 0
-            vf = float(e.metadata.get("valid_from", 0.0) or 0.0)
+            vf = _as_float(e.metadata.get("valid_from", 0.0))
             return (e.trust_tier.value, is_sup, -e.confidence, -vf)
 
         sorted_evidence = sorted(evidence, key=_evidence_sort_key)
@@ -625,7 +626,11 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
                 polarity_tag = "[superseded]"
             elif item.metadata.get("provenance") == "INFERRED":
                 meta_conf = item.metadata.get("confidence")
-                conf_val = float(meta_conf) if meta_conf is not None else float(item.confidence)
+                conf_val = (
+                    _as_float(meta_conf, default=float(item.confidence))
+                    if meta_conf is not None
+                    else float(item.confidence)
+                )
                 std_label = standard_for_confidence(conf_val).value
                 polarity_tag = f"[inferred, confidence {conf_val:.2f} — {std_label}]"
             else:
@@ -765,7 +770,6 @@ __all__ = [
     "_any_term_matches", "_extract_target_entity", "_term_matches", "belnap_join_k",
     "belnap_join_t", "belnap_meet_k", "belnap_meet_t", "belnap_negation",
     "build_calibrated_refusal", "classify_epistemic_intent", "extract_clean_topic",
-    "information_join", "information_meet", "matches_slang_or_world_definition",
-    "pool_evidence", "recall_past_episodes", "select_floor_cue", "tokenize_query",
-    "truth_join", "truth_meet",
+    "information_join", "information_meet", "matches_slang_or_world_definition", "pool_evidence",
+    "recall_past_episodes", "select_floor_cue", "tokenize_query", "truth_join", "truth_meet",
 ]

@@ -70,11 +70,11 @@ def distill_contradiction_to_proposition(
     old_content: str,
     new_content: str,
     topic: str = "general",
-    llm: SpeechLLMPort | None = None,
+    llm: SpeechLLMPort | object | None = None,
     grammar_path: Path | None = None,
 ) -> DistilledProposition:
     """
-    Distills a confirmed contradiction into a clean third-person declarative proposition.
+    Distills a confirmed contradiction into a third-person declarative proposition.
     Uses GBNF-constrained JSON generation via SpeechLLMPort if available,
     with a deterministic fallback.
     """
@@ -86,7 +86,7 @@ def distill_contradiction_to_proposition(
         except Exception as exc:  # noqa: BLE001
             logger.debug("gbnf_grammar_read_failed", path=str(g_path), error=str(exc))
 
-    if llm is not None and grammar_text:
+    if llm is not None and hasattr(llm, "stream_turn") and grammar_text:
         try:
             prompt = (
                 f"Distill this revised fact into a third-person canonical proposition.\n"

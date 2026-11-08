@@ -35,12 +35,13 @@ from lucca.ui.theme import CT_GOLD_TEXT
 
 if TYPE_CHECKING:
     from lucca.core.studio_facade import StudioFacade
+    from lucca.ui.settings_dialog import SettingsDialog
 
 
 class PersonaTab(QWidget):
     """Tab 0: Persona & Archetypes (Lossless TOML, Prose Compilation)."""
 
-    def __init__(self, dialog: QWidget, facade: StudioFacade) -> None:
+    def __init__(self, dialog: SettingsDialog, facade: StudioFacade) -> None:
         super().__init__()
         self.dialog = dialog
         self.facade = facade

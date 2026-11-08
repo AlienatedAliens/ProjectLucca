@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from typing import Final
 
 import structlog
+from pydantic import JsonValue
 
 from lucca.core.schemas import AssertFact
 
@@ -66,7 +67,8 @@ class ReasoningEntry:
             return other in (self.conclusion, self.envelope_id)
         return False
 
-    __hash__ = None
+    def __hash__(self) -> int:
+        return hash(self.envelope_id)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -140,18 +142,25 @@ class ProofTraceStep:
             ) == other
         return False
 
-    __hash__ = None
+    def __hash__(self) -> int:
+        return hash(
+            (self.step_kind, self.rule_id, tuple(self.premises), self.conclusion, self.envelope_id)
+        )
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> dict[str, JsonValue]:
+        cqs: list[JsonValue] = [
+            {str(k): v for k, v in cq.items()}  # type: ignore[misc]
+            for cq in self.critical_questions
+        ]
         return {
             "step_kind": self.step_kind,
             "rule_id": self.rule_id,
-            "premises": list(self.premises),
+            "premises": [str(p) for p in self.premises],
             "conclusion": self.conclusion,
             "envelope_id": self.envelope_id,
             "confidence": self.confidence,
-            "conditions": list(self.conditions),
-            "critical_questions": list(self.critical_questions),
+            "conditions": [str(c) for c in self.conditions],
+            "critical_questions": cqs,
         }
 
 

@@ -233,7 +233,7 @@ class ToolCallDemux:
                 try:
                     obj_list = json.loads(cleaned)
                     if isinstance(obj_list, list) and len(obj_list) > 0:
-                        calls: list[ToolCallEnd] = []
+                        calls: list[LLMEvent] = []
                         for item in obj_list:
                             if isinstance(item, dict) and "name" in item:
                                 tool_name = str(item["name"])

@@ -6,6 +6,7 @@ Spec 10 §4 (Prompt Section Order & KV-Cache Friendly Layout)
 import json
 import re
 import tomllib
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Final
 
@@ -793,8 +794,8 @@ TOOL_DEFINITIONS: list[ToolDefinition] = get_capability_registry().get_tool_defi
 
 
 def get_all_tool_definitions(
-    active_rules: list[object] | None = None,
-    shortlisted_tools: list[str] | None = None,
+    active_rules: Sequence[object] | None = None,
+    shortlisted_tools: Sequence[str] | None = None,
     user_query: str | None = None,
     verifier: object | None = None,
 ) -> list[ToolDefinition]:

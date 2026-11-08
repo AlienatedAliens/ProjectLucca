@@ -9,6 +9,7 @@ import json
 import re
 import time
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, cast
 
@@ -107,7 +108,7 @@ class UnshackledCEGISEngine:
         self.k_samples = k_samples
         self.outcome_sink = outcome_sink
 
-    def _notify_outcome_sink(self, result: CEGISRunResult, task_data: dict[str, object],
+    def _notify_outcome_sink(self, result: CEGISRunResult, task_data: Mapping[str, object],
         hint: str | None = None, outcome_sink: CognitiveOutcomeSink | None = None,) -> None:
         """Forwards UnshackledCEGISEngine run outcome to CognitiveOutcomeSink (Milestone 36.1)."""
         sink = outcome_sink or self.outcome_sink
@@ -232,7 +233,7 @@ class UnshackledCEGISEngine:
                 best_err = m_err
         return best_code, False, best_passed_count, best_fail_idx, best_diff, best_err
 
-    def synthesize_turn_1(self, task_data: dict[str, object], hint: str | None = None,
+    def synthesize_turn_1(self, task_data: Mapping[str, object], hint: str | None = None,
         temperature: float = 0.2, k_samples: int | None = None,
     ) -> tuple[str, str | None, str]:
         """
@@ -295,7 +296,7 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def synthesize_repair_turn(self, prior_code: str, task_data: dict[str, object],
+    def synthesize_repair_turn(self, prior_code: str, task_data: Mapping[str, object],
         failing_idx: int, diff: GridDiff | None, err_msg: str | None, turn_num: int,
         temperature: float = 0.25, prior_hypothesis: str | None = None,
         k_samples: int | None = None,) -> tuple[str, str | None, str]:
@@ -369,7 +370,7 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def synthesize_backtrack_turn(self, task_data: dict[str, object], turn_num: int,
+    def synthesize_backtrack_turn(self, task_data: Mapping[str, object], turn_num: int,
         failed_hypotheses: list[str], prior_error: str | None = None, temperature: float = 0.35,
         k_samples: int | None = None,) -> tuple[str, str | None, str]:
         """
@@ -445,7 +446,7 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def run_cegis_loop(self, task_data: dict[str, object], hint: str | None = None,
+    def run_cegis_loop(self, task_data: Mapping[str, object], hint: str | None = None,
         max_turns: int | None = None, outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> CEGISRunResult:
         """

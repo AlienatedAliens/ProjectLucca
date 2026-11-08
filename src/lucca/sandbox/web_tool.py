@@ -134,7 +134,9 @@ def validate_url_ssrf(
 
     for entry in addr_info:
         sockaddr = entry[4]
-        ip_str = sockaddr[0]
+        if not isinstance(sockaddr, tuple) or not sockaddr:
+            continue
+        ip_str = str(sockaddr[0])
 
         try:
             ip = ipaddress.ip_address(ip_str)

@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from lucca.core.exceptions import SchemeSyntaxError
+from lucca.reasoning.scheme.lexer import tokenize
 from lucca.reasoning.scheme.parser import (
     ALLOWED_OPS,
     Parser,
     SchemeNode,
     Symbol,
-    tokenize,
 )
 
 MAX_MACRO_DEPTH = 8

@@ -679,7 +679,6 @@ class MemoryCommitService:
                                 )
                                 existing_row = cur.fetchone()
                             if existing_row is not None:
-                                str(existing_row[0])
                                 old_content = str(existing_row[1])
                                 if (
                                     old_content.strip().lower() != str(

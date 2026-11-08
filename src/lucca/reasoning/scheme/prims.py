@@ -657,6 +657,16 @@ def prim_circle(args: list[SchemeValue]) -> list[SchemeValue]:
     return ["circle", cx, cy, r]
 
 
+def _f(val: SchemeValue) -> float:
+    if isinstance(val, (int, float)):
+        return float(val)
+    return float(str(val))
+
+
+def _pt_node(x: float, y: float) -> list[SchemeValue]:
+    return ["point", x, y]
+
+
 def prim_polygon(args: list[SchemeValue]) -> list[SchemeValue]:
     pts: list[tuple[float, float]] = []
     if len(args) == 1 and isinstance(args[0], list):
@@ -669,7 +679,7 @@ def prim_polygon(args: list[SchemeValue]) -> list[SchemeValue]:
         raise SchemeRuntimeError(
             f"'polygon' requires at least 3 vertices, got {len(pts)}", cause_type="ValueError"
         )
-    return ["polygon", *[["point", p[0], p[1]] for p in pts]]
+    return ["polygon", *[_pt_node(p[0], p[1]) for p in pts]]
 
 
 def prim_distance(args: list[SchemeValue]) -> float:
@@ -706,14 +716,14 @@ def prim_translate(args: list[SchemeValue]) -> SchemeValue:
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
     if tag == "point":
-        return ["point", float(shape[1]) + dx, float(shape[2]) + dy]
+        return ["point", _f(shape[1]) + dx, _f(shape[2]) + dy]
     elif tag == "rect":
-        return ["rect", float(shape[1]) + dx, float(shape[2]) + dy, shape[3], shape[4]]
+        return ["rect", _f(shape[1]) + dx, _f(shape[2]) + dy, shape[3], shape[4]]
     elif tag == "circle":
-        return ["circle", float(shape[1]) + dx, float(shape[2]) + dy, shape[3]]
+        return ["circle", _f(shape[1]) + dx, _f(shape[2]) + dy, shape[3]]
     elif tag == "polygon":
-        new_pts = [
-            ["point", float(p[1]) + dx, float(p[2]) + dy]
+        new_pts: list[SchemeValue] = [
+            _pt_node(_f(p[1]) + dx, _f(p[2]) + dy)
             for p in shape[1:]
             if isinstance(p, list) and len(p) >= 3
         ]
@@ -754,26 +764,26 @@ def prim_rotate(args: list[SchemeValue]) -> SchemeValue:
         return rx, ry
 
     if tag == "point":
-        rx, ry = rot_xy(float(shape[1]), float(shape[2]))
+        rx, ry = rot_xy(_f(shape[1]), _f(shape[2]))
         return ["point", rx, ry]
     elif tag == "circle":
-        rx, ry = rot_xy(float(shape[1]), float(shape[2]))
+        rx, ry = rot_xy(_f(shape[1]), _f(shape[2]))
         return ["circle", rx, ry, shape[3]]
     elif tag == "rect":
-        x, y, w, h = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        x, y, w, h = _f(shape[1]), _f(shape[2]), _f(shape[3]), _f(shape[4])
         pts = [
             rot_xy(x, y),
             rot_xy(x + w, y),
             rot_xy(x + w, y + h),
             rot_xy(x, y + h),
         ]
-        return ["polygon", *[["point", px, py] for px, py in pts]]
+        return ["polygon", *[_pt_node(px, py) for px, py in pts]]
     elif tag == "polygon":
-        new_pts = []
+        new_pts: list[SchemeValue] = []
         for p in shape[1:]:
             if isinstance(p, list) and len(p) >= 3:
-                rx, ry = rot_xy(float(p[1]), float(p[2]))
-                new_pts.append(["point", rx, ry])
+                rx, ry = rot_xy(_f(p[1]), _f(p[2]))
+                new_pts.append(_pt_node(rx, ry))
         return ["polygon", *new_pts]
     else:
         raise SchemeRuntimeError(f"Unsupported shape type in 'rotate': {tag}",
@@ -805,22 +815,22 @@ def prim_scale(args: list[SchemeValue]) -> SchemeValue:
         return ox + (x - ox) * factor, oy + (y - oy) * factor
 
     if tag == "point":
-        sx, sy = scale_xy(float(shape[1]), float(shape[2]))
+        sx, sy = scale_xy(_f(shape[1]), _f(shape[2]))
         return ["point", sx, sy]
     elif tag == "rect":
-        x, y, w, h = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        x, y, w, h = _f(shape[1]), _f(shape[2]), _f(shape[3]), _f(shape[4])
         sx, sy = scale_xy(x, y)
         return ["rect", sx, sy, w * factor, h * factor]
     elif tag == "circle":
-        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        cx, cy, r = _f(shape[1]), _f(shape[2]), _f(shape[3])
         scx, scy = scale_xy(cx, cy)
         return ["circle", scx, scy, abs(r * factor)]
     elif tag == "polygon":
-        new_pts = []
+        new_pts: list[SchemeValue] = []
         for p in shape[1:]:
             if isinstance(p, list) and len(p) >= 3:
-                sx, sy = scale_xy(float(p[1]), float(p[2]))
-                new_pts.append(["point", sx, sy])
+                sx, sy = scale_xy(_f(p[1]), _f(p[2]))
+                new_pts.append(_pt_node(sx, sy))
         return ["polygon", *new_pts]
     else:
         raise SchemeRuntimeError(f"Unsupported shape type in 'scale': {tag}",
@@ -843,11 +853,11 @@ def prim_bounding_box(args: list[SchemeValue]) -> list[SchemeValue]:
     elif tag == "rect":
         return ["rect", shape[1], shape[2], shape[3], shape[4]]
     elif tag == "circle":
-        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        cx, cy, r = _f(shape[1]), _f(shape[2]), _f(shape[3])
         return ["rect", cx - r, cy - r, 2 * r, 2 * r]
     elif tag == "polygon":
-        xs = [float(p[1]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
-        ys = [float(p[2]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
+        xs = [_f(p[1]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
+        ys = [_f(p[2]) for p in shape[1:] if isinstance(p, list) and len(p) >= 3]
         if not xs or not ys:
             raise SchemeRuntimeError("Empty polygon in 'bounding-box'", cause_type="ValueError")
         min_x, max_x = min(xs), max(xs)
@@ -879,15 +889,15 @@ def prim_contains(args: list[SchemeValue]) -> bool:
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
     if tag == "rect":
-        rx, ry, rw, rh = float(shape[1]), float(shape[2]), float(shape[3]), float(shape[4])
+        rx, ry, rw, rh = _f(shape[1]), _f(shape[2]), _f(shape[3]), _f(shape[4])
         return rx <= px <= rx + rw and ry <= py <= ry + rh
     elif tag == "circle":
-        cx, cy, r = float(shape[1]), float(shape[2]), float(shape[3])
+        cx, cy, r = _f(shape[1]), _f(shape[2]), _f(shape[3])
         return (px - cx) ** 2 + (py - cy) ** 2 <= (r**2) + 1e-9
     elif tag == "polygon":
         # Ray casting point-in-polygon algorithm
         vertices = [
-            (float(p[1]), float(p[2]))
+            (_f(p[1]), _f(p[2]))
             for p in shape[1:]
             if isinstance(p, list) and len(p) >= 3
         ]
@@ -908,7 +918,7 @@ def prim_contains(args: list[SchemeValue]) -> bool:
             p1x, p1y = p2x, p2y
         return inside
     elif tag == "point":
-        return abs(float(shape[1]) - px) < 1e-9 and abs(float(shape[2]) - py) < 1e-9
+        return abs(_f(shape[1]) - px) < 1e-9 and abs(_f(shape[2]) - py) < 1e-9
     else:
         raise SchemeRuntimeError(f"Unsupported shape in 'contains?': {tag}",
             cause_type="ValueError")
@@ -920,8 +930,8 @@ def prim_intersects(args: list[SchemeValue]) -> bool:
             cause_type="ValueError")
     bb1 = prim_bounding_box([args[0]])
     bb2 = prim_bounding_box([args[1]])
-    x1, y1, w1, h1 = float(bb1[1]), float(bb1[2]), float(bb1[3]), float(bb1[4])
-    x2, y2, w2, h2 = float(bb2[1]), float(bb2[2]), float(bb2[3]), float(bb2[4])
+    x1, y1, w1, h1 = _f(bb1[1]), _f(bb1[2]), _f(bb1[3]), _f(bb1[4])
+    x2, y2, w2, h2 = _f(bb2[1]), _f(bb2[2]), _f(bb2[3]), _f(bb2[4])
     # AABB overlap check
     return not (x1 + w1 < x2 or x2 + w2 < x1 or y1 + h1 < y2 or y2 + h2 < y1)
 
@@ -937,12 +947,12 @@ def prim_area(args: list[SchemeValue]) -> float:
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
     if tag == "rect":
-        return float(shape[3]) * float(shape[4])
+        return _f(shape[3]) * _f(shape[4])
     elif tag == "circle":
-        return math.pi * (float(shape[3]) ** 2)
+        return math.pi * (_f(shape[3]) ** 2)
     elif tag == "polygon":
         vertices = [
-            (float(p[1]), float(p[2]))
+            (_f(p[1]), _f(p[2]))
             for p in shape[1:]
             if isinstance(p, list) and len(p) >= 3
         ]
@@ -974,12 +984,12 @@ def prim_perimeter(args: list[SchemeValue]) -> float:
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
     if tag == "rect":
-        return 2.0 * (float(shape[3]) + float(shape[4]))
+        return 2.0 * (_f(shape[3]) + _f(shape[4]))
     elif tag == "circle":
-        return 2.0 * math.pi * float(shape[3])
+        return 2.0 * math.pi * _f(shape[3])
     elif tag == "polygon":
         vertices = [
-            (float(p[1]), float(p[2]))
+            (_f(p[1]), _f(p[2]))
             for p in shape[1:]
             if isinstance(p, list) and len(p) >= 3
         ]

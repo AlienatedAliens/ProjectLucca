@@ -137,21 +137,29 @@ class TelemetryTab(QWidget):
     def _refresh_diag_snapshot(self) -> None:
         try:
             m = self.facade.get_system_metrics()
-            ram = m["ram"]
-            dgpu = m["dgpu"]
-            cpu = m["cpu"]
-            npu = m["npu"]
+            raw_ram = m.get("ram")
+            ram = raw_ram if isinstance(raw_ram, dict) else {}
+            raw_dgpu = m.get("dgpu")
+            dgpu = raw_dgpu if isinstance(raw_dgpu, dict) else {}
+            raw_cpu = m.get("cpu")
+            cpu = raw_cpu if isinstance(raw_cpu, dict) else {}
+            raw_npu = m.get("npu")
+            npu = raw_npu if isinstance(raw_npu, dict) else {}
+
+            def _f(v: object, default: float = 0.0) -> float:
+                return float(v) if isinstance(v, (int, float, str)) else default
 
             self.lbl_snap_ram.setText(
-                f"RAM: {ram['percent']}% (Lucca {ram.get('lucca_used_mb', 0):.0f} MB)"
+                f"RAM: {ram.get('percent', 0)}% (Lucca {_f(ram.get('lucca_used_mb', 0)):.0f} MB)"
             )
             self.lbl_snap_dgpu.setText(
-                f"dGPU: {dgpu.get('used_gb', 0):.1f} / {dgpu.get('total_gb', 16.0):.1f} GB"
+                f"dGPU: {_f(dgpu.get('used_gb', 0)):.1f} / {_f(dgpu.get('total_gb', 16.0), 16.0):.1f} GB"
             )
             self.lbl_snap_cpu.setText(
-                f"CPU: {cpu['system_percent']:.1f}% (Lucca {cpu['lucca_percent']:.1f}%)"
+                f"CPU: {_f(cpu.get('system_percent', 0)):.1f}% (Lucca {_f(cpu.get('lucca_percent', 0)):.1f}%)"
             )
-            self.lbl_snap_npu.setText(f"NPU: {npu['status'].split(' ')[0]}")
+            npu_status = str(npu.get("status", "UNKNOWN"))
+            self.lbl_snap_npu.setText(f"NPU: {npu_status.split(' ', maxsplit=1)[0]}")
         except Exception as exc:
             _LOG.debug("refresh_diag_snapshot_failed: %s", exc)
 

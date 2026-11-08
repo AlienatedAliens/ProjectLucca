@@ -171,7 +171,7 @@ class EpisodicSolutionCache:
         if self.db is None or not hasattr(self.db, "write_transaction"):
             return
         try:
-            with self.db.write_transaction() as cur:  # type: ignore[attr-defined]
+            with self.db.write_transaction() as cur:
                 cur.execute(
                     """
                     CREATE TABLE IF NOT EXISTS episodic_code_cache (
@@ -236,7 +236,7 @@ class EpisodicSolutionCache:
 
         if self.db is not None and hasattr(self.db, "read_cursor"):
             try:
-                with self.db.read_cursor() as cur:  # type: ignore[attr-defined]
+                with self.db.read_cursor() as cur:
                     cur.execute(
                         """
                         SELECT task_hash, task_id, invariant_signature, query, code, output,
@@ -279,7 +279,7 @@ class EpisodicSolutionCache:
 
         if changed is not None and self.db is not None and hasattr(self.db, "write_transaction"):
             try:
-                with self.db.write_transaction() as cur:  # type: ignore[attr-defined]
+                with self.db.write_transaction() as cur:
                     cur.execute(
                         """
                         INSERT INTO episodic_code_cache (

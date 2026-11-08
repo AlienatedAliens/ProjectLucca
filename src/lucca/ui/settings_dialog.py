@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import JsonValue
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QCursor, QFont, QGuiApplication
+from PyQt6.QtGui import QCursor, QFont, QGuiApplication, QShowEvent
 from PyQt6.QtWidgets import (
     QDialog,
     QFrame,
@@ -193,7 +193,7 @@ class SettingsDialog(QDialog):
 
         self.move(clamped_x, clamped_y)
 
-    def showEvent(self, event: object) -> None:
+    def showEvent(self, event: QShowEvent | None) -> None:
         super().showEvent(event)
         if not getattr(self, "_already_centered", False):
             self._already_centered = True

@@ -1776,7 +1776,6 @@ def test_compound_reasoning_category(fresh_orch: Orchestrator, category: str) ->
         res = run_probe(fresh_orch, probe)
         results.append(res)
 
-    sum(1 for r in results if r["passed"])
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     report_file = REPORTS_DIR / f"compound_{category}_{ts}.json"

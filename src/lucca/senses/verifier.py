@@ -18,7 +18,7 @@ import structlog
 try:
     from tokenizers import Tokenizer
 except ImportError:
-    Tokenizer = None  # type: ignore[assignment, misc]
+    Tokenizer = None
 
 from lucca.core.schemas import VerificationResult, VerifierLabel
 
@@ -129,9 +129,9 @@ class VerifierWorker:
         self._requested_device = device
         self.device = "CPU"
         self._infer_lock = threading.Lock()
-        self.compiled: object | None = None
-        self.infer_request: object | None = None
-        self.tokenizer: object | None = None
+        self.compiled: ov.CompiledModel | None = None
+        self.infer_request: ov.InferRequest | None = None
+        self.tokenizer: Tokenizer | None = None
         self._input_names: list[str] = []
         self._cache = BoundedLRUPairCache(capacity=cache_capacity)
         self._init_model()
@@ -192,12 +192,12 @@ class VerifierWorker:
                     raise compile_exc
 
             if self.compiled is not None:
-                compiled_model: ov.CompiledModel = self.compiled  # type: ignore[assignment]
+                compiled_model: ov.CompiledModel = self.compiled
                 self.infer_request = compiled_model.create_infer_request()
                 self._input_names = [inp.get_any_name() for inp in compiled_model.inputs]
                 if self.tokenizer is not None:
-                    warm_enc = self.tokenizer.encode("warmup", "warmup")  # type: ignore[attr-defined]
-                    warm_feed: dict[str, np.ndarray] = {}
+                    warm_enc = self.tokenizer.encode("warmup", "warmup")
+                    warm_feed: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
                     if "input_ids" in self._input_names:
                         warm_feed["input_ids"] = np.array([warm_enc.ids], dtype=np.int64)
                     if "attention_mask" in self._input_names:
@@ -208,7 +208,7 @@ class VerifierWorker:
                         warm_feed["token_type_ids"] = np.array(
                             [warm_enc.type_ids], dtype=np.int64
                         )
-                    self.infer_request.infer(warm_feed)  # type: ignore[attr-defined]
+                    self.infer_request.infer(warm_feed)
         except Exception as init_exc:
             logger.warning("verifier_model_init_failed", error=str(init_exc))
             self.compiled = None
@@ -259,14 +259,14 @@ class VerifierWorker:
             )
 
         try:
-            tok: Tokenizer = self.tokenizer  # type: ignore[assignment]
+            tok: Tokenizer = self.tokenizer
             # Encode premise and hypothesis pair
             encoding = tok.encode(norm_premise, norm_hypothesis)
 
             input_ids = np.array([encoding.ids], dtype=np.int64)
             attention_mask = np.array([encoding.attention_mask], dtype=np.int64)
 
-            feed_dict: dict[str, np.ndarray] = {}
+            feed_dict: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
             if "input_ids" in self._input_names:
                 feed_dict["input_ids"] = input_ids
             if "attention_mask" in self._input_names:
@@ -277,7 +277,7 @@ class VerifierWorker:
 
             with self._infer_lock:
                 infer_req: ov.InferRequest = (
-                    self.infer_request or self.compiled.create_infer_request()  # type: ignore[assignment]
+                    self.infer_request or self.compiled.create_infer_request()
                 )
                 outputs = infer_req.infer(feed_dict)
 

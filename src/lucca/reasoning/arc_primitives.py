@@ -288,8 +288,8 @@ def align_objects(
     """
     raw_coords_a = obj_a.get("coords") if isinstance(obj_a, Mapping) else obj_a
     raw_coords_b = obj_b.get("coords") if isinstance(obj_b, Mapping) else obj_b
-    coords_a: list[tuple[int, int]] = raw_coords_a if isinstance(raw_coords_a, list) else []  # type: ignore
-    coords_b: list[tuple[int, int]] = raw_coords_b if isinstance(raw_coords_b, list) else []  # type: ignore
+    coords_a: list[tuple[int, int]] = raw_coords_a if isinstance(raw_coords_a, list) else []
+    coords_b: list[tuple[int, int]] = raw_coords_b if isinstance(raw_coords_b, list) else []
     if not coords_a or not coords_b:
         return (0, 0)
 

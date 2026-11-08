@@ -15,34 +15,36 @@ import sqlite3
 import time
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from pydantic import JsonValue
 
 from lucca.core.config import get_config, resolve_or_create_master_key
-from lucca.core.schemas import Provenance, RuleState, UnsignedPayload
+from lucca.core.schemas import Provenance, RuleOutcome, RuleState, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.signers import create_user_speech_signer
 from lucca.memory.store import MemoryStore
-from lucca.reasoning.lifecycle import RuleLifecycleManager
+from lucca.reasoning.lifecycle import ManagedRule, RuleLifecycleManager
+from lucca.reasoning.replay import ReplayReport
 from lucca.reasoning.scheme.eval import evaluate_rule as _evaluate_rule
+from lucca.reasoning.scheme.parser import RuleDefinition
 from lucca.reasoning.scheme.parser import parse_rule as _parse_rule
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl as _rule_of_three_ucl
 from lucca.sandbox.screenshot_tool import capture_screenshot as _capture_screenshot
 from lucca.sandbox.system_tools import get_system_metrics as _get_system_metrics
 
-if TYPE_CHECKING:
-    from lucca.reasoning.lifecycle import ContrastiveSummary, ReplayReport
-    from lucca.reasoning.scheme.eval import RuleEvalOutcome
-    from lucca.reasoning.scheme.parser import Rule
-
 logger = logging.getLogger(__name__)
 
 
 class StudioFacade:
     """Consolidated in-process facade mediating UI access to Lucca domain services (WO-18e)."""
+
+    store: MemoryStore | None
+    rule_lifecycle: RuleLifecycleManager | None
+    skill_manager: SkillManager | None
+    reflection_engine: ReflectionEngine | None
 
     def __init__(
         self,
@@ -397,13 +399,14 @@ class StudioFacade:
         """Triggers nightly reflection and consolidation rollup."""
         if self.reflection_engine is None:
             return False, "ReflectionEngine is not available"
-        return self.reflection_engine.nightly_rollup()
+        count = self.reflection_engine.nightly_rollup()
+        return True, f"Nightly rollup completed ({count} items processed)"
 
     # =========================================================================
     # Rule Lifecycle & LISP Studio (Read-Only Snapshots)
     # =========================================================================
 
-    def get_rules(self) -> dict[str, Rule]:
+    def get_rules(self) -> dict[str, ManagedRule]:
         """Returns registered rules dictionary.
 
         Returned objects are snapshots for display; mutate only through facade methods.
@@ -422,7 +425,7 @@ class StudioFacade:
         """Retires an active rule."""
         if self.rule_lifecycle is None:
             raise RuntimeError("RuleLifecycleManager is not initialized")
-        self.rule_lifecycle.retire_rule(rule_id)
+        self.rule_lifecycle.user_retire(rule_id)
 
     def replay_rule_candidate(self, rule_id: str) -> ReplayReport:
         """Replays a rule candidate against recorded turn logs.
@@ -433,7 +436,7 @@ class StudioFacade:
             raise RuntimeError("RuleLifecycleManager is not initialized")
         return self.rule_lifecycle.replay_candidate(rule_id)
 
-    def get_rule_contrastive_summary(self, rule_id: str) -> ContrastiveSummary:
+    def get_rule_contrastive_summary(self, rule_id: str) -> dict[str, JsonValue]:
         """Returns contrastive performance metrics for a rule candidate.
 
         Returned objects are snapshots for display; mutate only through facade methods.
@@ -443,7 +446,7 @@ class StudioFacade:
         return self.rule_lifecycle.get_contrastive_summary(rule_id)
 
     @staticmethod
-    def parse_rule(code: str) -> Rule:
+    def parse_rule(code: str) -> RuleDefinition:
         """Parses Scheme LISP code into a validated Rule object.
 
         Returned objects are snapshots for display; mutate only through facade methods.
@@ -451,7 +454,7 @@ class StudioFacade:
         return _parse_rule(code)
 
     @staticmethod
-    def evaluate_rule(rule_obj: Rule, state: RuleState) -> RuleEvalOutcome:
+    def evaluate_rule(rule_obj: RuleDefinition, state: RuleState) -> RuleOutcome:
         """Evaluates a parsed Rule against the provided environmental RuleState."""
         return _evaluate_rule(rule_obj, state)
 

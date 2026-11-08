@@ -11,6 +11,7 @@ from __future__ import annotations
 import math
 import re
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Final
 
@@ -57,7 +58,7 @@ class SanityCheckGuard:
     def validate(
         self,
         tool_name: str,
-        tool_args: dict[str, object],
+        tool_args: Mapping[str, object],
         tool_output: str,
         user_query: str = "",
     ) -> SanityCheckResult:

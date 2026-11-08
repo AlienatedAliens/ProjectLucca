@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import threading
 import time
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
@@ -540,18 +541,28 @@ class DockerRPCTransport:
                 else:
                     content = "Directory is empty (0 items)."
 
+        raw_cid = res_dict.get("call_id", call_id)
+        cid_str = str(raw_cid) if raw_cid is not None else call_id
+        raw_ec = res_dict.get("exit_code", 0)
+        ec_int = (
+            int(raw_ec)
+            if isinstance(raw_ec, (int, float, str)) and not isinstance(raw_ec, bool)
+            else 0
+        )
+        struct_val = structured if isinstance(structured, dict) else None
+        content_val = str(content) if content is not None else None
         return ToolResult(
-            call_id=res_dict.get("call_id", call_id),
+            call_id=cid_str,
             ok=ok,
-            exit_code=res_dict.get("exit_code", 0),
-            structured=structured,
-            content=content,
+            exit_code=ec_int,
+            structured=struct_val,
+            content=content_val,
             content_truncated=bool(res_dict.get("content_truncated", False)),
             elapsed_ms=elapsed_ms,
             stderr=str(
                 res_dict.get(
-                    "stderr") or ("" if ok else (structured.get("stderr") if isinstance(structured,
-                        dict) else content) or "execution_failed")),
+                    "stderr") or ("" if ok else (struct_val.get("stderr") if struct_val is not None
+                        else content_val) or "execution_failed")),
         )
 
     def _execute_single_shot(
@@ -666,22 +677,26 @@ class DockerRPCTransport:
         self,
         call_id: str,
         tool: str,
-        args: dict[str, JsonValue],
+        args: Mapping[str, JsonValue],
         timeout_s: float | None = None,
     ) -> ToolResult:
         """Executes a single tool call against the container or fallback tool."""
         t0 = time.perf_counter()
+        args_dict: dict[str, JsonValue] = dict(args)
 
         # Differentiated timeout resolution: 15.0s for child python, 5.0s for filesystem
         effective_timeout_s = (
             timeout_s if timeout_s is not None else (15.0 if tool == "run_python" else 5.0)
         )
 
-        if tool == "run_python" and isinstance(args.get("code"), str):
-            args = {**args, "code": _inject_shared_workspace_prelude(str(args["code"]))}
+        if tool == "run_python" and isinstance(args_dict.get("code"), str):
+            args_dict = {
+                **args_dict,
+                "code": _inject_shared_workspace_prelude(str(args_dict["code"])),
+            }
 
         if self.use_direct_fallback:
-            return self._execute_direct(call_id, tool, args, t0)
+            return self._execute_direct(call_id, tool, args_dict, t0)
 
         if self.use_persistent_worker:
             worker = self.get_worker()
@@ -710,7 +725,7 @@ class DockerRPCTransport:
 
             try:
                 res_dict = worker.execute(
-                    call_id=call_id, tool=tool, args=args, timeout_s=effective_timeout_s
+                    call_id=call_id, tool=tool, args=args_dict, timeout_s=effective_timeout_s
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000.0
                 return self._process_response_dict(call_id, tool, res_dict, elapsed_ms)
@@ -725,10 +740,10 @@ class DockerRPCTransport:
                 )
             except SandboxRPCDesyncError as desync_err:
                 logger.error("persistent_rpc_desync_falling_back", err=str(desync_err))
-                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
             except (SandboxProtocolError, Exception) as worker_err:
                 logger.warning("persistent_rpc_failure_falling_back", err=str(worker_err))
-                return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+                return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
 
         # Single-shot path (legacy / fallback)
         if not self.is_docker_available():
@@ -749,7 +764,7 @@ class DockerRPCTransport:
                 elapsed_ms=(time.perf_counter() - t0) * 1000.0,
             )
 
-        return self._execute_single_shot(call_id, tool, args, effective_timeout_s, t0)
+        return self._execute_single_shot(call_id, tool, args_dict, effective_timeout_s, t0)
 
     def _execute_direct(
         self,

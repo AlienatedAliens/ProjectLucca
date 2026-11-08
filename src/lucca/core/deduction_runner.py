@@ -54,6 +54,7 @@ from lucca.core.schemas import (
 )
 from lucca.core.trace import TurnTrace
 from lucca.core.turn_pipeline import synthesize_plan_narration
+from lucca.ports import SpeechLLMPort
 from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
 from lucca.sandbox.web_tool import fetch_url
 from lucca.senses.ring_buffer import FLAG_EOS
@@ -130,7 +131,6 @@ class DeductionAndPlanningRunner:
 
         final_entry = ctx[-1]
         proof_trace_steps = ctx.proof_trace()
-        proof_trace = [s.to_dict() for s in proof_trace_steps]
         confidence = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
 
         if not meets_standard(confidence, "memory_commit_inferred"):
@@ -153,6 +153,8 @@ class DeductionAndPlanningRunner:
         now = orch.clock.now_utc() if hasattr(orch, "clock") and orch.clock else time.time()
         trace_id = trace.trace_id if trace else f"trace-{ulid.ULID()}"
 
+        proof_json: list[JsonValue] = [s.to_dict() for s in proof_trace_steps]
+        cond_json: list[JsonValue] = [str(c) for c in all_conditions]
         unsigned = UnsignedPayload(
             content=f"{final_entry.s} {final_entry.p} {final_entry.o}",
             provenance=Provenance.INFERRED,
@@ -166,8 +168,8 @@ class DeductionAndPlanningRunner:
                 "p": final_entry.p,
                 "o": final_entry.o,
                 "confidence": confidence,
-                "proof_trace": proof_trace,
-                "conditions": all_conditions,
+                "proof_trace": proof_json,
+                "conditions": cond_json,
                 "proof_standard": standard_for_confidence(confidence).value,
             },
         )
@@ -179,7 +181,7 @@ class DeductionAndPlanningRunner:
         """
         Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4).
         """
-        ctx = getattr(self._orch, "current_reasoning_context", None)
+        ctx = self._orch.current_reasoning_context
         if ctx is None:
             return []
         return ctx.proof_trace()
@@ -514,14 +516,14 @@ class DeductionAndPlanningRunner:
         goal: str,
         trace: TurnTrace | None = None,
         context: ReasoningContext | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
         """
         Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase
         3).
         """
         orch = self._orch
-        effective_llm = llm if llm is not None else getattr(orch, "llm", None)
+        effective_llm: SpeechLLMPort | None = llm if llm is not None else getattr(orch, "llm", None)
         if effective_llm is None:
             logger.warning("no_llm_available_for_deduction")
             return ([], "No language model available for deduction.")
@@ -738,17 +740,17 @@ class DeductionAndPlanningRunner:
                 final_entry = ctx[-1]
                 conditions = list(final_entry.conditions or [])
                 if conditions:
-                    spoken = orch._format_conditioned_speech(final_entry, conditions)
-                    if spoken:
+                    spoken_cond = orch._format_conditioned_speech(final_entry, conditions)
+                    if spoken_cond:
                         logger.info(
                             "chain_concluded_conditioned",
                             confidence=final_entry.confidence,
-                            spoken=spoken,
+                            spoken=spoken_cond,
                             conclusion=f"{final_entry.s} {final_entry.p} {final_entry.o}",
                         )
                         if hasattr(orch, "_speak_text") and trace:
-                            orch._speak_text(trace, spoken)
-                        return (accepted_steps, spoken)
+                            orch._speak_text(trace, spoken_cond)
+                        return (accepted_steps, spoken_cond)
         return (accepted_steps, None)
 
     def format_conditioned_speech(
@@ -859,12 +861,12 @@ class DeductionAndPlanningRunner:
         self,
         goal: str,
         trace: TurnTrace | None = None,
-        llm: object | None = None,
+        llm: SpeechLLMPort | None = None,
         context: ReasoningContext | None = None,
     ) -> GoalPlan | None:
         """Executes a bounded, validated means-ends plan for a goal (WO-22 Phase 1)."""
         orch = self._orch
-        effective_llm = llm if llm is not None else getattr(orch, "llm", None)
+        effective_llm: SpeechLLMPort | None = llm if llm is not None else getattr(orch, "llm", None)
         if effective_llm is None:
             logger.warning("no_llm_available_for_planning")
             return None
@@ -955,13 +957,14 @@ class DeductionAndPlanningRunner:
                     or getattr(res, "stderr", "")
                 )
 
+            res_inter_json: list[JsonValue] = [str(x) for x in resolved_intermediates]
             receipt_entry: dict[str, JsonValue] = {
                 "order": step.order,
                 "tool": step.tool,
                 "args": step.args,
                 "ok": ok,
                 "result": raw_out,
-                "resolved_intermediates": resolved_intermediates,
+                "resolved_intermediates": res_inter_json,
             }
             plan.receipts.append(receipt_entry)
             executed_tuples.append((step.tool, dict(step.args), ok, raw_out))
@@ -1130,10 +1133,11 @@ class DeductionAndPlanningRunner:
             if explicit_claim.lower() not in ("that", "this", "it"):
                 return explicit_claim
 
-        if getattr(orch, "_pending_ratification", None) is not None:
-            return orch._pending_ratification.claim
+        pending_rat = orch._pending_ratification
+        if pending_rat is not None:
+            return pending_rat.claim
 
-        if getattr(orch, "_last_ratified_claim", None):
+        if orch._last_ratified_claim:
             return orch._last_ratified_claim
 
         for msg in reversed(orch.history):
@@ -1257,7 +1261,9 @@ class DeductionAndPlanningRunner:
                 and isinstance(res.structured["results"], list)
             ):
                 for item in res.structured["results"][:max_searches]:
-                    url = item.get("url", "")
+                    if not isinstance(item, dict):
+                        continue
+                    url = str(item.get("url", "") or "")
                     domain = ""
                     if url:
                         try:

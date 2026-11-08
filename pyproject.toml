@@ -113,6 +113,8 @@ module = [
     "z3.*",
     "sympy.*",
     "scipy.*",
+    "tokenizers.*",
+    "onnxruntime.*",
 ]
 ignore_missing_imports = true
 

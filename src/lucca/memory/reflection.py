@@ -21,7 +21,7 @@ from lucca.core.schemas import (
 from lucca.memory.db import DatabaseManager
 from lucca.memory.signers import AssistantUtteranceSigner, DerivedFactSigner
 from lucca.memory.store import MemoryStore
-from lucca.ports import SemanticVerifierPort, SpeechLLMPort
+from lucca.ports import MemoryStorePort, SemanticVerifierPort, SpeechLLMPort
 from lucca.reasoning.distill import (
     distill_contradiction_to_proposition,
     quarantine_rejected_distillate,
@@ -215,9 +215,9 @@ class IdlePulse:
         self,
         db: DatabaseManager,
         verifier: SemanticVerifierPort | None = None,
-        store: MemoryStore | None = None,
+        store: MemoryStore | MemoryStorePort | None = None,
         master_key: bytes | None = None,
-        llm: SpeechLLMPort | None = None,
+        llm: SpeechLLMPort | object | None = None,
     ) -> None:
         self.db = db
         self.verifier = verifier
@@ -666,11 +666,11 @@ class ReflectionEngine:
     def __init__(
         self,
         db: DatabaseManager,
-        store: MemoryStore,
+        store: MemoryStore | MemoryStorePort,
         master_key: bytes,
         rule_engine: RuleLifecycleManager | None = None,
         verifier: SemanticVerifierPort | None = None,
-        llm: SpeechLLMPort | None = None,
+        llm: SpeechLLMPort | object | None = None,
     ) -> None:
         self.db = db
         self.store = store
@@ -1002,7 +1002,7 @@ class ReflectionEngine:
             now=current_time,
         )
         logger.info("review_approved", review_id=review_id, old=old_belief_id, new=new_mid)
-        return new_mid
+        return int(new_mid)
 
     def reject_review(
         self,

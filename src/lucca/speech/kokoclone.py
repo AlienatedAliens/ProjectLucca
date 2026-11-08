@@ -176,12 +176,13 @@ def compute_cloned_style_vector(
             return cached_vec, cached_meta
 
     samples, sr = read_wav_file(p)
-    meta = analyze_audio_clip(samples, sr)
+    acoustic_meta = analyze_audio_clip(samples, sr)
+    meta: dict[str, Any] = dict(acoustic_meta)
     meta["file_name"] = p.name
     meta["sample_rate"] = sr
 
-    f0 = meta["f0"]
-    centroid = meta["centroid"]
+    f0 = acoustic_meta["f0"]
+    centroid = acoustic_meta["centroid"]
 
     # Calculate affinity weights for each anchor voice based on Euclidean distance
     # in normalized (F0, Centroid) space.
@@ -226,7 +227,7 @@ def compute_cloned_style_vector(
         cloned_style = kokoro_engine.get_voice_style("af_bella")
 
     # Modulate style dynamics slightly based on reference energy & pitch variance
-    energy_scale = np.clip(1.0 + (meta["energy_db"] + 20.0) / 100.0, 0.85, 1.15)
+    energy_scale = np.clip(1.0 + (acoustic_meta["energy_db"] + 20.0) / 100.0, 0.85, 1.15)
     cloned_style = (cloned_style * energy_scale).astype(np.float32)
 
     meta["blend_projection"] = " + ".join(applied_mix)
@@ -238,7 +239,8 @@ def get_kokoclone_metadata(wav_path: str | Path) -> dict[str, Any]:
     """Inspects a reference audio clip and returns summary metrics."""
     try:
         samples, sr = read_wav_file(wav_path)
-        meta = analyze_audio_clip(samples, sr)
+        acoustic_meta = analyze_audio_clip(samples, sr)
+        meta: dict[str, Any] = dict(acoustic_meta)
         meta["file_name"] = Path(wav_path).name
         meta["sample_rate"] = sr
         return meta

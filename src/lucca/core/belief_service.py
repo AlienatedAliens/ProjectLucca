@@ -352,7 +352,8 @@ class BeliefService:
                 print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
                 if self._orchestrator is not None and hasattr(self._orchestrator,
                     "_publish_caption"):
-                    self._orchestrator._publish_caption(spoken_update, source="system",
-                        is_final=True)
+                    self._orchestrator._publish_caption(
+                        spoken_update, source="system", is_final=True
+                    )
 
     _maybe_speak_pending_updates = maybe_speak_pending_updates

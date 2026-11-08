@@ -72,9 +72,9 @@ class ToolDispatcher:
         ok: bool,
         output: str | None = None,
         error: str | None = None,
-    ) -> str | None:
+    ) -> None:
         """Unified helper to sign and record a tool execution receipt via Orchestrator."""
-        return self._orch._record_tool_receipt(
+        self._orch._record_tool_receipt(
             name=name,
             call_id=call_id,
             args=args,
@@ -461,12 +461,13 @@ class ToolDispatcher:
             spoken = "Saved that to memory."
             orch._speak_text(trace, spoken)
             orch.current_turn_tool_spoken.append(spoken)
+        saved_json: list[JsonValue] = list(saved_contents)
         return ToolResult(
             call_id=call_id,
             ok=True,
             exit_code=0,
             content=f"Saved to long-term memory: {saved_str}",
-            structured={"saved": saved_contents, "provenance": "USER_DERIVED"},
+            structured={"saved": saved_json, "provenance": "USER_DERIVED"},
             elapsed_ms=0.0,
         )
 

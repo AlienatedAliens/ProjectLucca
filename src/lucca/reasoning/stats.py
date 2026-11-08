@@ -163,4 +163,4 @@ def rule_of_three_ucl(n: int, confidence: float = 0.95) -> float:
     if not 0.0 < confidence < 1.0:
         msg = f"confidence must be in (0, 1), got {confidence}"
         raise ValueError(msg)
-    return 1.0 - (1.0 - confidence) ** (1.0 / float(n))
+    return float(1.0 - (1.0 - confidence) ** (1.0 / float(n)))

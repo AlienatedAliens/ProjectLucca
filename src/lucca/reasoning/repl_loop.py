@@ -18,12 +18,13 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 from __future__ import annotations
 
 import json
-import logging
 import math
 import shlex
 import time
 from pathlib import Path
 from typing import Final
+
+import structlog
 
 from lucca.memory.episodic_cache import EpisodicSolutionCache
 from lucca.reasoning.cegis_unshackled import (
@@ -38,7 +39,7 @@ from lucca.reasoning.spatial_scheme import (
     evaluate_spatial_sketch,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 REPO_ROOT: Final[Path] = Path(__file__).resolve().parent.parent.parent.parent
 
@@ -154,7 +155,7 @@ class ReasoningREPL:
         # Active Session State
         self.active_task_id: str | None = None
         self.active_task_path: Path | None = None
-        self.active_task_data: dict[str, object] | None = None
+        self.active_task_data: dict[str, list[dict[str, list[list[int]]]]] | None = None
         self.candidate_code: str | None = None
         self.candidate_hypothesis: str | None = None
         self.candidate_scheme: str | None = None
@@ -693,19 +694,22 @@ class ReasoningREPL:
         # Summary Statistics & Wilson CIs
         w_low_train, w_high_train = wilson_ci(train_solved, n_total)
         w_low_test, w_high_test = wilson_ci(test_solved, n_total)
+        train_acc = train_solved / n_total
+        test_acc = test_solved / n_total
+        avg_task_ms = total_time_ms / n_total
 
-        summary = {
+        summary: dict[str, object] = {
             "suite": suite,
             "concept": concept,
             "total_tasks": n_total,
             "train_solved": train_solved,
-            "train_accuracy": train_solved / n_total,
+            "train_accuracy": train_acc,
             "train_wilson_95_ci": (w_low_train, w_high_train),
             "test_solved": test_solved,
-            "test_accuracy": test_solved / n_total,
+            "test_accuracy": test_acc,
             "test_wilson_95_ci": (w_low_test, w_high_test),
             "total_elapsed_ms": total_time_ms,
-            "avg_task_ms": total_time_ms / n_total,
+            "avg_task_ms": avg_task_ms,
             "records": records,
         }
 
@@ -713,15 +717,15 @@ class ReasoningREPL:
         print(f"Tasks Evaluated:         {n_total}")
         print(
             f"Train Solved:            {train_solved}/{n_total} "
-            f"({summary['train_accuracy']*100:.1f}%) [95% CI: {w_low_train*100:.1f}% - "
-            f"{w_high_train*100:.1f}%]")
+            f"({train_acc * 100:.1f}%) [95% CI: {w_low_train * 100:.1f}% - "
+            f"{w_high_train * 100:.1f}%]")
         print(
             f"Test Solved (Ground Tr): {test_solved}/{n_total} "
-            f"({summary['test_accuracy']*100:.1f}%) [95% CI: {w_low_test*100:.1f}% - "
-            f"{w_high_test*100:.1f}%]")
+            f"({test_acc * 100:.1f}%) [95% CI: {w_low_test * 100:.1f}% - "
+            f"{w_high_test * 100:.1f}%]")
         print(
             f"Total Time:              {
-                total_time_ms / 1000.0:.2f} s (avg {summary['avg_task_ms']:.1f} ms/task)")
+                total_time_ms / 1000.0:.2f} s (avg {avg_task_ms:.1f} ms/task)")
         print("=========================================================\n")
 
         return summary
@@ -775,8 +779,8 @@ Visualization:
 Evaluation & Induction:
   induce [hint]                 Synthesize Turn 1 candidate code using Hypothesis-First Induction
   step                          Run 1 turn of Counterexample-Guided Inductive Synthesis (CEGIS)
-  backtrack                     Clean-slate backtrack: discard failed branch and seek fresh
-  hypothesis
+  backtrack                     Clean-slate backtrack: discard failed branch and
+                                seek fresh hypothesis
   auto [max_turns]              Run full autonomous CEGIS loop with adaptive backtracking
   hypothesis                    Display active spatial transformation hypothesis
   verify                        Verify current candidate code against all training examples
@@ -796,6 +800,10 @@ General:
   quit / exit                   Exit the REPL
 """
         print(help_text)
+
+    def run(self) -> None:
+        """Alias for run_interactive()."""
+        self.run_interactive()
 
     def run_interactive(self) -> None:
         """Starts the interactive read-eval-print loop."""

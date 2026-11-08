@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Final
 
 import numpy as np
+import numpy.typing as npt
 import structlog
 
 logger = structlog.get_logger(__name__)
@@ -642,7 +643,7 @@ class NeuralActionClaimVerifier:
             if not (candidate / "openvino_model.xml").exists():
                 from lucca.core.config import get_config  # noqa: PLC0415
 
-                candidate = get_config().system.root_dir / "models" / "action_claim_verifier_ov"
+                candidate = get_config().resolve_path("models") / "action_claim_verifier_ov"
             self.model_dir = candidate
         else:
             self.model_dir = Path(model_dir)
@@ -748,7 +749,7 @@ class NeuralActionClaimVerifier:
         text_b = f"Assistant reply: {clean_comp}"
         return text_a, text_b
 
-    def _infer_probs(self, user_context: object, text_segment: str) -> np.ndarray:
+    def _infer_probs(self, user_context: object, text_segment: str) -> npt.NDArray[np.float64]:
         text_a, text_b = self.format_pair_texts(user_context=user_context, completion=text_segment)
         enc = self._tokenizer.encode(text_a, text_b)  # type: ignore[attr-defined]
         input_ids = np.array([enc.ids], dtype=np.int64)
@@ -764,7 +765,8 @@ class NeuralActionClaimVerifier:
             logits = np.asarray(list(res.values())[0], dtype=np.float64)[0]
 
         exp_l = np.exp(logits - np.max(logits))
-        return exp_l / np.sum(exp_l)
+        probs: npt.NDArray[np.float64] = np.asarray(exp_l / np.sum(exp_l), dtype=np.float64)
+        return probs
 
     def evaluate(
         self,
@@ -826,8 +828,17 @@ class NeuralActionClaimVerifier:
 
         from lucca.sandbox.output_supervisor import is_meta_or_creative_context  # noqa: PLC0415
 
+        meta_ctx: str | Sequence[dict[str, str]] | None = None
+        if isinstance(user_context, str):
+            meta_ctx = user_context
+        elif isinstance(user_context, list):
+            meta_ctx = [
+                {"role": str(m.get("role", "user")), "content": str(m.get("content", ""))}
+                for m in user_context
+                if isinstance(m, dict)
+            ]
         is_meta = is_meta_or_creative_context(
-            clean_comp, user_context=user_context, full_narration=clean_comp
+            clean_comp, user_context=meta_ctx, full_narration=clean_comp
         )
         has_disclaimer = bool(_CAPABILITY_DISCLAIMER_RE.search(clean_comp))
 

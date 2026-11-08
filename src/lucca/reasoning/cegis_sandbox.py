@@ -426,7 +426,7 @@ def _execute_in_restricted_sandbox(
     )
 
 
-def get_cegis_docker_transport() -> object | None:
+def get_cegis_docker_transport() -> DockerRPCTransport | None:
     """Returns singleton DockerRPCTransport instance for isolated container execution (D-AUD-13)."""
     with _DOCKER_TRANSPORT_LOCK:
         if _DOCKER_TRANSPORT_HOLDER["instance"] is None:
@@ -439,7 +439,8 @@ def get_cegis_docker_transport() -> object | None:
             except Exception as exc:
                 logger.debug("docker_transport_init_failed", error=str(exc))
                 _DOCKER_TRANSPORT_HOLDER["instance"] = None
-        return _DOCKER_TRANSPORT_HOLDER["instance"]
+        inst = _DOCKER_TRANSPORT_HOLDER["instance"]
+        return inst if isinstance(inst, DockerRPCTransport) else None
 
 
 
@@ -517,7 +518,7 @@ def execute_unshackled_python(
     code: str,
     grid_in: list[list[int]],
     timeout_s: float = 4.0,
-    transport: object | None = None,
+    transport: DockerRPCTransport | None = None,
 ) -> ExecutionOutcome:
     """Executes Python transform code after AST sanitization and safety validation."""
     t0 = time.perf_counter()
@@ -573,7 +574,7 @@ def execute_unshackled_python_batch(
     code: str,
     grids_in: list[list[list[int]]],
     timeout_s: float = 8.0,
-    transport: object | None = None,
+    transport: DockerRPCTransport | None = None,
 ) -> list[ExecutionOutcome]:
     """Evaluates candidate code across multiple demonstration grids in a single roundtrip."""
     t0 = time.perf_counter()
