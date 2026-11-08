@@ -12,29 +12,22 @@ Invariants:
 
 from __future__ import annotations
 
-import copy
+import ast as _py_ast
 import json
 import time
 from typing import Final, Protocol
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 from lucca.core.schemas import RuleState
 from lucca.reasoning.scheme.eval import SchemeEvaluator, build_env
-
-
-class ScratchpadBufferProtocol(Protocol):
-    _intermediate_traces: list[dict[str, object]]
 from lucca.reasoning.scheme.macros import (
-    MAX_MACRO_DEPTH,
-    MAX_MACRO_STEPS,
     MacroDefinition,
     MacroExpander,
     MacroRegistry,
 )
 from lucca.reasoning.scheme.parser import (
-    SchemeAtom,
     SchemeNode,
     SchemeValue,
     Symbol,
@@ -44,6 +37,11 @@ from lucca.reasoning.spatial_scheme import SPATIAL_SCHEME_PRIMITIVES
 from lucca.sandbox.rpc import DockerRPCTransport
 
 logger = structlog.get_logger(__name__)
+
+
+class ScratchpadBufferProtocol(Protocol):
+    _intermediate_traces: list[dict[str, object]]
+
 
 DEFAULT_FALSIFICATION_TIMEOUT_MS: Final[float] = 500.0
 MIN_TEST_CASES_REQUIRED: Final[int] = 3
@@ -189,7 +187,8 @@ class ScratchpadFalsifier:
                 falsified=True,
                 total_cases=len(test_cases),
                 passed_cases=0,
-                failure_reason=f"Insufficient test cases: required >={self.min_test_cases}, provided {len(test_cases)}",
+                failure_reason=f"Insufficient test cases: required >={
+                    self.min_test_cases}, provided {len(test_cases)}",
                 elapsed_ms=elapsed_ms,
             )
 
@@ -197,7 +196,7 @@ class ScratchpadFalsifier:
         registry = MacroRegistry({macro_def.name: macro_def})
         expander = MacroExpander(registry)
 
-        for case_idx, case in enumerate(test_cases):
+        for _case_idx, case in enumerate(test_cases):
             # Check elapsed budget
             curr_elapsed_ms = (time.perf_counter() - t0) * 1000.0
             if curr_elapsed_ms > self.timeout_ms:
@@ -206,7 +205,8 @@ class ScratchpadFalsifier:
                     falsified=True,
                     total_cases=len(test_cases),
                     passed_cases=passed_count,
-                    failure_reason=f"Falsification timeout exceeded ({curr_elapsed_ms:.2f}ms > {self.timeout_ms}ms)",
+                    failure_reason=f"Falsification timeout exceeded ({
+                        curr_elapsed_ms:.2f}ms > {self.timeout_ms}ms)",
                     elapsed_ms=curr_elapsed_ms,
                 )
 
@@ -263,8 +263,10 @@ class ScratchpadFalsifier:
                     falsified=True,
                     total_cases=len(test_cases),
                     passed_cases=passed_count,
-                    counterexample=f"Input {case.inputs} produced {exec_res!r}, expected {case.expected_output!r}",
-                    failure_reason=f"Output mismatch: expected {case.expected_output!r}, got {exec_res!r}",
+                    counterexample=f"Input {
+                        case.inputs} produced {exec_res!r}, expected {case.expected_output!r}",
+                    failure_reason=f"Output mismatch: expected {
+                        case.expected_output!r}, got {exec_res!r}",
                     elapsed_ms=curr_elapsed_ms,
                 )
 
@@ -319,7 +321,6 @@ class ScratchpadFalsifier:
                 if res.ok:
                     raw_out = (res.content or "").strip()
                     try:
-                        import ast as _py_ast
                         parsed_val = _py_ast.literal_eval(raw_out)
                     except (ValueError, SyntaxError):
                         parsed_val = raw_out
@@ -356,7 +357,6 @@ class ScratchpadFalsifier:
                     session_turns=1,
                 )
                 env = build_env(simulated_state)
-                from lucca.reasoning.spatial_scheme import SPATIAL_SCHEME_PRIMITIVES
 
                 env.update(SPATIAL_SCHEME_PRIMITIVES)
                 dummy_row_a: SchemeValue = [0, 0]

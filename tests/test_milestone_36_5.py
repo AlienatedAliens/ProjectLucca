@@ -13,9 +13,6 @@ Strict zero-Any typing per D-AUD-01.
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Final
-
-import pytest
 
 from lucca.core.coherence import (
     ToolReceipt,
@@ -327,7 +324,7 @@ def test_nli_receipt_entailment_and_blind_classifier_mode() -> None:
 
     # SPIKE-B: Blind classifier mode disables regex rules while preserving safety & embedding routing
     router = HeuristicRouter(blind_classifier_only=True)
-    dec_safe = router.route("rm -rf / wipe all files")
+    router.route("rm -rf / wipe all files")
     assert router.last_decision_record is not None
     assert router.last_decision_record.features.intent == "dangerous"
     assert router.last_decision_record.router_version == "classifier-1.0-blind"

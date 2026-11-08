@@ -19,7 +19,7 @@ from typing import Literal
 @dataclass(frozen=True)
 class Interval1D:
     """1D interval with explicit discretization semantics.
-    
+
     Invariants:
     - start <= end
     - If kind == "discrete": start and end are integers representing closed [start, end].
@@ -32,12 +32,15 @@ class Interval1D:
 
     def __post_init__(self) -> None:
         if self.start > self.end:
-            raise ValueError(f"Interval invariant violated: start ({self.start}) > end ({self.end})")
+            raise ValueError(
+                f"Interval invariant violated: start ({self.start}) > end ({self.end})")
         if self.kind == "discrete":
             if isinstance(self.start, float) and not self.start.is_integer():
-                raise ValueError(f"Discrete interval requires integer bounds: [{self.start}, {self.end}]")
+                raise ValueError(
+                    f"Discrete interval requires integer bounds: [{self.start}, {self.end}]")
             if isinstance(self.end, float) and not self.end.is_integer():
-                raise ValueError(f"Discrete interval requires integer bounds: [{self.start}, {self.end}]")
+                raise ValueError(
+                    f"Discrete interval requires integer bounds: [{self.start}, {self.end}]")
             object.__setattr__(self, "start", int(self.start))
             object.__setattr__(self, "end", int(self.end))
 

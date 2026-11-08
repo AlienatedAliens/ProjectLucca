@@ -11,11 +11,8 @@ Run with:
     uv run pytest tests/test_memory_hmac_tamper.py -v --tb=short
 """
 
-import base64
 import hashlib
-import hmac
 import json
-import tempfile
 import time
 from pathlib import Path
 
@@ -24,7 +21,7 @@ import pytest
 from lucca.core.schemas import Provenance, RetrievalQuery, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.retrieval import HybridRetriever
-from lucca.memory.signers import create_user_speech_signer, derive_provenance_key
+from lucca.memory.signers import create_user_speech_signer
 from lucca.memory.store import MemoryStore
 
 MASTER_KEY = b"test_hmac_tamper_key_32bytes_xxx!"  # exactly 32 bytes
@@ -232,7 +229,7 @@ def test_tamper_quarantined_by_default_without_crashing_retrieval(seeded_store):
     q = RetrievalQuery(query_text="secret project name", top_k=5)
 
     # Retrieval must NOT raise RuntimeError
-    hits = retriever.search(q)
+    retriever.search(q)
 
     # The tampered memory must be recorded in quarantined_memory_ids
     assert len(retriever.quarantined_memory_ids) == 1

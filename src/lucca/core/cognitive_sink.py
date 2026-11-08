@@ -4,9 +4,12 @@ Spec D-AUD-01, D-AUD-13, WO-36 Milestone 36.1, G-WO36-OUTCOME-SINK
 
 Unifies CEGIS program induction and self-repair outcomes across:
 1. Cryptographic Provenance Receipting: Signs ASSISTANT_ACTION envelope via ToolResultSigner.
-2. Working Memory Proof Tracing: Appends intermediate CEGIS repair steps to ReasoningContext.proof_trace().
-3. Case-Based Reasoning Fast Path: Persists multi-turn repair episodes to EpisodeRecall and execution_triples.
-4. Deterministic Affective Appraisal: Injects EUREKA_DISCOVERY / TASK_SUCCESS / TOOL_FAILURE into AffectiveODEMachine.
+2. Working Memory Proof Tracing: Appends intermediate CEGIS repair steps to
+ReasoningContext.proof_trace().
+3. Case-Based Reasoning Fast Path: Persists multi-turn repair episodes to EpisodeRecall and
+execution_triples.
+4. Deterministic Affective Appraisal: Injects EUREKA_DISCOVERY / TASK_SUCCESS / TOOL_FAILURE into
+AffectiveODEMachine.
    Evidential weight strictly stays 0.0 per personhood invariants.
 
 Zero-Any typing invariant strictly enforced per D-AUD-01.
@@ -21,7 +24,7 @@ from typing import TYPE_CHECKING
 
 import structlog
 
-from lucca.core.affective_ode import AffectSignal3D, AffectiveODEMachine
+from lucca.core.affective_ode import AffectiveODEMachine, AffectSignal3D
 from lucca.core.config import resolve_or_create_master_key
 from lucca.core.episode_recall import EpisodeRecall
 from lucca.core.reasoning_context import ReasoningContext
@@ -83,13 +86,15 @@ class CognitiveOutcomeSink:
         db_mgr = db or self.db
 
         turn_1_err = turn_1_error or ("Initial syntax/semantic error" if turns_taken >= 2 else None)
-        repair_strat = verified_strategy or ("Counterexample-guided repair" if turns_taken >= 2 else None)
+        repair_strat = verified_strategy or (
+            "Counterexample-guided repair" if turns_taken >= 2 else None)
 
         # 1. Sign ASSISTANT_ACTION Provenance Receipt
         signed_receipt: SignedPayload | None = None
         if signer is None:
             resolved_key = resolve_or_create_master_key()
-            signer = create_tool_result_signer(master_key=resolved_key, signer_id=f"cegis@{engine_name}")
+            signer = create_tool_result_signer(master_key=resolved_key,
+                signer_id=f"cegis@{engine_name}")
 
         receipt_content = (
             f"CEGIS Execution Receipt: task={task_id} engine={engine_name} success={success} "
@@ -119,7 +124,8 @@ class CognitiveOutcomeSink:
                 # Synthesize standard multi-turn trace steps
                 for t_idx in range(1, turns_taken + 1):
                     step_name = "initial_synthesis" if t_idx == 1 else f"repair_turn_{t_idx}"
-                    step_status = "error_detected" if (t_idx < turns_taken or not success) else "verified_repair"
+                    step_status = "error_detected" if (
+                        t_idx < turns_taken or not success) else "verified_repair"
                     step_obj = f"status={step_status}; code_len={len(final_code or '')}"
                     traces.append(
                         {
@@ -148,7 +154,8 @@ class CognitiveOutcomeSink:
         if success and turns_taken >= 2 and cbr is not None:
             ep_summary = (
                 f"CEGIS repaired solution for {problem_summary}: "
-                f"Turn 1 error [{turn_1_err or 'None'}] fixed by [{repair_strat or 'program synthesis'}]"
+                f"Turn 1 error [{
+                    turn_1_err or 'None'}] fixed by [{repair_strat or 'program synthesis'}]"
             )
             episode_created = RecallEpisode(
                 source="execution_triples",
@@ -177,7 +184,8 @@ class CognitiveOutcomeSink:
             # Persistence to SQLite execution_triples (0004_execution_triples.sql schema)
             if db_mgr is not None:
                 try:
-                    writer = db_mgr.get_writer() if hasattr(db_mgr, "get_writer") else getattr(db_mgr, "conn", None)
+                    writer = db_mgr.get_writer() if hasattr(db_mgr,
+                        "get_writer") else getattr(db_mgr, "conn", None)
                     if writer is not None:
                         prop_json = json.dumps(
                             {

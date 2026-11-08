@@ -225,7 +225,10 @@ CULINARY_WORDS: tuple[str, ...] = (
 
 
 def matches_slang_or_world_definition(lower: str) -> bool:
-    """Conformal uncertainty gating: detect cultural, culinary, regional slang or unfamiliar entity inquiries."""
+    """
+    Conformal uncertainty gating: detect cultural, culinary, regional slang or unfamiliar entity
+    inquiries.
+    """
     # 1. Direct slang/dialect keywords
     if any(re.search(rf"\b{re.escape(w)}\b", lower) for w in SLANG_OR_DIALECT_WORDS):
         return True
@@ -347,7 +350,8 @@ def classify_epistemic_intent(
         has_numbered_premises = len(re.findall(r"(?:^|\n)\s*\d+\.\s+[A-Z]", clean)) >= 2
         has_algebraic_relations = bool(
             re.search(r"\b[a-z]\s*[+\-*/=<>]+\s*[a-z0-9]", lower)
-            or re.search(r"\b(?:premise|clause|constraint|hypothesis|interval)\s+[a-z0-9]+\b", lower)
+            or re.search(r"\b(?:premise|clause|constraint|hypothesis|interval)\s+["
+                r"a-z0-9]+\b", lower)
         )
         if has_numbered_premises or has_algebraic_relations:
             return False, [], None

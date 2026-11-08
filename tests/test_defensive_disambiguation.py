@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from lucca.core.orchestrator import Orchestrator
-from lucca.core.schemas import ChatMessage, TokenDelta
+from lucca.core.schemas import TokenDelta, ToolCall, ToolCallEnd, ToolResult
 from lucca.core.trace import TurnTrace
 from lucca.core.turn_pipeline import (
     SubTurnScratchpadBuffer,
@@ -98,7 +98,6 @@ def test_scratchpad_buffer_lifecycle_and_isolation() -> None:
 # ===========================================================================
 
 
-from lucca.core.schemas import ChatMessage, TokenDelta, ToolCall, ToolCallEnd, ToolResult
 
 
 def test_non_empty_synthesis_guardrail_triggers_fallback() -> None:

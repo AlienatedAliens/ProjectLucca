@@ -17,10 +17,8 @@ Zero benchmark strings in test suite per anti-benchmax contract.
 from __future__ import annotations
 
 import random
-import pytest
 
 from src.lucca.reasoning.relational.allen import (
-    ALLEN_COMPOSITION_TABLE,
     AllenRelation,
     compose,
     converse,
@@ -95,7 +93,7 @@ def test_all_13_discrete_relations_covered() -> None:
 
 def test_composition_table_soundness_triples() -> None:
     """Generates 2,000 synthetic random interval triples (I, J, K).
-    
+
     Verifies that for every valid triple:
     rel(I, K) in compose(rel(I, J), rel(J, K)).
     """

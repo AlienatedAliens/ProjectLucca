@@ -9,12 +9,14 @@ import json
 import math
 import platform
 import re
+import socket
 import subprocess
 import threading
 import time
-from collections.abc import Callable
-from pathlib import Path
 import uuid
+from collections.abc import Callable
+from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import psutil
@@ -22,16 +24,28 @@ import structlog
 from pydantic import BaseModel, JsonValue, ValidationError
 
 from lucca.core.capabilities import get_capability_registry
-from lucca.core.config import get_config
+from lucca.core.config import get_config, resolve_or_create_master_key
 from lucca.core.exceptions import SandboxTimeout
 from lucca.core.schemas import Risk, ToolResult
 from lucca.memory.manager import MemoryManager
+from lucca.sandbox.artifact_tool import verify_artifact
+from lucca.sandbox.ast_sanitizer import (
+    sanitize_and_repair_python_code,  # noqa: PLC0415
+)
+from lucca.sandbox.clipboard_tool import read_clipboard_text
 from lucca.sandbox.file_tool import SafeFileTool
 from lucca.sandbox.launcher import AppLauncher
 from lucca.sandbox.note_tool import SafeNoteTool
 from lucca.sandbox.policy import SequenceGuard, classify_risk, requires_confirmation
 from lucca.sandbox.preflight import build_preflight_runner_code, extract_docstring_assertions
+from lucca.sandbox.research_tool import research_topic
 from lucca.sandbox.rpc import DockerRPCTransport
+from lucca.sandbox.schedule_tool import (
+    ScheduledEvent,
+    claim_due_events,
+    list_scheduled_events,
+    schedule_event,
+)
 from lucca.sandbox.schemas import (
     EXTRA_TOOL_SCHEMAS,
     TOOL_ARG_SCHEMAS,
@@ -54,15 +68,6 @@ from lucca.sandbox.schemas import (
     SearchWebArgs,
     SysInfoArgs,
     ViewSliceArgs,
-)
-from lucca.sandbox.artifact_tool import verify_artifact
-from lucca.sandbox.clipboard_tool import read_clipboard_text
-from lucca.sandbox.research_tool import research_topic
-from lucca.sandbox.schedule_tool import (
-    ScheduledEvent,
-    claim_due_events,
-    list_scheduled_events,
-    schedule_event,
 )
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.system_tools import get_system_metrics, list_running_processes
@@ -103,7 +108,6 @@ def get_host_network_and_location() -> dict[str, JsonValue]:
     """Retrieves local network IPs using local socket inspection (<5ms)."""
     net_info: dict[str, JsonValue] = {"local_ips": []}
     try:
-        import socket
 
         hostname = socket.gethostname()
         local_ips = socket.gethostbyname_ex(hostname)[2]
@@ -246,7 +250,7 @@ def _eval_ast_node(node: ast.AST) -> int | float | bool | list[object] | tuple[o
         raise ValueError(f"Unsupported boolean operator: {type(node.op).__name__}")
     if isinstance(node, ast.Compare):
         left = _eval_ast_node(node.left)
-        for op, comparator in zip(node.ops, node.comparators):
+        for op, comparator in zip(node.ops, node.comparators, strict=False):
             right = _eval_ast_node(comparator)
             matched = False
             if isinstance(op, ast.Eq):
@@ -372,7 +376,7 @@ class SandboxService:
 
     def _resolve_schedule_db_path(self) -> Path:
         if self.db is not None and hasattr(self.db, "db_path"):
-            p = getattr(self.db, "db_path")
+            p = self.db.db_path
             if isinstance(p, (Path, str)) and str(p) != ":memory:":
                 return Path(p)
         return self.workspace_mgr.workspace_root / ".scheduled_events.sqlite"
@@ -387,7 +391,6 @@ class SandboxService:
 
     def get_memory_manager(self) -> MemoryManager:
         if self._memory_manager is None:
-            from lucca.core.config import resolve_or_create_master_key
             cfg = get_config()
             mk = resolve_or_create_master_key(cfg)
             try:
@@ -981,7 +984,6 @@ class SandboxService:
                     elapsed_ms=0.0,
                 )
             try:
-                from datetime import datetime
 
                 boot_time = psutil.boot_time()
                 uptime_s = max(0.0, time.time() - boot_time)
@@ -1041,7 +1043,8 @@ class SandboxService:
                 if net_geo.get("public_ip"):
                     geo_summary = (
                         f"Physical Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
-                        f"{net_geo.get('country')} (IP: {net_geo.get('public_ip')}, ISP: {net_geo.get('isp')})\n"
+                        f"{net_geo.get('country')} (IP: {net_geo.get('public_ip')}, ISP: "
+                        f"{net_geo.get('isp')})\n"
                     )
                 elif net_geo.get("local_ips"):
                     geo_summary = (
@@ -1218,7 +1221,8 @@ class SandboxService:
                     parsed_ev.message,
                     db_path=self._resolve_schedule_db_path(),
                 )
-                content = f"Event '{parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
+                content = f"Event '{
+                    parsed_ev.event_name}' scheduled for {parsed_ev.iso_datetime} (ID: {ev_id})"
                 return ToolResult(
                     call_id=call_id,
                     ok=True,
@@ -1660,7 +1664,6 @@ class SandboxService:
                 except SyntaxError:
                     needs_repair = True
 
-                from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code  # noqa: PLC0415
 
                 clean_code, _ok_san, _repairs = sanitize_and_repair_python_code(raw_code)
                 if clean_code and clean_code.strip():
@@ -1737,7 +1740,8 @@ class SandboxService:
                 )
                 return PreflightResult(
                     success=True,
-                    error_msg=f"preflight_timeout: execution exceeded {timeout_s}s limit; failing open",
+                    error_msg=f"preflight_timeout: execution exceeded {
+                        timeout_s}s limit; failing open",
                     elapsed_ms=elapsed,
                     assertions_run=len(assertions),
                     fail_open=True,

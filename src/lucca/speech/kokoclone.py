@@ -17,6 +17,7 @@ import wave
 from pathlib import Path
 from typing import Any
 
+import kokoro_onnx
 import numpy as np
 import numpy.typing as npt
 import structlog
@@ -159,7 +160,7 @@ def analyze_audio_clip(samples: npt.NDArray[np.float32], sr: int) -> dict[str, f
 
 def compute_cloned_style_vector(
     wav_path: str | Path,
-    kokoro_engine: Any,
+    kokoro_engine: kokoro_onnx.Kokoro,
 ) -> tuple[npt.NDArray[np.float32], dict[str, Any]]:
     """
     Computes a projected Kokoro style tensor (510, 1, 256) from reference audio clip.

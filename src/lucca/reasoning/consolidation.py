@@ -23,8 +23,8 @@ from __future__ import annotations
 import time
 from typing import cast
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 from lucca.core.scratchpad import ScratchpadFalsifier
 from lucca.evaluation.in_d_grader import INDGraderReport, grade_in_d, save_in_d_report
@@ -219,7 +219,8 @@ class ConsolidationEngine:
                         macro_name=macro_name,
                         instances=instances,
                     )
-                    if not cand.quarantined and cand.body_canonical and _contains_hole(parse_expr(cand.body_canonical)):
+                    if not cand.quarantined and cand.body_canonical and _contains_hole(
+                        parse_expr(cand.body_canonical)):
                         syn_res = self.repair_sketch_with_mcts(cand.body_canonical, goal=True)
                         if syn_res.success:
                             mcts_repairs += 1

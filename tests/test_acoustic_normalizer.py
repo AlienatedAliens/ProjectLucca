@@ -13,19 +13,14 @@ from __future__ import annotations
 
 import threading
 import time
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.text_utils import (
-    apply_acoustic_normalizations,
-    collapse_stutter_loops,
     normalize_spelled_words,
     normalize_transcript,
 )
 from lucca.core.trace import TurnTrace, now_ns
-
 
 # ============================================================================
 # 1. Stutter Loop Compression & Spelled-Word Sibling Tests

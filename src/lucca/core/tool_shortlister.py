@@ -471,14 +471,17 @@ def check_tool_fit(
     if tool_name == "calc_math":
         has_digit = any(ch.isdigit() for ch in q_clean)
         has_math_op = any(op in q_clean for op in ("+", "-", "*", "/", "=", "^", "%"))
-        has_calc_cue = any(w in q_lower for w in ("calculate", "compute", "evaluate", "math", "sum", "multiply", "divide"))
+        has_calc_cue = any(w in q_lower for w in ("calculate", "compute", "evaluate", "math", "sum",
+            "multiply", "divide"))
         return (has_digit and has_math_op) or (has_digit and has_calc_cue)
 
     if tool_name in ("run_python", "run_python_async"):
-        code_cues = ("python", "code", "script", "program", "simulate", "algorithm", "plot", "def ", "import ", "print(", "solve", "sympy", "z3")
+        code_cues = ("python", "code", "script", "program", "simulate", "algorithm", "plot", "def ",
+            "import ", "print(", "solve", "sympy", "z3")
         if any(c in q_lower for c in code_cues):
             return True
-        qa_cues = ("who wrote", "capital of", "tell me a joke", "how are you", "what is the capital", "meaning of life")
+        qa_cues = ("who wrote", "capital of", "tell me a joke", "how are you",
+            "what is the capital", "meaning of life")
         if any(c in q_lower for c in qa_cues):
             return False
 

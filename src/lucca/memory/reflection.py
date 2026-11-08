@@ -71,7 +71,8 @@ def log_learning_event(
         "IDLE_PULSE_DISTILL",
     }
     if event_type not in valid_types:
-        raise ValueError(f"Invalid learning event_type '{event_type}', must be one of {valid_types}")
+        raise ValueError(
+            f"Invalid learning event_type '{event_type}', must be one of {valid_types}")
 
     current_time = now if now is not None else time.time()
     event_id = f"ev-{uuid.uuid4().hex[:12]}"
@@ -93,7 +94,8 @@ def log_learning_event(
 class CoherenceDrive:
     """
     Homeostatic drive for epistemic coherence and contradiction resolution.
-    Prioritizes Belnap Top (conflict) contradictions in the review queue and autobiographical memory.
+    Prioritizes Belnap Top (conflict) contradictions in the review queue and autobiographical
+    memory.
     """
 
     def __init__(self, db: DatabaseManager) -> None:
@@ -103,7 +105,10 @@ class CoherenceDrive:
         """Computes current coherence deficit [0.0, 1.0] based on pending contradictions."""
         with self.db.read_cursor() as cur:
             cur.execute(
-                "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING' AND trigger_reason LIKE '%conflict%'"
+
+                    "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING' AND trigger_reason "
+                    "LIKE '%conflict%'"
+
             )
             row = cur.fetchone()
             conflict_count = int(row[0]) if row else 0
@@ -123,7 +128,8 @@ class CoherenceDrive:
                 SELECT review_id, belief_id, proposed_content, trigger_reason, created_at
                 FROM review_queue
                 WHERE status = 'PENDING'
-                ORDER BY CASE WHEN trigger_reason LIKE '%conflict%' THEN 0 ELSE 1 END, created_at ASC
+                ORDER BY CASE WHEN trigger_reason LIKE '%conflict%' THEN 0 ELSE 1 END, created_at
+                ASC
                 LIMIT ?
                 """,
                 (limit,),
@@ -161,7 +167,10 @@ class CompetenceDrive:
             row_fail = cur.fetchone()
             fail_count = int(row_fail[0]) if row_fail else 0
             cur.execute(
-                "SELECT COUNT(*) FROM learning_events WHERE event_type IN ('SKILL_MINED', 'CEGIS_REPAIR_MYELINATED') AND created_at > ?",
+                (
+                    "SELECT COUNT(*) FROM learning_events WHERE event_type IN ('SKILL_MINED', "
+                    "'CEGIS_REPAIR_MYELINATED') AND created_at > ?"
+                ),
                 (now - 86400.0,),
             )
             row_mined = cur.fetchone()
@@ -263,7 +272,8 @@ class IdlePulse:
                             quarantine_rejected_distillate(
                                 self.db,
                                 entry_id=rev_id,
-                                reason="VerifierWorker determined proposed revision is entailed (non-contradictory)",
+                                reason="VerifierWorker determined proposed revision is entailed "
+                                    "(non-contradictory)",
                                 memory_id=belief_id,
                                 stage="idle_pulse_nli",
                                 now=current_time,
@@ -300,7 +310,10 @@ class IdlePulse:
             try:
                 with self.db.read_cursor() as cur:
                     cur.execute(
-                        "SELECT MAX(created_at) FROM learning_events WHERE event_type = 'IDLE_PULSE_DISTILL' AND topic = 'homeostatic_heartbeat'"
+
+                            "SELECT MAX(created_at) FROM learning_events WHERE event_type = "
+                            "'IDLE_PULSE_DISTILL' AND topic = 'homeostatic_heartbeat'"
+
                     )
                     last_row = cur.fetchone()
                     last_hb = float(last_row[0]) if last_row and last_row[0] is not None else 0.0
@@ -439,7 +452,8 @@ class DreamRetrospective:
                 if isinstance(feat_dict, dict):
                     if not extracted_code and feat_dict.get("final_code"):
                         extracted_code = str(feat_dict["final_code"])
-                    q_summary = str(feat_dict.get("problem_summary") or feat_dict.get("query") or "")
+                    q_summary = str(
+                        feat_dict.get("problem_summary") or feat_dict.get("query") or "")
                     words = [w.lower() for w in re.findall(r"[a-zA-Z]{4,}", q_summary)]
                     if words:
                         extracted_keyword = words[0]
@@ -451,7 +465,10 @@ class DreamRetrospective:
                 try:
                     with self.db.read_cursor() as cur:
                         cur.execute(
-                            "SELECT code, query FROM episodic_code_cache ORDER BY verified_at DESC LIMIT 1"
+
+                                "SELECT code, query FROM episodic_code_cache ORDER BY verified_at "
+                                "DESC LIMIT 1"
+
                         )
                         ep_row = cur.fetchone()
                         if ep_row and ep_row[0]:
@@ -462,7 +479,8 @@ class DreamRetrospective:
             if not extracted_code:
                 extracted_code = f"# Verified repair macro for {dec_id[:8]}\npass"
 
-            escaped_code = extracted_code.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+            escaped_code = extracted_code.replace("\\", "\\\\").replace('"', '\\"').replace("\n",
+                "\\n")
             escaped_kw = extracted_keyword.replace("\\", "\\\\").replace('"', '\\"')
             sexpr = (
                 f'(rule "{rule_id}"\n'
@@ -551,11 +569,13 @@ class DreamRetrospective:
                     r_engine.replay_candidate(r_id, limit=50)
                     replays_analyzed += 1
                 except Exception as rep_err:  # noqa: BLE001
-                    logger.debug("dream_retrospective_replay_failed", rule_id=r_id, error=str(rep_err))
+                    logger.debug("dream_retrospective_repla"
+                        "y_failed", rule_id=r_id, error=str(rep_err))
 
         replays_analyzed = max(replays_analyzed, len(repairs) + len(impasse_rows))
 
-        # 4. Validate active ASSISTANT_BELIEF rows against newer USER_EXPLICIT / TOOL_VERIFIED receipts
+        # 4. Validate active ASSISTANT_BELIEF rows against newer USER_EXPLICIT / TOOL_VERIFIED
+        # receipts
         try:
             with self.db.read_cursor() as cur:
                 cur.execute(
@@ -595,7 +615,10 @@ class DreamRetrospective:
                             ):
                                 with self.db.write_transaction() as wcur:
                                     wcur.execute(
-                                        "UPDATE memories SET valid_to = ?, superseded_by = ? WHERE memory_id = ?",
+                                        (
+                                            "UPDATE memories SET valid_to = ?, superseded_by = ? "
+                                            "WHERE memory_id = ?"
+                                        ),
                                         (current_time, r_mem_id, b_id),
                                     )
                                     wcur.execute(

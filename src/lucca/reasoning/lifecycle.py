@@ -16,9 +16,6 @@ import structlog
 import ulid
 from pydantic import JsonValue
 
-logger = structlog.get_logger(__name__)
-
-
 from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
 from lucca.core.exceptions import SchemeSyntaxError
@@ -283,7 +280,9 @@ class RuleLifecycleManager:
         max_depth: int = MAX_CHAIN_DEPTH,
         context: object | None = None,
     ) -> tuple[list[RuleOutcome], RuleState]:
-        """Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1 & 2).
+        """
+        Bounded re-evaluation loop for forward-chaining deduction (Spec D-REAS-09, WO-20 Phase 1 &
+        2).
 
         After a plan containing AssertFact executes, rebuilds state and re-evaluates,
         bounded by MAX_CHAIN_DEPTH = 8 and gas limit. Halts on fixpoint (no new assertions).

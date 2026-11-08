@@ -13,12 +13,10 @@ Tests:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sqlite3
 import time
 import uuid
-from collections.abc import Coroutine
 from pathlib import Path
 
 import pytest
@@ -564,7 +562,7 @@ def test_review_queue_state_machine_hypothesis(
                 )
                 r = cur.fetchone()
                 assert r[0] is None
-                assert r[1] == None
+                assert r[1] is None
 
         with pytest.raises(ValueError, match="not PENDING"):
             if second_action == "approve":

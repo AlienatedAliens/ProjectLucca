@@ -12,9 +12,9 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Literal
 
-from pydantic import JsonValue, ValidationError
 import structlog
 import ulid
+from pydantic import JsonValue, ValidationError
 
 from lucca.core.affect import AffectSignal
 from lucca.core.capabilities import dispatch_invoke_skill
@@ -478,7 +478,8 @@ class ToolDispatcher:
         speak: bool = True,
     ) -> ToolResult | None:
         orch = self._orch
-        # Semantic repair: if model invoked calc_math with Python code or equation solving, route to run_python
+        # Semantic repair: if model invoked calc_math with Python code or equation solving, route to
+        # run_python
         if name == "calc_math":
             expr_val = args.get("expr")
             code_val = args.get("code")
@@ -518,7 +519,8 @@ class ToolDispatcher:
                     or len(raw_content) > 300
                 )
                 if is_python_code:
-                    logger.info("tool_semantic_reroute", from_tool="calc_math", to_tool="run_python")
+                    logger.info("tool_semantic_reroute", from_tool="calc_math",
+                        to_tool="run_python")
                     name = "run_python"
                     args = {"code": raw_content}
         elif name == "run_python":
@@ -837,7 +839,8 @@ class ToolDispatcher:
                 if pending_img is not None:
                     img_msg = ChatMessage(
                         role="user",
-                        content="[Screenshot attached — describe what you see in spoken prose, no markdown.]",
+                        content="[Screenshot attached — describe what you see in spoken prose, no "
+                            "markdown.]",
                         image_b64=pending_img,
                     )
                     current_tool_messages = getattr(orch, "_current_tool_messages", None)

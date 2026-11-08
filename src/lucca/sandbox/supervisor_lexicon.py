@@ -447,7 +447,8 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
     r"taken\s+care\s+of\s+(?:that|it|those|them)\s+for\s+you\b|"
     r"got\s+(?:that|it|those|them)\s+(?:sorted|taken\s+care\s+of|set\s+up|turned\s+on|turned\s+off|closed|cleared|moved|deleted|saved)\b"
     r")|"
-    # 2. Progressive companion claims ("I'm turning on...", "Dimming your screen...", "Setting a timer...")
+    # 2. Progressive companion claims ("I'm turning on...", "Dimming your screen...", "Setting a
+    # timer...")
     r"(?:\bI(?:'m|\s+am)\s+(?:immediately\s+|currently\s+|now\s+|just\s+)?|^\s*)(?:"
     r"(?:turning|switching|toggling|flipping)\s+(?:on|off|down|up)\s+[\w\s-]+|"
     r"(?:turning|switching|toggling|flipping)\s+(?:the|your)\s+(?:volume|brightness|screen|display|audio|sound|speakers?|mic|microphone|bluetooth|wifi|wi-fi|hotspot|vpn|night\s+light|dark\s+mode|do\s+not\s+disturb|focus\s+mode|airplane\s+mode|battery\s+saver|webcam|camera)\s+(?:on|off|down|up)\b.*|"
@@ -476,7 +477,10 @@ _COMPANION_ACTION_CLAIM_REGEX = re.compile(
 def extract_user_context_text(
     user_context: str | Sequence[dict[str, str]] | None,
 ) -> tuple[str, str, str]:
-    """Normalizes string or multi-turn message list into (full_user_text, last_assistant_text, final_user_text)."""
+    """
+    Normalizes string or multi-turn message list into (full_user_text, last_assistant_text,
+    final_user_text).
+    """
     if not user_context:
         return ("", "", "")
     if isinstance(user_context, str):

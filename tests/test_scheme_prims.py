@@ -4,7 +4,6 @@ lucca.reasoning.scheme.prims
 Spec 05 §2, §4, §5
 """
 
-import math
 import pytest
 
 from lucca.core.exceptions import (

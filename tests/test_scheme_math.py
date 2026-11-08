@@ -7,14 +7,11 @@ and GBNF grammar files.
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
 
 from lucca.reasoning.scheme.math_primitives import (
-    MATH_SCHEME_PRIMITIVES,
     enumerate_math_sketch_bindings,
     evaluate_math_sketch,
 )
-from lucca.reasoning.scheme.parser import parse_expr
 
 
 def test_math_primitives_evaluation():

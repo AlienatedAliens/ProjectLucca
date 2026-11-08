@@ -24,9 +24,7 @@ from lucca.sandbox.output_supervisor import (
     ActionClaimGrammarSupervisor,
     OutputSupervisorSession,
     SeverityTier,
-    TruthInReceiptMatcher,
 )
-
 
 # ---------------------------------------------------------------------------
 # 1. Grammar Loading & GBNF Specification Verification

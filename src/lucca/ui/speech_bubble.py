@@ -527,8 +527,7 @@ class SpeechBubble(QWidget):
         # Clamp horizontally inside screen
         if target_x + bw > screen_right - 10:
             target_x = screen_right - bw - 10
-        if target_x < screen_left + 10:
-            target_x = screen_left + 10
+        target_x = max(target_x, screen_left + 10)
 
         # Anchor directly underneath Lucca's bust (so her head and shoulders rise above top of box)
         target_y = sy + sh - 45
@@ -536,8 +535,7 @@ class SpeechBubble(QWidget):
         # Clamp vertically so dialogue box never protrudes off the bottom or top of screen
         if target_y + bh > screen_bottom - 10:
             target_y = max(screen_top + 10, screen_bottom - bh - 10)
-        if target_y < screen_top + 10:
-            target_y = screen_top + 10
+        target_y = max(target_y, screen_top + 10)
 
         self.move(target_x, target_y)
         self.update()

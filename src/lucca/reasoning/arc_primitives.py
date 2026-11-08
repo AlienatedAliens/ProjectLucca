@@ -8,7 +8,7 @@ All operations return new grids or structured objects without mutating inputs.
 from __future__ import annotations
 
 from collections import deque
-from typing import Mapping
+from collections.abc import Mapping
 
 
 def clone_grid(grid: list[list[int]]) -> list[list[int]]:
@@ -60,7 +60,7 @@ def rotate_90(grid: list[list[int]], clockwise: bool = True, times: int = 1) -> 
 
     out = clone_grid(grid)
     for _ in range(k):
-        out = [list(col) for col in zip(*out[::-1])]
+        out = [list(col) for col in zip(*out[::-1], strict=False)]
     return out
 
 

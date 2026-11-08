@@ -7,9 +7,7 @@ Spec 05 §2, §3, §7
 import pytest
 
 from lucca.core.exceptions import SchemeSyntaxError
-from lucca.reasoning.scheme.lexer import Token, tokenize
 from lucca.reasoning.scheme.parser import (
-    ALLOWED_OPS,
     MAX_NESTING_DEPTH,
     RULE_ID_REGEX,
     STATE_PREDICATES,
@@ -39,10 +37,10 @@ def test_symbol_and_keyword_dataclasses() -> None:
     assert kw.line == 3
     assert kw.col == 1
 
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         sym.name = "baz"  # type: ignore[misc]
 
-    with pytest.raises(Exception):
+    with pytest.raises(AttributeError):
         kw.name = ":baz"  # type: ignore[misc]
 
 

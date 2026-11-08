@@ -6,11 +6,11 @@ Spec 04 §6, Spec 10
 import base64
 import hashlib
 import hmac
-from datetime import UTC, datetime
 import json
 import re
 import sqlite3
 import time
+from datetime import UTC, datetime
 from typing import Final, Literal, cast
 
 import sqlite_vec
@@ -212,8 +212,7 @@ def _eval_temporal_constraint(
     if clock == "valid_time":
         evt_start = valid_from
         evt_end = valid_to if valid_to is not None else time.time()
-        if evt_end < evt_start:
-            evt_end = evt_start
+        evt_end = max(evt_end, evt_start)
     else:  # default 'created_at' (interaction time)
         evt_start = created_at
         evt_end = created_at
@@ -545,9 +544,13 @@ class HybridRetriever:
         count = len(self.quarantined_memory_ids)
         if count == 0:
             return None
-        return f"Security notice: {count} {'memory' if count == 1 else 'memories'} failed cryptographic integrity checks and were quarantined."
+        return (
+            f"Security notice: {count} {'memory' if count == 1 else 'memories'} failed "
+            "cryptographic integrity checks and were quarantined."
+        )
 
-    def _persist_quarantine(self, memory_id: int, entry_id: str | None, stage: str, reason: str) -> None:
+    def _persist_quarantine(self, memory_id: int, entry_id: str | None, stage: str,
+        reason: str) -> None:
         try:
             with self.db.get_writer() as conn:
                 conn.execute(
@@ -560,13 +563,15 @@ class HybridRetriever:
                     ")"
                 )
                 conn.execute(
-                    "INSERT OR REPLACE INTO memory_quarantine (memory_id, entry_id, reason, stage, quarantined_at) "
+                    "INSERT OR REPLACE INTO memory_quarantine (memory_id, entry_id, reason, stage, "
+                    "quarantined_at) "
                     "VALUES (?, ?, ?, ?, ?)",
                     (memory_id, entry_id, reason, stage, time.time()),
                 )
                 conn.commit()
         except Exception as q_err:
-            logger.warning("persist_memory_quarantine_failed", memory_id=memory_id, error=str(q_err))
+            logger.warning("persist_memory_quarantine_fa"
+                "iled", memory_id=memory_id, error=str(q_err))
 
     def get_persisted_quarantine_records(self) -> list[dict[str, object]]:
         """Returns all memory records quarantined across sessions."""
@@ -577,7 +582,8 @@ class HybridRetriever:
                 )
                 if not cur.fetchone():
                     return []
-                cur.execute("SELECT memory_id, entry_id, reason, stage, quarantined_at FROM memory_quarantine ORDER BY quarantined_at DESC")
+                cur.execute("SELECT memory_id, entry_id, reason, stage, quarantined_at FROM "
+                    "memory_quarantine ORDER BY quarantined_at DESC")
                 return [dict(row) for row in cur.fetchall()]
         except Exception as exc:
             logger.debug("get_persisted_quarantine_records_failed", error=str(exc))
@@ -637,12 +643,15 @@ class HybridRetriever:
                     logger.warning("vec_search_failed", error=str(e))
 
             # 2. Sparse search (BM25 via FTS5) + ActiveGoal biasing (Milestone 36.2)
-            active_goal_list = self.active_goals.list_active_goals() if self.active_goals is not None else []
+            active_goal_list = (
+                self.active_goals.list_active_goals() if self.active_goals is not None else []
+            )
             goal_terms: dict[str, int] = {}
             for g in active_goal_list[:3]:
-                for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} {g.description}".lower()):
+                for tok in re.findall(r"\b[a-zA-Z0-9_\-]{3,}\b", f"{g.title} "
+                    f"{g.description}".lower()):
                     if tok not in ("the", "and", "for", "with", "that", "this", "from", "into"):
-                        goal_terms[tok] = max(goal_terms.get(tok, 0), max(1, g.priority))
+                        goal_terms[tok] = max(goal_terms.get(tok, 0), 1, g.priority)
 
             sparse_ranks: dict[int, int] = {}
             if mode in ("hybrid", "bm25"):
@@ -689,7 +698,10 @@ class HybridRetriever:
             if not all_candidate_ids:
                 if q.temporal_anchor is not None:
                     cur.execute(
-                        "SELECT memory_id FROM memories WHERE forgotten_at IS NULL ORDER BY created_at DESC LIMIT ?",
+                        (
+                            "SELECT memory_id FROM memories WHERE forgotten_at IS NULL ORDER BY "
+                            "created_at DESC LIMIT ?"
+                        ),
                         (MAX_CANDIDATES * 2,),
                     )
                     all_candidate_ids = {int(row[0]) for row in cur.fetchall()}
@@ -721,7 +733,8 @@ class HybridRetriever:
             placeholders = ",".join("?" for _ in sorted_candidates)
             query_sql = f"""
                 SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id, p.session_id, p.grounding_eligible,
+                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id,
+                       p.session_id, p.grounding_eligible,
                        p.confidence, p.content_sha256, p.signature, p.payload_json
                 FROM memories m
                 JOIN provenance_envelopes p ON m.entry_id = p.entry_id
@@ -772,7 +785,8 @@ class HybridRetriever:
                                         memory_id=mid,
                                     )
                                     _integrity_ok = False
-                                canon_dict = {k: v for k, v in raw_dict.items() if k not in _EXCLUDED}
+                                canon_dict = {k: v for k,
+                                    v in raw_dict.items() if k not in _EXCLUDED}
                                 canonical_bytes = json.dumps(
                                     canon_dict,
                                     sort_keys=True,
@@ -816,7 +830,8 @@ class HybridRetriever:
                         stage="integrity_quarantine",
                         memory_id=mid,
                         entry_id=eid,
-                        msg=f"Memory row {mid} failed integrity verification (SHA256/HMAC mismatch). Row quarantined.",
+                        msg=f"Memory row {mid} failed integrity verification (SHA256/HMAC "
+                            "mismatch). Row quarantined.",
                     )
                     self.quarantined_memory_ids.append(mid)
                     self._persist_quarantine(
@@ -825,7 +840,10 @@ class HybridRetriever:
                         stage="hmac_or_sha256",
                         reason="Cryptographic integrity verification failed",
                     )
-                    warn = f"Security notice: Memory record {mid} failed cryptographic verification and was quarantined."
+                    warn = (
+                        f"Security notice: Memory record {mid} failed cryptographic "
+                        "verification and was quarantined."
+                    )
                     if warn not in self.user_integrity_warnings:
                         self.user_integrity_warnings.append(warn)
 
@@ -847,7 +865,10 @@ class HybridRetriever:
                 if forgotten_at is not None:
                     continue
                 # - valid_to IS NULL unless include_superseded is True or querying valid_time clock
-                if valid_to is not None and not q.include_superseded and q.temporal_clock != "valid_time":
+                if (
+                    valid_to is not None and not q.include_superseded and q.temporal_clock
+                    != "valid_time"
+                ):
                     continue
                 # - kind filter
                 if q.kinds is not None and kind not in q.kinds:

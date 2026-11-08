@@ -11,17 +11,17 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
-import itertools
+from pathlib import Path
 from typing import Final, cast
 
 import structlog
 
 from lucca.reasoning.scheme.eval import SchemeEvaluator
-from lucca.reasoning.scheme.macros import MacroExpander, MacroRegistry
+from lucca.reasoning.scheme.macros import MacroDefinition, MacroExpander, MacroRegistry
 from lucca.reasoning.scheme.parser import (
     Keyword,
-    SchemeAtom,
     SchemeNode,
     SchemeValue,
     Symbol,
@@ -29,33 +29,26 @@ from lucca.reasoning.scheme.parser import (
 )
 from lucca.reasoning.scheme.prims import PURE_PRIMITIVES
 from lucca.reasoning.spatial_dsl import (
-    SpatialObject,
-    bbox_of_all,
-    column_heights,
+    check_metamorphic_invariance,
     complete_symmetry,
     count_cells,
     count_objects,
     crop,
     crop_to_content,
     denoise,
-    dominant_object,
-    draw_line,
     fill_holes,
-    find_objects,
     flip_h,
     flip_v,
     flood_fill,
-    is_enclosed,
     majority_filter,
-    move_until_contact,
     order_columns_by_height,
     paste,
+    register_macro_primitive,
     restore_periodic_pattern,
     rot90,
-    row_widths,
-    sort_objects,
     unique_colors,
 )
+from lucca.reasoning.topology import enumerate_hole_bindings, extract_hole_info, is_hole_node
 
 logger = structlog.get_logger(__name__)
 
@@ -64,9 +57,7 @@ GLOBAL_MACRO_REGISTRY: Final[MacroRegistry] = MacroRegistry()
 
 def load_persisted_macros(registry: MacroRegistry) -> None:
     """Loads admitted mined macros from the canonical test report/persisted artifact."""
-    import json
-    from pathlib import Path
-    from lucca.reasoning.scheme.macros import MacroDefinition
+
 
     path = Path("logs/test_reports/reasoning_core_m3_mined_macros.json")
     if path.exists():
@@ -76,7 +67,8 @@ def load_persisted_macros(registry: MacroRegistry) -> None:
                 name = m.get("name")
                 params = m.get("params", [])
                 body_str = m.get("body")
-                doc = f"Mined primitive (savings={m.get('compression_savings', 0.0):.2f}): {body_str}"
+                doc = f"Mined primitive (savings={m.get('compression_savings',
+                    0.0):.2f}): {body_str}"
                 if name and body_str and not registry.has(name):
                     m_def = MacroDefinition(
                         name=name,
@@ -85,7 +77,6 @@ def load_persisted_macros(registry: MacroRegistry) -> None:
                         doc=doc,
                     )
                     registry.register(m_def)
-                    from lucca.reasoning.spatial_dsl import register_macro_primitive
                     register_macro_primitive(name=name, params=params, doc=doc)
         except Exception as e:
             logger.debug("persisted_macros_load_failed", error=str(e))
@@ -235,7 +226,8 @@ def prim_paste(args: list[SchemeValue]) -> SchemeValue:
     src = _coerce_grid(args[1])
     r = _to_int(args[2], 0)
     c = _to_int(args[3], 0)
-    ignore_zero = bool(len(args) > 4 and (args[4] is True or str(args[4]).lower() in ("#t", "true")))
+    ignore_zero = bool(len(args) > 4 and (args[4] is True or str(args[4]).lower() in ("#t",
+        "true")))
     return _to_scheme_grid(paste(dest, src, r=r, c=c, ignore_zero=ignore_zero))
 
 
@@ -376,7 +368,8 @@ def prim_replace_color(args: list[SchemeValue]) -> SchemeValue:
     grid = _coerce_grid(args[0])
     from_c: int = 0
     to_c: int = 0
-    if len(args) == 3 and not any(isinstance(x, (Keyword, Symbol)) and str(x).startswith(":") for x in args[1:3]):
+    if len(args) == 3 and not any(isinstance(x, (Keyword,
+        Symbol)) and str(x).startswith(":") for x in args[1:3]):
         from_c = _to_int(args[1], 0)
         to_c = _to_int(args[2], 0)
     else:
@@ -420,7 +413,9 @@ def prim_set_pixel(args: list[SchemeValue]) -> SchemeValue:
 
 
 def prim_crop_bbox(args: list[SchemeValue]) -> SchemeValue:
-    """(crop-bbox grid bbox) where bbox is (min_r, min_c, max_r, max_c) or (min_r, max_r, min_c, max_c)"""
+    """
+    (crop-bbox grid bbox) where bbox is (min_r, min_c, max_r, max_c) or (min_r, max_r, min_c, max_c)
+    """
     if not args:
         return []
     grid = _coerce_grid(args[0])
@@ -463,7 +458,8 @@ def prim_fill_mask(args: list[SchemeValue]) -> SchemeValue:
         for r, row in enumerate(mask):
             if r < len(grid) and isinstance(row, list):
                 for c, val in enumerate(row):
-                    if c < len(grid[r]) and (val is True or val == 1 or str(val).lower() in ("#t", "true")):
+                    if c < len(grid[r]) and (val is True or val == 1 or str(val).lower() in ("#t",
+                        "true")):
                         grid[r][c] = color
     return _to_scheme_grid(grid)
 
@@ -558,7 +554,6 @@ def evaluate_spatial_sketch(
 def extract_holes_from_ast(node: SchemeNode) -> list[tuple[str, str | None]]:
     """Traverses a MicroScheme AST and extracts unique (hole_name, hole_type) tuples."""
     holes: list[tuple[str, str | None]] = []
-    from lucca.reasoning.topology import extract_hole_info, is_hole_node
 
     def _walk(n: SchemeNode) -> None:
         if is_hole_node(n):
@@ -582,7 +577,8 @@ def extract_holes_from_ast(node: SchemeNode) -> list[tuple[str, str | None]]:
 def _has_directional_axis_binding(node: SchemeNode, binding: dict[str, SchemeValue]) -> bool:
     """Checks whether the sketch or binding explicitly specifies a single directional axis."""
     for k, v in binding.items():
-        if "axis" in k.lower() and str(v).lstrip(":").lower() in ("h", "horizontal", "v", "vertical"):
+        if "axis" in k.lower() and str(v).lstrip(":").lower() in ("h", "horizontal", "v",
+            "vertical"):
             return True
     if isinstance(node, list) and node and isinstance(node[0], Symbol):
         if node[0].name in ("flip-h", "flip-v", "order-columns-by-height"):
@@ -603,7 +599,6 @@ def enumerate_sketch_bindings(
     evaluates them on host CPU. Expands macros before parameter enumeration.
     Returns (best_binding, total_candidates_evaluated).
     """
-    from lucca.reasoning.topology import enumerate_hole_bindings
 
     effective_macros = macro_registry or GLOBAL_MACRO_REGISTRY
     if isinstance(sketch, str):
@@ -630,12 +625,15 @@ def enumerate_sketch_bindings(
     }
 
     demos: list[tuple[SchemeValue, SchemeValue]] = [
-        (cast(SchemeValue, pair["input"]), cast(SchemeValue, pair["output"])) for pair in train_pairs
+        (cast(SchemeValue, pair["input"]), cast(SchemeValue,
+            pair["output"])) for pair in train_pairs
     ]
 
-    def _eval(eval_node: SchemeNode, inp: SchemeValue, binding: dict[str, SchemeValue]) -> SchemeValue:
+    def _eval(eval_node: SchemeNode, inp: SchemeValue, binding: dict[str,
+        SchemeValue]) -> SchemeValue:
         grid = _coerce_grid(inp)
-        return cast(SchemeValue, evaluate_spatial_sketch(eval_node, grid, hole_bindings=binding, macro_registry=effective_macros))
+        return cast(SchemeValue, evaluate_spatial_sketch(eval_node, grid, hole_bindings=binding,
+            macro_registry=effective_macros))
 
     res = enumerate_hole_bindings(
         sketch=node,
@@ -647,10 +645,11 @@ def enumerate_sketch_bindings(
     )
 
     if res.best_binding is not None:
-        from lucca.reasoning.spatial_dsl import check_metamorphic_invariance
 
-        def _candidate_fn(g: list[list[int]], cur_b: dict[str, SchemeValue] = res.best_binding) -> list[list[int]]:
-            return evaluate_spatial_sketch(node, g, hole_bindings=cur_b, macro_registry=effective_macros)
+        def _candidate_fn(g: list[list[int]], cur_b: dict[str,
+            SchemeValue] = res.best_binding) -> list[list[int]]:
+            return evaluate_spatial_sketch(node, g, hole_bindings=cur_b,
+                macro_registry=effective_macros)
 
         is_inv, inv_reason = check_metamorphic_invariance(_candidate_fn, train_pairs)
         if not is_inv:
@@ -720,10 +719,18 @@ expr-list ::= sketch (newline ws sketch)*
 sketch ::= "(" ws prim-op (ws-plus arg)* ws ")"
 prim-op ::= {prim_op_alternatives} | [a-zA-Z][a-zA-Z0-9_-]*
 arg ::= kw-pair | atom | sketch
-kw-pair ::= (":axis" ws-plus "?hole-axis") | (":mode" ws-plus "?hole-mode") | (":fill" ws-plus hole-color) | (":conn" ws-plus "?hole-conn") | (":reverse" ws-plus "?hole-bool") | (keyword ws-plus hole)
+kw-pair ::= (
+    ":axis" ws-plus "?hole-axis") | (
+        ":mode" ws-plus "?hole-mode") | (
+            ":fill" ws-plus hole-color) | (
+                ":conn" ws-plus "?hole-conn") | (
+                    ":reverse" ws-plus "?hole-bool") | (keyword ws-plus hole)
 atom ::= hole | var | int | boolean
 var ::= "input" | "grid" | "bg" | "obj"
-hole ::= "?hole-axis" | "?hole-mode" | hole-color | "?hole-conn" | "?hole-int" | "?hole-key" | "?hole-bool"
+hole ::= (
+    "?hole-axis" | "?hole-mode" | hole-color | "?hole-conn"
+    | "?hole-int" | "?hole-key" | "?hole-bool"
+)
 {color_rule}
 keyword ::= ":" [a-zA-Z][a-zA-Z0-9_-]*
 int ::= "-"? [0-9]+

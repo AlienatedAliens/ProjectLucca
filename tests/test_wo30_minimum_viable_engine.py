@@ -15,8 +15,8 @@ Pre-registered Acceptance Gates:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 import time
+from pathlib import Path
 from typing import Final
 
 import pytest
@@ -32,31 +32,20 @@ from lucca.memory.db import DatabaseManager
 from lucca.reasoning.compression import (
     DreamCoderMacroMiner,
     extract_subtrees,
-    rewrite_with_macro,
 )
 from lucca.reasoning.cost import (
-    DEFAULT_ALPHA,
     ast_cost,
     ast_depth,
     ast_node_count,
-    compute_compression_savings,
-    compute_description_length,
 )
-from lucca.reasoning.egraph import anti_unify, extract_parameters
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.reasoning.scheme.macros import (
-    MAX_MACRO_DEPTH,
-    MAX_MACRO_STEPS,
     MacroDefinition,
-    MacroExpander,
-    MacroRegistry,
 )
 from lucca.reasoning.scheme.parser import (
     SchemeNode,
     Symbol,
     parse_expr,
-    parse_rule,
-    to_canonical,
 )
 from lucca.reasoning.smt_verifier import SMTVerifier
 

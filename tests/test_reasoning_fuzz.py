@@ -9,11 +9,10 @@ Exhaustive property-based testing using Hypothesis:
 5. Invariant enforcement against deeply nested or explosive expressions.
 """
 
-import math
-from typing import Any
-import pytest
-from hypothesis import given, settings, strategies as st
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
+from lucca.reasoning.compression import rewrite_with_macro
 from lucca.reasoning.cost import ast_cost, ast_depth, ast_node_count
 from lucca.reasoning.egraph import (
     anti_unify,
@@ -23,21 +22,14 @@ from lucca.reasoning.egraph import (
 )
 from lucca.reasoning.scheme.macros import (
     MAX_MACRO_DEPTH,
-    MAX_MACRO_STEPS,
     MacroDefinition,
-    MacroExpander,
-    MacroRegistry,
 )
 from lucca.reasoning.scheme.parser import (
-    Keyword,
-    SchemeAtom,
     SchemeNode,
     Symbol,
     parse_expr,
     to_canonical,
 )
-from lucca.reasoning.compression import rewrite_with_macro
-
 
 # ==============================================================================
 # Hypothesis Strategies for MicroScheme ASTs

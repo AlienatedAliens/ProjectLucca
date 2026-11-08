@@ -368,7 +368,8 @@ def make_state_primitives(
         if len(args) == 1 and isinstance(args[0], list):
             items = args[0]
             if len(items) == 3:
-                s, p, o = str(items[0]).strip(), str(items[1]).strip().lower(), str(items[2]).strip()
+                s, p, o = str(
+                    items[0]).strip(), str(items[1]).strip().lower(), str(items[2]).strip()
                 return (s, p, o) in state.asserted_facts
             elif len(items) == 2:
                 s, p = str(items[0]).strip(), str(items[1]).strip().lower()
@@ -630,7 +631,8 @@ def prim_rect(args: list[SchemeValue]) -> list[SchemeValue]:
     h = _check_number(args[3], "rect")
     if w < 0 or h < 0:
         raise SchemeRuntimeError(
-            f"'rect' width and height must be non-negative, got w={w}, h={h}", cause_type="ValueError"
+            f"'rect' width and height must be non-negative, got w={
+                w}, h={h}", cause_type="ValueError"
         )
     return ["rect", x, y, w, h]
 
@@ -698,7 +700,8 @@ def prim_translate(args: list[SchemeValue]) -> SchemeValue:
     dy = float(_check_number(args[2], "translate"))
 
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'translate' expects a shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'translate' expects a shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
@@ -718,13 +721,15 @@ def prim_translate(args: list[SchemeValue]) -> SchemeValue:
     elif tag == "vec":
         return ["vec", shape[1], shape[2]]
     else:
-        raise SchemeRuntimeError(f"Unsupported shape type in 'translate': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape type in 'translate': {tag}",
+            cause_type="ValueError")
 
 
 def prim_rotate(args: list[SchemeValue]) -> SchemeValue:
     if len(args) < 2 or len(args) > 4:
         raise SchemeRuntimeError(
-            f"'rotate' requires (shape theta [ox oy]), got {len(args)} args", cause_type="ValueError"
+            f"'rotate' requires (shape theta [ox oy]), got {
+                len(args)} args", cause_type="ValueError"
         )
     shape = args[0]
     theta = float(_check_number(args[1], "rotate"))
@@ -736,7 +741,8 @@ def prim_rotate(args: list[SchemeValue]) -> SchemeValue:
         oy = float(_check_number(args[3], "rotate"))
 
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'rotate' expects a shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'rotate' expects a shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
     cos_t = math.cos(theta)
@@ -770,13 +776,15 @@ def prim_rotate(args: list[SchemeValue]) -> SchemeValue:
                 new_pts.append(["point", rx, ry])
         return ["polygon", *new_pts]
     else:
-        raise SchemeRuntimeError(f"Unsupported shape type in 'rotate': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape type in 'rotate': {tag}",
+            cause_type="ValueError")
 
 
 def prim_scale(args: list[SchemeValue]) -> SchemeValue:
     if len(args) < 2 or len(args) > 4:
         raise SchemeRuntimeError(
-            f"'scale' requires (shape factor [ox oy]), got {len(args)} args", cause_type="ValueError"
+            f"'scale' requires (shape factor [ox oy]), got {
+                len(args)} args", cause_type="ValueError"
         )
     shape = args[0]
     factor = float(_check_number(args[1], "scale"))
@@ -788,7 +796,8 @@ def prim_scale(args: list[SchemeValue]) -> SchemeValue:
         oy = float(_check_number(args[3], "scale"))
 
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'scale' expects a shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'scale' expects a shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
@@ -814,15 +823,18 @@ def prim_scale(args: list[SchemeValue]) -> SchemeValue:
                 new_pts.append(["point", sx, sy])
         return ["polygon", *new_pts]
     else:
-        raise SchemeRuntimeError(f"Unsupported shape type in 'scale': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape type in 'scale': {tag}",
+            cause_type="ValueError")
 
 
 def prim_bounding_box(args: list[SchemeValue]) -> list[SchemeValue]:
     if len(args) != 1:
-        raise SchemeRuntimeError(f"'bounding-box' requires 1 argument, got {len(args)}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"'bounding-box' requires 1 argument, got {len(args)}",
+            cause_type="ValueError")
     shape = args[0]
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'bounding-box' expects shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'bounding-box' expects shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
@@ -842,7 +854,8 @@ def prim_bounding_box(args: list[SchemeValue]) -> list[SchemeValue]:
         min_y, max_y = min(ys), max(ys)
         return ["rect", min_x, min_y, max_x - min_x, max_y - min_y]
     else:
-        raise SchemeRuntimeError(f"Unsupported shape in 'bounding-box': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape in 'bounding-box': {tag}",
+            cause_type="ValueError")
 
 
 def prim_contains(args: list[SchemeValue]) -> bool:
@@ -860,7 +873,8 @@ def prim_contains(args: list[SchemeValue]) -> bool:
         )
 
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'contains?' expects shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'contains?' expects shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
@@ -896,12 +910,14 @@ def prim_contains(args: list[SchemeValue]) -> bool:
     elif tag == "point":
         return abs(float(shape[1]) - px) < 1e-9 and abs(float(shape[2]) - py) < 1e-9
     else:
-        raise SchemeRuntimeError(f"Unsupported shape in 'contains?': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape in 'contains?': {tag}",
+            cause_type="ValueError")
 
 
 def prim_intersects(args: list[SchemeValue]) -> bool:
     if len(args) != 2:
-        raise SchemeRuntimeError(f"'intersects?' requires 2 shapes, got {len(args)}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"'intersects?' requires 2 shapes, got {len(args)}",
+            cause_type="ValueError")
     bb1 = prim_bounding_box([args[0]])
     bb2 = prim_bounding_box([args[1]])
     x1, y1, w1, h1 = float(bb1[1]), float(bb1[2]), float(bb1[3]), float(bb1[4])
@@ -912,7 +928,8 @@ def prim_intersects(args: list[SchemeValue]) -> bool:
 
 def prim_area(args: list[SchemeValue]) -> float:
     if len(args) != 1:
-        raise SchemeRuntimeError(f"'area' requires 1 shape, got {len(args)}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"'area' requires 1 shape, got {len(args)}",
+            cause_type="ValueError")
     shape = args[0]
     if not isinstance(shape, list) or not shape:
         raise SchemeRuntimeError(f"'area' expects shape list, got {shape}", cause_type="TypeError")
@@ -947,10 +964,12 @@ def prim_area(args: list[SchemeValue]) -> float:
 
 def prim_perimeter(args: list[SchemeValue]) -> float:
     if len(args) != 1:
-        raise SchemeRuntimeError(f"'perimeter' requires 1 shape, got {len(args)}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"'perimeter' requires 1 shape, got {len(args)}",
+            cause_type="ValueError")
     shape = args[0]
     if not isinstance(shape, list) or not shape:
-        raise SchemeRuntimeError(f"'perimeter' expects shape list, got {shape}", cause_type="TypeError")
+        raise SchemeRuntimeError(f"'perimeter' expects shape list, got {shape}",
+            cause_type="TypeError")
 
     tag = shape[0].name if isinstance(shape[0], Symbol) else str(shape[0])
 
@@ -975,7 +994,8 @@ def prim_perimeter(args: list[SchemeValue]) -> float:
     elif tag in ("point", "vec"):
         return 0.0
     else:
-        raise SchemeRuntimeError(f"Unsupported shape in 'perimeter': {tag}", cause_type="ValueError")
+        raise SchemeRuntimeError(f"Unsupported shape in 'perimeter': {tag}",
+            cause_type="ValueError")
 
 
 # Frozen static primitives table

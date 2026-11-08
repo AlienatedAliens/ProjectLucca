@@ -11,6 +11,8 @@ from typing import Final
 import numpy as np
 
 from lucca.reasoning import relational, spatial_anchors
+from lucca.reasoning.relational.realize_grid import extract_connected_components
+from lucca.reasoning.relational.sorts import Network, Object
 
 # ARC Standard Palette (0-9)
 ARC_PALETTE_NAMES: Final[dict[int, str]] = {
@@ -40,7 +42,8 @@ ARC_ANSI_BG: Final[dict[int, str]] = {
     9: "\033[48;5;124m\033[38;5;255m",  # Maroon
 }
 ANSI_RESET: Final[str] = "\033[0m"
-ANSI_DIFF_HIGHLIGHT: Final[str] = "\033[48;5;196m\033[38;5;226m\033[1m"  # Bright red bg, yellow bold
+# Bright red bg, yellow bold
+ANSI_DIFF_HIGHLIGHT: Final[str] = "\033[48;5;196m\033[38;5;226m\033[1m"
 
 
 @dataclass(frozen=True)
@@ -157,15 +160,12 @@ def compute_detailed_grid_diff(
             val_exp = expected[r][c]
             val_act = actual[r][c]
             if val_exp != val_act:
-                mismatches.append(CellMismatch(row=r, col=c, expected_val=val_exp, actual_val=val_act))
-                if r < min_r:
-                    min_r = r
-                if r > max_r:
-                    max_r = r
-                if c < min_c:
-                    min_c = c
-                if c > max_c:
-                    max_c = c
+                mismatches.append(CellMismatch(row=r, col=c, expected_val=val_exp,
+                    actual_val=val_act))
+                min_r = min(min_r, r)
+                max_r = max(max_r, r)
+                min_c = min(min_c, c)
+                max_c = max(max_c, c)
 
     total_cells = h_exp * w_exp
     mismatch_count = len(mismatches)
@@ -177,8 +177,6 @@ def compute_detailed_grid_diff(
     # Organ A Mereotopological Object-Level Diagnostics (Milestone 36.5 Deliverable 3)
     topo_diags: list[str] = []
     if mismatches:
-        from lucca.reasoning.relational.realize_grid import extract_connected_components
-        from lucca.reasoning.relational.sorts import Network, Object
 
         mismatch_pts = frozenset((m.row, m.col) for m in mismatches)
         err_comps = extract_connected_components(mismatch_pts, four_connected=True)
@@ -201,7 +199,8 @@ def compute_detailed_grid_diff(
             if len(exp_comps) != len(act_comps):
                 topo_diags.append(
                     f"Component Count Discrepancy: expected {len(exp_comps)} connected object(s), "
-                    f"predicted {len(act_comps)} object(s) ({len(err_comps)} contiguous error region(s))."
+                    f"predicted {
+                        len(act_comps)} object(s) ({len(err_comps)} contiguous error region(s))."
                 )
 
             # 2. Translation offset (dr, dc) detection across matching shapes
@@ -211,13 +210,16 @@ def compute_detailed_grid_diff(
                 for a_idx, ac in enumerate(act_comps):
                     if a_idx in used_act:
                         continue
-                    if ec.area == ac.area and spatial_anchors.is_identical_shape(e_crop, ac.cropped_mask()):
+                    if ec.area == ac.area and spatial_anchors.is_identical_shape(e_crop,
+                        ac.cropped_mask()):
                         dr = int(round(ac.centroid[0] - ec.centroid[0]))
                         dc = int(round(ac.centroid[1] - ec.centroid[1]))
                         if dr != 0 or dc != 0:
                             topo_diags.append(
-                                f"Translation Offset on object #{e_idx + 1} (color {ec.color}, area {ec.area}): "
-                                f"shifted by (dr={dr:+d}, dc={dc:+d}) relative to expected position."
+                                f"Translation Offset on object #{
+                                    e_idx + 1} (color {ec.color}, area {ec.area}): "
+                                f"shifted by (dr={
+                                    dr:+d}, dc={dc:+d}) relative to expected position."
                             )
                             used_act.add(a_idx)
                             break
@@ -238,11 +240,13 @@ def compute_detailed_grid_diff(
                 )
             else:
                 cav_diff = [
-                    m for m in mismatches if (m.row, m.col) in exp_cavs or (m.row, m.col) in act_cavs
+                    m for m in mismatches if (m.row, m.col) in exp_cavs or (m.row,
+                        m.col) in act_cavs
                 ]
                 if cav_diff:
                     topo_diags.append(
-                        f"Cavity Fill Discrepancy: {len(cav_diff)} mismatched cell(s) lie inside or on enclosed cavity regions."
+                        f"Cavity Fill Discrepancy: {len(cav_diff)} mismatched cell(s) lie inside "
+                        "or on enclosed cavity regions."
                     )
 
     summary = (
@@ -284,7 +288,10 @@ def render_grid_ansi(
         row_str: list[str] = []
         for c in range(w):
             val = grid[r][c]
-            is_highlighted = highlight_mask[r][c] if highlight_mask and r < len(highlight_mask) and c < len(highlight_mask[0]) else False
+            is_highlighted = highlight_mask[
+                r][
+                    c] if highlight_mask and r < len(
+                        highlight_mask) and c < len(highlight_mask[0]) else False
 
             if use_color:
                 if is_highlighted:
@@ -319,7 +326,8 @@ def render_grid_side_by_side(
 
     headers: list[str] = []
     if input_grid is not None:
-        headers.append("--- INPUT ---".center(max(14, len(input_grid[0]) * 3 if input_grid and input_grid[0] else 14)))
+        headers.append("--- INPUT ---".center(max(14,
+            len(input_grid[0]) * 3 if input_grid and input_grid[0] else 14)))
     headers.append("--- EXPECTED ---".center(max(16, w_exp * 3)))
     headers.append("--- PREDICTED ---".center(max(16, w_act * 3)))
     headers.append("--- DIFF MASK ---".center(max(16, w_exp * 3)))
@@ -350,8 +358,11 @@ def render_grid_side_by_side(
 
         # Predicted
         if r < h_act:
-            hl_row = [mask[r][c] if diff.shape_match and c < len(mask[r]) else False for c in range(w_act)]
-            row_parts.append(render_grid_ansi([actual[r]], highlight_mask=[hl_row], use_color=use_color))
+            hl_row = [
+                mask[
+                    r][c] if diff.shape_match and c < len(mask[r]) else False for c in range(w_act)]
+            row_parts.append(render_grid_ansi([actual[r]], highlight_mask=[hl_row],
+                use_color=use_color))
         else:
             row_parts.append(" " * (w_act * 3))
 
@@ -364,11 +375,10 @@ def render_grid_side_by_side(
                         diff_row_chars.append(f"{ANSI_DIFF_HIGHLIGHT} X {ANSI_RESET}")
                     else:
                         diff_row_chars.append(" X ")
+                elif use_color:
+                    diff_row_chars.append("\033[48;5;234m . \033[0m")
                 else:
-                    if use_color:
-                        diff_row_chars.append("\033[48;5;234m . \033[0m")
-                    else:
-                        diff_row_chars.append(" . ")
+                    diff_row_chars.append(" . ")
             row_parts.append("".join(diff_row_chars))
         else:
             row_parts.append("  [SHAPE MISMATCH]  " if not diff.shape_match else " " * (w_exp * 3))

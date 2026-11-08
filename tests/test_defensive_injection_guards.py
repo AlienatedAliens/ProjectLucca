@@ -5,8 +5,7 @@ Verifies that all 20 attack vectors targeting host destruction, container breako
 data exfiltration, and memory provenance forgery are intercepted with 100% block rate.
 """
 
-import pytest
-from scripts.run_defensive_security_benchmark import run_benchmark
+from scripts.archive.wo01_wo42.run_defensive_security_benchmark import run_benchmark
 
 
 def test_defensive_security_benchmark_zero_breaches() -> None:

@@ -424,7 +424,8 @@ class SkillManager:
                         if meta.status == "ACTIVE":
                             active_ids.add(meta.id)
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("count_active_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("count_active_skills_meta_pa"
+                            "rse_failed", path=str(meta_file), error=str(exc))
 
         if self.rule_engine is not None:
             for r in self.rule_engine.rules.values():
@@ -581,7 +582,8 @@ class SkillManager:
                             "failures": 0,
                         }
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("list_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("list_skills_meta_parse_failed", path=str(meta_file),
+                            error=str(exc))
 
         # 2. Retired packages
         if self.retired_dir.exists() and self.retired_dir.is_dir():
@@ -601,7 +603,8 @@ class SkillManager:
                             "failures": 0,
                         }
                     except Exception as exc:  # noqa: BLE001, S110
-                        logger.debug("list_retired_skills_meta_parse_failed", path=str(meta_file), error=str(exc))
+                        logger.debug("list_retired_skills_meta_pa"
+                            "rse_failed", path=str(meta_file), error=str(exc))
 
         # 3. Merge telemetry from rule engine
         if self.rule_engine is not None:
@@ -704,7 +707,8 @@ class SkillManager:
 
         query_tokens = {
             t
-            for t in re.sub(r"[^\w\s]", " ", context_query.lower().replace("-", " ").replace("_", " ")).split()
+            for t in re.sub(r"[^\w\s]", " ", context_query.lower().replace("-", " ").replace("_",
+                " ")).split()
             if len(t) > 1
         }
 
@@ -742,7 +746,10 @@ class SkillManager:
         bound_vars: set[str],
         grounded_primitives: set[str],
     ) -> tuple[bool, str]:
-        """Recursively verifies that all operators and leaf tool symbols in an S-expression are grounded."""
+        """
+        Recursively verifies that all operators and leaf tool symbols in an S-expression are
+        grounded.
+        """
         if isinstance(expr, (int, float, bool, Keyword)):
             return (True, "")
         if isinstance(expr, Symbol):
@@ -856,13 +863,17 @@ class SkillManager:
 
     @staticmethod
     def _normalize_list_ast(node: SExpr, bound_vars: set[str]) -> SchemeNode:
-        """Converts raw string symbols in list-based S-expressions into Symbol nodes for SchemeEvaluator."""
+        """
+        Converts raw string symbols in list-based S-expressions into Symbol nodes for
+        SchemeEvaluator.
+        """
         if isinstance(node, list):
             if not node:
                 return []
             head = node[0]
             norm_head: SchemeNode = (
-                Symbol(head) if isinstance(head, str) else SkillManager._normalize_list_ast(head, bound_vars)
+                Symbol(head) if isinstance(head, str) else SkillManager._normalize_list_ast(head,
+                    bound_vars)
             )
             rest = [SkillManager._normalize_list_ast(child, bound_vars) for child in node[1:]]
             return [norm_head, *rest]
@@ -986,7 +997,9 @@ class SkillManager:
         episodes: Sequence[dict[str, object]],
         grounded_primitives: set[str] | None = None,
     ) -> tuple[bool, str]:
-        """Verifies a newly induced skill in the Shadow Sandbox and registers it only if verified."""
+        """
+        Verifies a newly induced skill in the Shadow Sandbox and registers it only if verified.
+        """
         ok, msg = self.verify_in_shadow_sandbox(
             skill, episodes=episodes, grounded_primitives=grounded_primitives
         )

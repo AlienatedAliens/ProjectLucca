@@ -11,11 +11,11 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
+import itertools
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
-import itertools
+from enum import StrEnum
 from typing import cast
 
 import numpy as np
@@ -155,7 +155,9 @@ def count_objects(
 
 
 def count_cells(grid: list[list[int]], color: int | None = None) -> int:
-    """Counts total number of individual cells with given color (or all non-zero cells if color=None)."""
+    """
+    Counts total number of individual cells with given color (or all non-zero cells if color=None).
+    """
     arr = np.array(grid, dtype=int)
     if color is not None:
         return int(np.sum(arr == color))
@@ -611,7 +613,10 @@ def move_until_contact(
     dc: int,
     background: int = 0,
 ) -> list[list[int]]:
-    """Moves a SpatialObject in direction (dr, dc) step by step until touching a grid boundary or non-background obstacle."""
+    """
+    Moves a SpatialObject in direction (dr, dc) step by step until touching a grid boundary or
+    non-background obstacle.
+    """
     if dr == 0 and dc == 0:
         return [row[:] for row in grid]
     arr = np.array(grid, dtype=int)
@@ -887,7 +892,8 @@ def overlay_grid(
     transparent_color: int | None = 0,
 ) -> list[list[int]]:
     """
-    Overlays `patch` onto `base` at top-left offset (top_r, left_c), skipping cells equal to `transparent_color`.
+    Overlays `patch` onto `base` at top-left offset (top_r, left_c), skipping cells equal to
+    `transparent_color`.
     """
     out = [row[:] for row in base]
     h = len(out)
@@ -906,7 +912,7 @@ def overlay_grid(
     return out
 
 
-class PrimitiveDomain(str, Enum):
+class PrimitiveDomain(StrEnum):
     CORE = "CORE"
     ORDERING = "ORDERING"
     SYMMETRY = "SYMMETRY"
@@ -944,32 +950,45 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
         domain=PrimitiveDomain.CORE,
         helpers_doc=(
             "- Core Object Primitives:\n"
-            "  * `find_objects(grid, background=0, connectivity=8)`: Extracts connected components. Each object has "
-            ".color, .dimensions (height, width), .bbox (min_r, min_c, max_r, max_c), .area (cell count), "
+            "  * `find_objects(grid, background=0, connectivity=8)`: Extracts connected "
+                "components. Each object has "
+            ".color, .dimensions (height, width), .bbox (min_r, min_c, max_r, max_c), .area "
+                "(cell count), "
             ".is_hollow (bool), .coords (list of (r, c) tuples).\n"
-            "  * `connected_components(grid, background=0, connectivity=8)`: Alias for connected component extraction.\n"
-            "  * `count_objects(grid, color=None, connectivity=8)`: Number of connected components.\n"
+            "  * `connected_components(grid, background=0, connectivity=8)`: Alias for connected "
+                "component extraction.\n"
+            "  * `count_objects(grid, color=None, connectivity=8)`: Number of connected "
+                "components.\n"
             "  * `dominant_object(grid)`: Largest non-zero connected component by pixel area.\n"
-            "  * `replace_color(grid, old_color, new_color)`: Replaces all occurrences of old_color with new_color.\n"
-            "  * `bounding_box(grid, color=None)`: Returns (min_r, min_c, max_r, max_c) bounding box of given color.\n"
+            "  * `replace_color(grid, old_color, new_color)`: Replaces all occurrences of "
+                "old_color with new_color.\n"
+            "  * `bounding_box(grid, color=None)`: Returns (min_r, min_c, max_r, max_c) bounding "
+                "box of given color.\n"
             "  * `unique_colors(grid)`: Sorted list of unique non-background colors."
         ),
         guidance_rules=[
-            "- Color integers are arbitrary symbolic tokens. Never hardcode numeric color literals from training examples into output! Always preserve existing cell colors or extract them dynamically.",
+            "- Color integers are arbitrary symbolic tokens. Never hardcode numeric color literals "
+                "from training examples into output! Always preserve existing cell colors or "
+                    "extract them dynamically.",
         ],
-        function_names=["find_objects", "connected_components", "count_objects", "dominant_object", "unique_colors", "replace_color", "bounding_box"],
+        function_names=["find_objects", "connected_components", "count_objects", "dominant_object",
+            "unique_colors", "replace_color", "bounding_box"],
     ),
     PrimitiveDomain.ORDERING: PrimitiveModule(
         domain=PrimitiveDomain.ORDERING,
         helpers_doc=(
             "- Ordering Primitives:\n"
-            "  * `order_columns_by_height(grid, reverse=False)`: Sorts vertical columns by height and packs them starting from the left.\n"
-            "  * `column_heights(grid)`: Returns list of heights (count of non-zero cells per column).\n"
+            "  * `order_columns_by_height(grid, reverse=False)`: Sorts vertical columns by height "
+                "and packs them starting from the left.\n"
+            "  * `column_heights(grid)`: Returns list of heights (count of non-zero cells per "
+                "column).\n"
             "  * `row_widths(grid)`: Returns list of widths (count of non-zero cells per row).\n"
-            "  * `sort_objects(objects, key='height'|'width'|'area'|'min_r'|'min_c', reverse=False)`: Sorts objects by property."
+            "  * `sort_objects(objects, key='height'|'width'|'area'|'min_r'|'min_c', "
+                "reverse=False)`: Sorts objects by property."
         ),
         guidance_rules=[
-            "- For column/bar ordering, use `order_columns_by_height(grid)` directly (preserves colors and packs non-empty columns from the left).",
+            "- For column/bar ordering, use `order_columns_by_height(grid)` directly (preserves "
+                "colors and packs non-empty columns from the left).",
         ],
         function_names=["order_columns_by_height", "column_heights", "row_widths", "sort_objects"],
     ),
@@ -977,67 +996,94 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
         domain=PrimitiveDomain.SYMMETRY,
         helpers_doc=(
             "- Symmetry & Reflection Primitives:\n"
-            "  * `complete_symmetry(grid, axis='both'|'vertical'|'horizontal', mode='auto')`: Completes symmetric reflection by mirroring non-background cells across the optimal consensus axis.\n"
-            "  * `rot90(grid, k=1)` / `rotate_grid(grid, k=1)`: Rotates grid 90 degrees counter-clockwise k times.\n"
-            "  * `flip_h(grid)` / `flip_v(grid)` / `reflect_grid(grid, axis='horizontal'|'vertical')`: Reflects grid across horizontal or vertical axis."
+            "  * `complete_symmetry(grid, axis='both'|'vertical'|'horizontal', mode='auto')`: "
+                "Completes symmetric reflection by mirroring non-background cells across the "
+                    "optimal consensus axis.\n"
+            "  * `rot90(grid, k=1)` / `rotate_grid(grid, k=1)`: Rotates grid 90 degrees "
+                "counter-clockwise k times.\n"
+            "  * `flip_h(grid)` / `flip_v(grid)` / `reflect_grid(grid, "
+                "axis='horizontal'|'vertical')`: Reflects grid across horizontal or vertical axis."
         ),
         guidance_rules=[
-            "- For shape completion, use `complete_symmetry(grid, axis='both', mode='auto')` directly.",
+            "- For shape completion, use `complete_symmetry(grid, axis='both', "
+                "mode='auto')` directly.",
         ],
-        function_names=["complete_symmetry", "rot90", "rotate_grid", "flip_h", "flip_v", "reflect_grid"],
+        function_names=["complete_symmetry", "rot90", "rotate_grid", "flip_h", "flip_v",
+            "reflect_grid"],
     ),
     PrimitiveDomain.TOPOLOGY: PrimitiveModule(
         domain=PrimitiveDomain.TOPOLOGY,
         helpers_doc=(
             "- Topology & Enclosure Primitives:\n"
-            "  * `is_enclosed(inner_obj, outer_obj)`: Checks if inner object's bbox is inside outer object's bbox.\n"
+            "  * `is_enclosed(inner_obj, outer_obj)`: Checks if inner object's bbox is inside "
+                "outer object's bbox.\n"
             "  * `fill_holes(grid, color)`: Fills enclosed interior background regions.\n"
-            "  * `flood_fill(grid, r, c, color)`: Replaces connected region starting at (r, c) with color.\n"
-            "  * `restore_periodic_pattern(grid, period_r=None, period_c=None)`: Restores underlying periodic pattern by filtering noise.\n"
-            "  * `count_cells(grid, color=None)`: Returns total number of individual cells with given color."
+            "  * `flood_fill(grid, r, c, color)`: Replaces connected region starting at (r, c) "
+                "with color.\n"
+            "  * `restore_periodic_pattern(grid, period_r=None, period_c=None)`: Restores "
+                "underlying periodic pattern by filtering noise.\n"
+            "  * `count_cells(grid, color=None)`: Returns total number of individual cells with "
+                "given color."
         ),
         guidance_rules=[
-            "- To detect enclosed regions, check hollow frames with `o.is_hollow` or compare coordinates with `is_enclosed(inner, outer)`.",
-            "- CRITICAL: Note that `obj.area` is the number of cells in the object. If dots may be diagonally adjacent, count cells using `sum(o.area for o in selected_objects)` or `len(o.coords)` rather than component count.",
+            "- To detect enclosed regions, check hollow frames with `o.is_hollow` or compare "
+                "coordinates with `is_enclosed(inner, outer)`.",
+            "- CRITICAL: Note that `obj.area` is the number of cells in the object. If dots may be "
+                "diagonally adjacent, count cells using `sum(o.area for o in selected_objects)` or "
+                    "`len(o.coords)` rather than component count.",
         ],
-        function_names=["is_enclosed", "fill_holes", "flood_fill", "count_cells", "restore_periodic_pattern"],
+        function_names=["is_enclosed", "fill_holes", "flood_fill", "count_cells",
+            "restore_periodic_pattern"],
     ),
     PrimitiveDomain.EXTRACTION: PrimitiveModule(
         domain=PrimitiveDomain.EXTRACTION,
         helpers_doc=(
             "- Extraction & Subgrid Primitives:\n"
-            "  * `crop(grid, min_r, min_c, max_r, max_c)` / `crop_grid(grid, min_r, min_c, max_r, max_c)`: Extracts subgrid rectangle.\n"
+            "  * `crop(grid, min_r, min_c, max_r, max_c)` / `crop_grid(grid, min_r, min_c, max_r, "
+                "max_c)`: Extracts subgrid rectangle.\n"
             "  * `crop_to_content(grid)`: Crops grid to bounding box of all non-background cells.\n"
-            "  * `bbox_of_all(grid)`: Returns (min_r, min_c, max_r, max_c) enclosing all non-background cells.\n"
-            "  * `paste(dest, src, r, c)` / `overlay_grid(base, patch, top_r, left_c, transparent_color=0)`: Pastes/overlays subgrid into destination grid.\n"
+            "  * `bbox_of_all(grid)`: Returns (min_r, min_c, max_r, max_c) enclosing all "
+                "non-background cells.\n"
+            "  * `paste(dest, src, r, c)` / `overlay_grid(base, patch, top_r, left_c, "
+                "transparent_color=0)`: Pastes/overlays subgrid into destination grid.\n"
             "  * `find_separator_lines(grid)`: Detects horizontal and vertical divider lines.\n"
-            "  * `split_by_separators(grid)`: Splits grid into subgrids partitioned by separator lines."
+            "  * `split_by_separators(grid)`: Splits grid into subgrids partitioned by "
+                "separator lines."
         ),
         guidance_rules=[
-            "- To extract a selected object, use `crop(grid, obj.min_r, obj.min_c, obj.max_r, obj.max_c)` or `crop_to_content(grid)`.",
+            "- To extract a selected object, use `crop(grid, obj.min_r, obj.min_c, obj.max_r, "
+                "obj.max_c)` or `crop_to_content(grid)`.",
         ],
-        function_names=["crop", "crop_grid", "crop_to_content", "bbox_of_all", "paste", "overlay_grid", "find_separator_lines", "split_by_separators"],
+        function_names=["crop", "crop_grid", "crop_to_content", "bbox_of_all", "paste",
+            "overlay_grid", "find_separator_lines", "split_by_separators"],
     ),
     PrimitiveDomain.MOTION: PrimitiveModule(
         domain=PrimitiveDomain.MOTION,
         helpers_doc=(
             "- Motion & Line Primitives:\n"
             "  * `translate_grid(grid, dr=0, dc=0, fill_value=0)`: Translates grid by (dr, dc).\n"
-            "  * `move_until_contact(grid, obj, dr, dc)`: Translates object in direction (dr, dc) until contacting an obstacle or boundary.\n"
-            "  * `gravity_drop(grid, color=None, direction='down')`: Drops/slides pixels in direction ('down', 'up', 'left', 'right') until boundary.\n"
-            "  * `align_objects(obj_a, obj_b, anchor='top-left')`: Returns (dr, dc) offset to align object A with object B.\n"
-            "  * `draw_line(grid, r1, c1, r2, c2, color)`: Draws straight discrete line from (r1, c1) to (r2, c2)."
+            "  * `move_until_contact(grid, obj, dr, dc)`: Translates object in direction (dr, dc) "
+                "until contacting an obstacle or boundary.\n"
+            "  * `gravity_drop(grid, color=None, direction='down')`: Drops/slides pixels in "
+                "direction ('down', 'up', 'left', 'right') until boundary.\n"
+            "  * `align_objects(obj_a, obj_b, anchor='top-left')`: Returns (dr, dc) offset to "
+                "align object A with object B.\n"
+            "  * `draw_line(grid, r1, c1, r2, c2, color)`: Draws straight discrete line from (r1, "
+                "c1) to (r2, c2)."
         ),
         guidance_rules=[
-            "- For sliding motion, use `move_until_contact(grid, obj, dr, dc)` or `gravity_drop(grid, direction='down')`.",
+            "- For sliding motion, use `move_until_contact(grid, obj, dr, dc)` or "
+                "`gravity_drop(grid, direction='down')`.",
         ],
-        function_names=["translate_grid", "move_until_contact", "gravity_drop", "align_objects", "draw_line"],
+        function_names=["translate_grid", "move_until_contact", "gravity_drop", "align_objects",
+            "draw_line"],
     ),
     PrimitiveDomain.MORPHOLOGY: PrimitiveModule(
         domain=PrimitiveDomain.MORPHOLOGY,
         helpers_doc=(
             "- Morphology Primitives:\n"
-            "  * `denoise(grid, min_size=2)`: Removes isolated noise objects with area < min_size.\n"
+            "  * `denoise(grid, min_size=2)`: Removes isolated noise objects with area < "
+                "min_size.\n"
             "  * `majority_filter(grid, radius=1)`: Applies local modal majority filter."
         ),
         guidance_rules=[
@@ -1049,14 +1095,22 @@ PRIMITIVE_REGISTRY: dict[PrimitiveDomain, PrimitiveModule] = {
         domain=PrimitiveDomain.TALLY,
         helpers_doc=(
             "- Counting & Tally Primitives:\n"
-            "  * `count_cells(grid, color=None)`: Returns total number of individual cells with given color.\n"
-            "  * `count_objects(grid, color=None, connectivity=8)`: Returns number of connected components."
+            "  * `count_cells(grid, color=None)`: Returns total number of individual cells with "
+                "given color.\n"
+            "  * `count_objects(grid, color=None, connectivity=8)`: Returns number of connected "
+                "components."
         ),
         guidance_rules=[
-            "- If output is a fixed-width tally vector of length W: initialize row with background zeros and fill the first count cells with the tally color (e.g. `res = [0] * W; for i in range(min(count, W)): res[i] = tally_color; return [res]`).",
+            "- If output is a fixed-width tally vector of length W: initialize row with background "
+                "zeros and fill the first count cells with the tally color (e.g. `res = [0] * W; "
+                    "for i in range(min(count, W)): res[i] = tally_color; return [res]`).",
             "- If output is a 1xW horizontal tally vector of zeros: `return [[0] * count]`.\n"
-            "- If output is an Hx1 vertical tally vector of zeros: `return [[0] for _ in range(count)]`.",
-            "- When computing a tally count of dots or regions: use total cell count `sum(o.area for o in items)` (or `sum(len(o.coords) for o in items)`) rather than component count `len(items)`, because adjacent dots merge into single components under connectivity.",
+            "- If output is an Hx1 vertical tally vector of zeros: `return [[0] for _ in "
+                "range(count)]`.",
+            "- When computing a tally count of dots or regions: use total cell count `sum(o.area "
+                "for o in items)` (or `sum(len(o.coords) for o in items)`) rather than component "
+                    "count `len(items)`, because adjacent dots merge into single components under "
+                        "connectivity.",
         ],
         function_names=["count_cells", "count_objects"],
     ),
@@ -1069,7 +1123,8 @@ def analyze_symbolic_invariants(
     """
     Computes mathematical invariants across training pairs:
     - Shape preserving: True if all train pairs have input_shape == output_shape.
-    - 1D tally output: True if all outputs have shape 1xW or Hx1 with different dimensions than input.
+    - 1D tally output: True if all outputs have shape 1xW or Hx1 with different dimensions than
+    input.
     - Pixel count conserved: True if sum of non-zero cells in == out for all pairs.
     - Has hollow objects: True if any input contains a hollow frame/component.
     - Has high symmetry: True if input content reflects onto itself with high consensus score.
@@ -1196,7 +1251,10 @@ def resolve_scoped_primitives(
     # Layer 2 neural intent:
     if primary_domain not in selected_domains and primary_domain in PRIMITIVE_REGISTRY:
         selected_domains.append(primary_domain)
-    if secondary_domain and secondary_domain not in selected_domains and secondary_domain in PRIMITIVE_REGISTRY:
+    if (
+        secondary_domain and secondary_domain not in selected_domains and secondary_domain
+        in PRIMITIVE_REGISTRY
+    ):
         selected_domains.append(secondary_domain)
 
     # Prune impossible domains:
@@ -1226,7 +1284,8 @@ def register_macro_primitive(
     domain: PrimitiveDomain = PrimitiveDomain.CORE,
 ) -> None:
     """
-    Dynamically registers a newly mined macro into the spatial DSL primitive registry (Milestone 3.1, WO-33).
+    Dynamically registers a newly mined macro into the spatial DSL primitive registry (Milestone
+    3.1, WO-33).
     Exposes the macro to prompt synthesis and primitive scoping.
     """
     if domain in PRIMITIVE_REGISTRY:
@@ -1369,7 +1428,8 @@ def format_scene_graph_prompt(scene_graph: dict[str, object]) -> str:
     if len(objs) > 12:
         sorted_objs = sorted(
             objs,
-            key=lambda o: int(o.get("area", 0)) if isinstance(o, dict) and isinstance(o.get("area"), (int, float)) else 0,
+            key=lambda o: int(o.get("area", 0)) if isinstance(o, dict) and isinstance(o.get("area"),
+                (int, float)) else 0,
             reverse=True,
         )
         display_objs = sorted_objs[:10]
@@ -1389,7 +1449,9 @@ def format_scene_graph_prompt(scene_graph: dict[str, object]) -> str:
             topo = "hollow" if o.get("is_hollow") else "solid"
             bbox = f"({o.get('min_r')},{o.get('min_c')})-({o.get('max_r')},{o.get('max_c')})"
             centroid = o.get("centroid")
-            lines.append(f"    - {oid}: color={color}, shape={shape}, area={area}, bbox={bbox}, topo={topo}, centroid={centroid}")
+            lines.append(
+                f"    - {oid}: color={color}, shape={shape}, area={area}, bbox={bbox}, "
+                f"topo={topo}, centroid={centroid}")
     if omitted > 0:
         lines.append(f"    - ... ({omitted} smaller objects omitted)")
 
@@ -1438,19 +1500,24 @@ def generate_relational_diff(pred: list[list[int]], expected: list[list[int]]) -
         if not p_list and e_list:
             for eo in e_list:
                 deltas.append(
-                    f"Missing object [color={c}]: expected {eo['height']}x{eo['width']} component at bbox ({eo['min_r']},{eo['min_c']})-({eo['max_r']},{eo['max_c']})"
+                    f"Missing object [color={c}]: expected {eo['height']}x{eo['width']} component "
+                    f"at bbox ({eo['min_r']},{eo['min_c']})-({eo['max_r']},{eo['max_c']})"
                 )
         elif p_list and not e_list:
             for po in p_list:
                 deltas.append(
-                    f"Unexpected extra object [color={c}]: produced {po['height']}x{po['width']} component at bbox ({po['min_r']},{po['min_c']})-({po['max_r']},{po['max_c']})"
+                    f"Unexpected extra object [color={c}]: produced {po['height']}x{po['width']} "
+                    f"component at bbox ({po['min_r']},{po['min_c']})-({po['max_r']},{po['max_c']})"
                 )
         else:
             for po, eo in itertools.zip_longest(p_list, e_list):
                 if po is None and eo is not None:
-                    deltas.append(f"Missing component [color={c}]: expected at centroid {eo['centroid']}")
+                    deltas.append(
+                        f"Missing component [color={c}]: expected at centroid {eo['centroid']}")
                 elif eo is None and po is not None:
-                    deltas.append(f"Unexpected extra component [color={c}]: produced at centroid {po['centroid']}")
+                    deltas.append(
+                        f"Unexpected extra component [color={
+                            c}]: produced at centroid {po['centroid']}")
                 elif po is not None and eo is not None:
                     p_cent = cast(tuple[float, float], po["centroid"])
                     e_cent = cast(tuple[float, float], eo["centroid"])
@@ -1458,20 +1525,25 @@ def generate_relational_diff(pred: list[list[int]], expected: list[list[int]]) -
                     dc = round(p_cent[1] - e_cent[1], 1)
                     if dr != 0.0 or dc != 0.0:
                         deltas.append(
-                            f"Object [color={c}] position mismatch: at centroid {p_cent}, expected {e_cent}. Delta: dr={dr:+0.1f}, dc={dc:+0.1f}"
+                            f"Object [color={c}] position mismatch: at centroid {p_cent}, expected "
+                            f"{e_cent}. Delta: dr={dr:+0.1f}, dc={dc:+0.1f}"
                         )
                     if po["is_hollow"] != eo["is_hollow"]:
                         p_topo = "hollow frame" if po["is_hollow"] else "solid block"
                         e_topo = "hollow frame" if eo["is_hollow"] else "solid block"
                         deltas.append(
-                            f"Object [color={c}] topology mismatch: produced {p_topo}, expected {e_topo}"
+                            f"Object [color={
+                                c}] topology mismatch: produced {p_topo}, expected {e_topo}"
                         )
                     if po["area"] != eo["area"]:
                         deltas.append(
-                            f"Object [color={c}] size mismatch: produced {po['area']} cells ({po['height']}x{po['width']}), expected {eo['area']} cells ({eo['height']}x{eo['width']})"
+                            f"Object [color={c}] size mismatch: produced {po['area']} cells "
+                            f"({po['height']}x{po['width']}), expected {eo['area']} cells "
+                            f"({eo['height']}x{eo['width']})"
                         )
 
-    diff_cells = sum(1 for r in range(exp_h) for col in range(exp_w) if pred[r][col] != expected[r][col])
+    diff_cells = sum(
+        1 for r in range(exp_h) for col in range(exp_w) if pred[r][col] != expected[r][col])
     if deltas:
         delta_str = ";\n  ".join(deltas[:5])
         return f"Relational Diffs ({diff_cells} cells differ):\n  {delta_str}"

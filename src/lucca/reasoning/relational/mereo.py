@@ -19,7 +19,6 @@ from typing import Final
 import numpy as np
 
 from .realize_grid import OFFSETS_4, to_grid_region
-from .sorts import GridRegion
 
 # 8-connected offsets (includes diagonals)
 OFFSETS_8: Final[tuple[tuple[int, int], ...]] = (
@@ -74,7 +73,7 @@ def extract_cavities(
     frame_bounds: tuple[int, int, int, int] | None = None
 ) -> frozenset[tuple[int, int]]:
     """Extracts all cavity/hole coordinates of region B via 4-connected border flood-fill.
-    
+
     Algorithm:
     1. Establish an evaluation bounding frame with at least 1 cell of exterior padding.
     2. Construct the complement set of B within this frame.
@@ -143,7 +142,7 @@ def in_cavity(
     cached_b_cavities: frozenset[tuple[int, int]] | None = None
 ) -> bool:
     """True iff A is non-empty, disjoint from B, and completely enclosed within B's cavities.
-    
+
     Key correctness invariant:
     - If B is a closed ring enclosing A: in_cavity is TRUE.
     - If B is a U-shape open to the border with A inside the concavity:

@@ -171,7 +171,8 @@ def normalize_spelled_words(transcript: str) -> tuple[str, list[str]]:
     """Detects single-letter spelling sequences (hyphenated 'F-A-W-K-N-E-R', period-separated
 
     'F. A. W. K. N. E. R.', or space-separated single letters 'F A W K N E R') from ASR output,
-    assembles them into title-cased words (capped at 25 chars), and returns (normalized_transcript, detected_words).
+    assembles them into title-cased words (capped at 25 chars), and returns (normalized_transcript,
+    detected_words).
     Collapses repetitive syllabic stutter loops (>3 cycles) before assembly.
     """
     detected_words: list[str] = []
@@ -235,7 +236,8 @@ def normalize_transcript(text: str) -> str:
       em/en dashes to hyphens)
     - Collapses runaway repetitive syllabic stutter loops
     - Assembles spelled-out letter sequences (F-A-W-K-N-E-R / F A W K N E R -> Fawkner) <= 25 chars
-    - Applies context-bounded acoustic corrections (e.g. fish and ship -> fish and chips in food context)
+    - Applies context-bounded acoustic corrections (e.g. fish and ship -> fish and chips in food
+    context)
     - Collapses internal whitespace runs to a single space
     - Strips trailing sentence punctuation (. ? ! , ; :) that varies by ASR model/prompt
     - Preserves internal punctuation (apostrophes in contractions, hyphens in words)

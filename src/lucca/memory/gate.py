@@ -4,12 +4,12 @@ Spec 03 §4, Spec 04 §3, ADR-006
 """
 
 import base64
-from collections.abc import Sequence
 import hashlib
 import hmac
 import json
 import re
 import time
+from collections.abc import Sequence
 from typing import Final
 
 import structlog
@@ -171,7 +171,9 @@ def _extract_spo_triple(
 
 
 def _check_nli_entailment(verifier: object, premise: str, hypothesis: str) -> bool:
-    """Checks if a SemanticVerifierPort / VerifierWorker entails hypothesis from premise (>= 0.75)."""
+    """
+    Checks if a SemanticVerifierPort / VerifierWorker entails hypothesis from premise (>= 0.75).
+    """
     if verifier is None or not premise.strip() or not hypothesis.strip():
         return False
     try:
@@ -211,7 +213,8 @@ def _propositions_match_or_entail(
     1. Rejects negation conflicts and conflicting numeric literals.
     2. Exact normalized proposition match.
     3. Structured (subject, predicate, object) triple match.
-    4. High token overlap (Jaccard >= 0.80 or content-token containment >= 0.80 with >= 2 content tokens).
+    4. High token overlap (Jaccard >= 0.80 or content-token containment >= 0.80 with >= 2 content
+    tokens).
     5. VerifierWorker NLI entailment >= 0.75.
     """
     if not claim.strip() or not candidate_content.strip():
@@ -261,7 +264,9 @@ def _propositions_match_or_entail(
         jaccard = intersection / union if union > 0 else 0.0
         if jaccard >= 0.80:
             return True
-        if len(set_claim) >= 2 and (intersection / len(set_claim)) >= 0.80 and (intersection / len(set_cand)) >= 0.80:
+        if len(
+            set_claim) >= 2 and (
+                intersection / len(set_claim)) >= 0.80 and (intersection / len(set_cand)) >= 0.80:
             return True
 
     # 4. NLI Entailment via VerifierWorker (>= 0.75)
@@ -692,10 +697,12 @@ class ProvenanceGate:
 
         if payload.provenance == Provenance.INFERRED:
             if not payload.structured or "proof_trace" not in payload.structured:
-                raise ProvenanceRejected("INFERRED payload requires non-empty structured['proof_trace']")
+                raise ProvenanceRejected("INFERRED payload requires non-empty "
+                    "structured['proof_trace']")
             proof_trace = payload.structured["proof_trace"]
             if not isinstance(proof_trace, list) or len(proof_trace) == 0:
-                raise ProvenanceRejected("INFERRED payload requires non-empty structured['proof_trace']")
+                raise ProvenanceRejected("INFERRED payload requires non-empty "
+                    "structured['proof_trace']")
 
             effective_db = db if db is not None else getattr(self, "db", None)
             effective_verifier = getattr(self, "verifier", None) or getattr(
@@ -704,7 +711,8 @@ class ProvenanceGate:
 
             produced_envelopes: set[str] = set()
             produced_conclusions: set[str] = set()
-            payload_conds_raw = payload.structured.get("conditions", []) if isinstance(payload.structured, dict) else []
+            payload_conds_raw = payload.structured.get("conditions",
+                []) if isinstance(payload.structured, dict) else []
             payload_conditions = {
                 str(c).strip().lower()
                 for c in (payload_conds_raw if isinstance(payload_conds_raw, list) else [])
@@ -720,7 +728,8 @@ class ProvenanceGate:
                     raw_sc = step.get("conditions", [])
                     if isinstance(raw_sc, list):
                         step_conditions = {str(c).strip().lower() for c in raw_sc if str(c).strip()}
-                elif hasattr(step, "premises") and hasattr(step, "envelope_id") and hasattr(step, "conclusion"):
+                elif hasattr(step, "premises") and hasattr(step, "envelope_id") and hasattr(step,
+                    "conclusion"):
                     premises = step.premises
                     step_env_id = step.envelope_id
                     conclusion = step.conclusion
@@ -738,7 +747,10 @@ class ProvenanceGate:
                     prem_str = str(prem).strip()
                     if not prem_str:
                         continue
-                    if prem_str.lower() in step_conditions and prem_str.lower() in payload_conditions:
+                    if (
+                        prem_str.lower() in step_conditions and prem_str.lower()
+                        in payload_conditions
+                    ):
                         continue
                     if not self._verify_single_premise(
                         prem_str=prem_str,
@@ -748,10 +760,12 @@ class ProvenanceGate:
                         effective_verifier=effective_verifier,
                     ):
                         raise ProvenanceRejected(
-                            f"Proof trace premise '{prem_str}' does not resolve to an existing envelope"
+                            f"Proof trace premise '{
+                                prem_str}' does not resolve to an existing envelope"
                         )
 
-                if step_env_id and effective_db is not None and hasattr(effective_db, "read_cursor"):
+                if step_env_id and effective_db is not None and hasattr(effective_db,
+                    "read_cursor"):
                     try:
                         with effective_db.read_cursor() as cur:
                             cur.execute(
@@ -760,7 +774,8 @@ class ProvenanceGate:
                             )
                             if not cur.fetchone():
                                 raise ProvenanceRejected(
-                                    f"Proof trace step envelope '{step_env_id}' does not exist in store"
+                                    f"Proof trace step envelope '{
+                                        step_env_id}' does not exist in store"
                                 )
                     except ProvenanceRejected:
                         raise

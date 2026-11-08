@@ -11,8 +11,9 @@ Enforces:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import time
+from pathlib import Path
+
 import pytest
 
 from lucca.memory.git_dag import (
@@ -35,7 +36,6 @@ from lucca.memory.latent_probe import (
     truth_join,
     truth_meet,
 )
-
 
 # ==============================================================================
 # Module 8: Git Staging DAG Tests

@@ -11,17 +11,10 @@ import sys
 import threading
 import time
 from collections.abc import Callable
-from pathlib import Path
-
-logger = logging.getLogger(__name__)
-
-
-from pydantic import JsonValue
-
-os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 import psutil
 import zmq
+from pydantic import JsonValue
 from PyQt6.QtCore import QMetaObject, QObject, QPoint, QRect, Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QFont, QIcon
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
@@ -51,6 +44,9 @@ from lucca.ui.speech_bubble import SpeechBubble
 from lucca.ui.sprite import CompanionSprite
 from lucca.ui.telemetry_hud import TelemetryHUD
 from lucca.ui.theme import CHRONO_TRIGGER_STYLE_SHEET
+
+logger = logging.getLogger(__name__)
+os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.windows.warning=false")
 
 
 class UIBridge(QObject):

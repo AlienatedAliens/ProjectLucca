@@ -126,7 +126,7 @@ def _cosine_similarity(vec_a: list[float], vec_b: list[float]) -> float:
     """Computes cosine similarity between two float vectors."""
     if len(vec_a) != len(vec_b) or not vec_a:
         return 0.0
-    dot = sum(a * b for a, b in zip(vec_a, vec_b))
+    dot = sum(a * b for a, b in zip(vec_a, vec_b, strict=False))
     norm_a = sum(a * a for a in vec_a) ** 0.5
     norm_b = sum(b * b for b in vec_b) ** 0.5
     if norm_a <= 1e-9 or norm_b <= 1e-9:
@@ -271,7 +271,7 @@ class UserModel:
                 all_vecs = self.embedder.embed([query_clean, *cand_texts])
                 if all_vecs and len(all_vecs) == len(raw_candidates) + 1:
                     q_vec = all_vecs[0]
-                    for (c_text, _), vec in zip(raw_candidates, all_vecs[1:]):
+                    for (c_text, _), vec in zip(raw_candidates, all_vecs[1:], strict=False):
                         sim = _cosine_similarity(q_vec, vec)
                         dense_scores[c_text.lower()] = sim
             except Exception as exc:  # noqa: BLE001

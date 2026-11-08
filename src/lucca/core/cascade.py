@@ -14,19 +14,35 @@ import structlog
 from pydantic import BaseModel, Field, JsonValue, model_validator
 
 from lucca.core.cascade_intent import (
-    CULINARY_WORDS, RECENT_CONTEXT_PATTERN, REGIONAL_OR_CULTURE_WORDS,
-    SLANG_OR_DIALECT_WORDS, _any_term_matches, _extract_target_entity,
-    _term_matches, classify_epistemic_intent, extract_clean_topic,
-    matches_slang_or_world_definition, select_floor_cue,
+    CULINARY_WORDS,
+    RECENT_CONTEXT_PATTERN,
+    REGIONAL_OR_CULTURE_WORDS,
+    SLANG_OR_DIALECT_WORDS,
+    _any_term_matches,
+    _extract_target_entity,
+    _term_matches,
+    classify_epistemic_intent,
+    extract_clean_topic,
+    matches_slang_or_world_definition,
+    select_floor_cue,
 )
 from lucca.core.cascade_substrates import CascadeSubstrateAdapters
 from lucca.core.schemas import VerifierLabel, standard_for_confidence
 from lucca.core.trace import now_ns
 from lucca.memory.extraction import FUNCTIONAL_PREDICATES
 from lucca.memory.latent_probe import (
-    BelnapLatentInvestigator, BelnapValue, belnap_join_k, belnap_join_t,
-    belnap_meet_k, belnap_meet_t, belnap_negation, information_join,
-    information_meet, pool_evidence, truth_join, truth_meet,
+    BelnapLatentInvestigator,
+    BelnapValue,
+    belnap_join_k,
+    belnap_join_t,
+    belnap_meet_k,
+    belnap_meet_t,
+    belnap_negation,
+    information_join,
+    information_meet,
+    pool_evidence,
+    truth_join,
+    truth_meet,
 )
 from lucca.ports import MemoryStorePort, SemanticVerifierPort
 from lucca.reasoning.recall import recall_past_episodes, tokenize_query
@@ -253,7 +269,8 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
             """Returns True if (a, b) is a canonical FUNCTIONAL_PREDICATES pair with distinct
             precedence/valid_from timestamps handled by _detect_memory_supersession."""
             for pred in FUNCTIONAL_PREDICATES:
-                if f" {pred} " in f" {a.content.strip()} " and f" {pred} " in f" {b.content.strip()} ":
+                if f" {
+                    pred} " in f" {a.content.strip()} " and f" {pred} " in f" {b.content.strip()} ":
                     vf_a = float(a.metadata.get("valid_from", 0.0) or 0.0)
                     vf_b = float(b.metadata.get("valid_from", 0.0) or 0.0)
                     prov_a = str(a.metadata.get("provenance", "")).upper()

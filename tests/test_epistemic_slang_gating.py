@@ -16,23 +16,17 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
-import pytest
-
 from lucca.core.cascade import (
     BelnapValue,
     EpistemicSearchCascade,
     EpistemicSubstrate,
-    EvidenceItem,
     TrustTier,
     _extract_target_entity,
     classify_epistemic_intent,
-    matches_slang_or_world_definition,
 )
 from lucca.core.schemas import ToolResult
-from lucca.sandbox.schemas import SearchWebArgs, SysInfoArgs
 from lucca.sandbox.search_tool import search_web
 from lucca.sandbox.service import SandboxService, resolve_target_timezone
-
 
 # ============================================================================
 # 1. Conformal Slang & Regional Dialect Gating

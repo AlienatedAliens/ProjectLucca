@@ -3,8 +3,7 @@ Project Lucca — Dynamic Tiered Neurosymbolic Routing Tests
 Verifies multi-hop spatial tracking, SMT solver dispatch, and model-tiered thinking modes.
 """
 
-import pytest
-from lucca.core.schemas import RouteAction, ExecutionTier
+from lucca.core.schemas import ExecutionTier, RouteAction
 from lucca.router.heuristic import HeuristicRouter
 
 
@@ -180,6 +179,7 @@ def test_routing_web_search_searxng() -> None:
 
 def test_semantic_anchor_vectorized_classification() -> None:
     from unittest.mock import MagicMock
+
     from lucca.senses.embed import EmbedWorker
 
     mock_worker = MagicMock(spec=EmbedWorker)

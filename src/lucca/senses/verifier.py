@@ -4,6 +4,7 @@ Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2), WO-37 Phase 2
 """
 
 import json
+import os
 import threading
 import time
 import unicodedata
@@ -23,13 +24,14 @@ from lucca.core.schemas import VerificationResult, VerifierLabel
 
 logger = structlog.get_logger(__name__)
 
-import os
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def _resolve_verifier_model_dir() -> Path:
-    """Resolve verifier model directory from environment or repo root, or raise FileNotFoundError."""
+    """
+    Resolve verifier model directory from environment or repo root, or raise FileNotFoundError.
+    """
     env_dir = os.environ.get("LUCCA_VERIFIER_MODEL_DIR")
     if env_dir:
         p = Path(env_dir)
@@ -50,7 +52,8 @@ def _resolve_verifier_model_dir() -> Path:
         "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
     )
     if export_script.exists():
-        msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+        msg += f" Alternatively, generate it locally by running: python {
+            export_script.relative_to(REPO_ROOT)}"
     raise FileNotFoundError(msg)
 
 
@@ -113,10 +116,12 @@ class VerifierWorker:
                 export_script = REPO_ROOT / "scripts" / "export_nli_minilm.py"
                 msg = (
                     f"Verifier model directory not found at '{self.model_dir}'. "
-                    "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
+                    "Please download cross-encoder/nli-MiniLM2-L6-H768 or set "
+                        "LUCCA_VERIFIER_MODEL_DIR."
                 )
                 if export_script.exists():
-                    msg += f" Alternatively, generate it locally by running: python {export_script.relative_to(REPO_ROOT)}"
+                    msg += f" Alternatively, generate it locally by running: python {
+                        export_script.relative_to(REPO_ROOT)}"
                 raise FileNotFoundError(msg)
         else:
             self.model_dir = _resolve_verifier_model_dir()
@@ -162,7 +167,6 @@ class VerifierWorker:
 
         try:
             core = ov.Core()
-            available = core.available_devices
 
             if self._requested_device is not None:
                 target_dev = self._requested_device
@@ -272,7 +276,9 @@ class VerifierWorker:
                 feed_dict["token_type_ids"] = token_type_ids
 
             with self._infer_lock:
-                infer_req: ov.InferRequest = self.infer_request or self.compiled.create_infer_request()  # type: ignore[assignment]
+                infer_req: ov.InferRequest = (
+                    self.infer_request or self.compiled.create_infer_request()  # type: ignore[assignment]
+                )
                 outputs = infer_req.infer(feed_dict)
 
             # Extract 3-class logits

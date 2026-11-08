@@ -6,9 +6,8 @@ WO-28 Phase 3: Unified Execution Feedback Loop & Turn-1 Compiler Preflight
 from __future__ import annotations
 
 import ast
-import pytest
+
 from lucca.sandbox.ast_sanitizer import (
-    extract_python_code_tolerant,
     sanitize_and_repair_python_code,
 )
 
@@ -17,7 +16,7 @@ def test_feedback_loop_cap_at_two_rounds() -> None:
     """Verifies that the execution feedback loop strictly enforces the hard cap of <= 2 rounds."""
     attempts = 0
     max_rounds = 2
-    
+
     # Simulate execution loop with continuous error
     class MockSandboxFailure:
         exit_code = 1

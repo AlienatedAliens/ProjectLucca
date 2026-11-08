@@ -5,18 +5,17 @@ Spec 05 §4, §5, §6
 """
 
 import time
+
 import pytest
 
 from lucca.core.exceptions import (
-    SchemeError,
     SchemeGasExhausted,
     SchemeRuntimeError,
     SchemeTimeout,
 )
-from lucca.core.schemas import Plan, RuleOutcome, RuleState, Say, ToolCall
+from lucca.core.schemas import RuleOutcome, RuleState, Say
 from lucca.reasoning.scheme.eval import (
     DEFAULT_GAS_LIMIT,
-    DEFAULT_TIMEOUT_MS,
     SchemeEvaluator,
     build_env,
     evaluate_expr,

@@ -18,7 +18,8 @@ def verify_artifact(workspace_root: Path, rel_path: str) -> tuple[str, int]:
     """
     norm = Path(rel_path)
     if norm.is_absolute() or ".." in norm.parts:
-        raise SandboxPathError("PATH_TRAVERSAL", f"Path traversal or absolute path disallowed: {rel_path}")
+        raise SandboxPathError("PATH_TRAVERSAL",
+            f"Path traversal or absolute path disallowed: {rel_path}")
 
     target = (workspace_root / norm).resolve()
     resolved_root = workspace_root.resolve()

@@ -63,8 +63,10 @@ class ReasoningEntry:
                 self.step_kind,
             ) == other
         if isinstance(other, str):
-            return self.conclusion == other or self.envelope_id == other
+            return other in (self.conclusion, self.envelope_id)
         return False
+
+    __hash__ = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -138,6 +140,8 @@ class ProofTraceStep:
             ) == other
         return False
 
+    __hash__ = None
+
     def to_dict(self) -> dict[str, object]:
         return {
             "step_kind": self.step_kind,
@@ -152,7 +156,9 @@ class ProofTraceStep:
 
 
 class ReasoningContext:
-    """Chain-scoped scratchpad holding signed intermediates with provenance (Spec D-REAS-09, WO-20 Phase 2).
+    """
+    Chain-scoped scratchpad holding signed intermediates with provenance (Spec D-REAS-09, WO-20
+    Phase 2).
 
     Isolated from long-term memory until a conclusion commits.
     Bounded at MAX_CHAIN_DEPTH * 4 entries.
@@ -229,7 +235,7 @@ class ReasoningContext:
     def resolve_premise(self, premise: str) -> ReasoningEntry | None:
         clean = premise.strip()
         for item in self._intermediates:
-            if item.conclusion == clean or item.envelope_id == clean:
+            if clean in (item.conclusion, item.envelope_id):
                 return item
         return None
 
@@ -255,7 +261,7 @@ class ReasoningContext:
         elif isinstance(conclusion, str):
             target_str = conclusion.strip()
             for item in self._intermediates:
-                if item.conclusion == target_str or item.envelope_id == target_str:
+                if target_str in (item.conclusion, item.envelope_id):
                     target_entry = item
                     break
 

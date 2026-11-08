@@ -203,7 +203,9 @@ DYNAMIC_ALLOWED_OPS: set[str] = set()
 
 
 def register_dynamic_op(op_name: str) -> None:
-    """Registers a dynamically induced primitive operator name into the parser's allowed operations."""
+    """
+    Registers a dynamically induced primitive operator name into the parser's allowed operations.
+    """
     DYNAMIC_ALLOWED_OPS.add(op_name)
 
 
@@ -622,7 +624,8 @@ def _validate_plan_structure(plan_node: SchemeNode) -> None:
         _validate_action_node(plan_node)
     else:
         raise SchemeSyntaxError(
-            f"Rule :plan clause must be of form (list ...), (if ...), or (assert ...), got ({head} ...)"
+            f"Rule :plan clause must be of form (list ...), (if ...), or (assert ...), got ({
+                head} ...)"
         )
 
 

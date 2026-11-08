@@ -134,13 +134,15 @@ class HeadlessBrowserTool:
                     status_code = response.status if response else 200
                     page_title = page.title() or ""
 
-                    # Extract readable text and embedded links while stripping hidden/adversarial DOM nodes
+                    # Extract readable text and embedded links while stripping hidden/adversarial
+                    # DOM nodes
                     dom_data = page.evaluate(
                         """() => {
                         const root = document.body ? document.body : document.documentElement;
                         const clone = root.cloneNode(true);
                         const toRemove = clone.querySelectorAll(
-                            'script, style, noscript, iframe, svg, nav, footer, template, [hidden], [aria-hidden="true"]'
+                            'script, style, noscript, iframe, svg, nav, footer, template, [hidden],
+                            [aria-hidden="true"]'
                         );
                         toRemove.forEach(el => el.remove());
                         const allEls = clone.querySelectorAll('*');

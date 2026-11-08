@@ -11,6 +11,8 @@ import re
 import subprocess
 import sys
 import time
+import unicodedata
+import urllib.parse
 from pathlib import Path
 from typing import Final, Literal
 
@@ -20,11 +22,10 @@ except ImportError:
     resource = None  # type: ignore[assignment]
 
 import structlog
+
 from lucca.core.exceptions import SandboxPathError
 from lucca.memory.git_dag import (
-    GitStagingDAG,
     OperationType,
-    StagingTransaction,
     WorkspaceTransactionManager,
 )
 from lucca.sandbox.win32_security import (
@@ -91,9 +92,9 @@ def validate_rel_path(p: str, workspace_root: Path | str = "/workspace") -> Path
         raise SandboxPathError("too_long", f"Path length {len(p)} exceeds maximum {MAX_PATH_LEN}")
 
     # Check forbidden characters
-    import unicodedata
     if unicodedata.normalize("NFKC", p) != p:
-        raise SandboxPathError("invalid_chars", "Unicode compatibility homoglyphs (NFKC mismatch) are forbidden")
+        raise SandboxPathError("invalid_chars", "Unicode compatibility homoglyphs (NFKC mismatch) "
+            "are forbidden")
     if "\x00" in p:
         raise SandboxPathError("invalid_chars", "NUL byte in path is forbidden")
 
@@ -221,13 +222,13 @@ class SafeFileTool:
                 return None  # network URL — refuse
 
             # Decode percent-encoded characters in the path portion
-            import urllib.parse
 
             parsed = urllib.parse.urlparse(url)
             local_path_str = urllib.parse.unquote(parsed.path)
 
             # On Windows: file:///c:/path → path starts with /c:/...
-            if local_path_str.startswith("/") and len(local_path_str) > 2 and local_path_str[2] == ":":
+            if local_path_str.startswith(
+                "/") and len(local_path_str) > 2 and local_path_str[2] == ":":
                 local_path_str = local_path_str[1:]  # strip leading /
 
             resolved = Path(local_path_str)
@@ -256,10 +257,12 @@ class SafeFileTool:
                 if not resolved_target.is_relative_to(self.workspace_root.resolve()):
                     raise SandboxSecurityError(
                         "traversal",
-                        f"Shortcut target '{resolved_target}' escapes workspace boundary '{self.workspace_root.resolve()}'",
+                        f"Shortcut target '{resolved_target}' escapes workspace boundary "
+                        f"'{self.workspace_root.resolve()}'",
                     )
                 if not resolved_target.exists() or not resolved_target.is_file():
-                    raise SandboxPathError("not_found", f"Shortcut target not found: {resolved_target}")
+                    raise SandboxPathError("not_found",
+                        f"Shortcut target not found: {resolved_target}")
                 logger.debug(
                     "read_file_url_redirect",
                     shortcut=str(target),
@@ -557,14 +560,16 @@ class SafeFileTool:
         try:
             rx = re.compile(pattern, re.IGNORECASE)
         except re.error as err:
-            raise SandboxPathError("invalid_regex", f"Invalid regex pattern '{pattern}': {err}") from err
+            raise SandboxPathError("invalid_regex",
+                f"Invalid regex pattern '{pattern}': {err}") from err
 
         hits: list[dict[str, object]] = []
         snippets: list[str] = []
         for root, dirs, files in os.walk(str(target_dir)):
             dirs[:] = [
                 d for d in dirs
-                if not d.startswith(".") and d not in ("__pycache__", "venv", ".venv", "node_modules", ".git")
+                if not d.startswith(".") and d not in ("__pycache__", "venv", ".venv",
+                    "node_modules", ".git")
             ]
             for fname in files:
                 if fname.startswith("."):
@@ -664,7 +669,9 @@ class SafeFileTool:
         operations: list[dict[str, object]],
         enforce_python_ast: bool = True,
     ) -> dict[str, object]:
-        """Executes a multi-file atomic workspace transaction backed by WorkspaceTransactionManager."""
+        """
+        Executes a multi-file atomic workspace transaction backed by WorkspaceTransactionManager.
+        """
         tx = WorkspaceTransactionManager(
             workspace_root=self.workspace_root,
             enforce_python_ast=enforce_python_ast,

@@ -6,11 +6,18 @@ Spec: plans/wo43_refactor_and_power/03_PHASE3_DOMAIN_GOD_OBJECTS_DEDUP_AND_DECOM
 from __future__ import annotations
 
 import ast
+import collections
 import copy
+import functools
+import io
+import itertools
 import json
+import math
 import re
 import threading
 import time
+import tokenize
+import traceback
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
@@ -29,7 +36,7 @@ from lucca.reasoning import (
     spatial_scheme,
 )
 from lucca.reasoning.relational import mereo, realize_real
-from lucca.sandbox.ast_sanitizer import sanitize_python_code
+from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code, sanitize_python_code
 from lucca.sandbox.preflight import extract_python_code
 from lucca.sandbox.rpc import DockerRPCTransport
 
@@ -76,8 +83,6 @@ def strip_comments_and_docstrings(source: str) -> str:
     # Strip any from __main__ import statements
     source = re.sub(r"^\s*from\s+__main__\s+import\s+.*$", "", source, flags=re.MULTILINE)
     try:
-        import io
-        import tokenize
         out: list[tuple[int, str]] = []
         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
         prev_toktype = tokenize.INDENT
@@ -86,7 +91,8 @@ def strip_comments_and_docstrings(source: str) -> str:
             token_string = tok[1]
             if token_type == tokenize.COMMENT:
                 continue
-            if token_type == tokenize.STRING and prev_toktype in (tokenize.INDENT, tokenize.NEWLINE, tokenize.NL):
+            if token_type == tokenize.STRING and prev_toktype in (tokenize.INDENT, tokenize.NEWLINE,
+                tokenize.NL):
                 continue
             out.append((token_type, token_string))
             if token_type not in (tokenize.NL, tokenize.COMMENT):
@@ -103,7 +109,7 @@ def strip_comments_and_docstrings(source: str) -> str:
         return "\n".join(lines).strip()
 
 
-_DOCKER_TRANSPORT: object | None = None
+_DOCKER_TRANSPORT_HOLDER: dict[str, object | None] = {"instance": None}
 _DOCKER_TRANSPORT_LOCK = threading.Lock()
 
 _ALLOWED_CEGIS_IMPORT_MODULES: Final[frozenset[str]] = frozenset(
@@ -182,20 +188,26 @@ def validate_cegis_ast_safety(code: str) -> tuple[bool, str | None]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 if alias.name not in _ALLOWED_CEGIS_IMPORT_MODULES:
-                    return False, f"SecurityError: Import of module '{alias.name}' is forbidden in CEGIS sandbox"
+                    return False, f"SecurityError: Import of module '{
+                        alias.name}' is forbidden in CEGIS sandbox"
         elif isinstance(node, ast.ImportFrom):
             mod = node.module or ""
             if mod not in _ALLOWED_CEGIS_IMPORT_MODULES:
-                return False, f"SecurityError: Import from module '{mod}' is forbidden in CEGIS sandbox"
+                return False, f"SecurityError: Import from module '{
+                    mod}' is forbidden in CEGIS sandbox"
         elif isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name) and node.func.id in _FORBIDDEN_CEGIS_CALLS:
-                return False, f"SecurityError: Call to builtin '{node.func.id}' is forbidden in CEGIS sandbox"
+                return False, f"SecurityError: Call to builtin '{
+                    node.func.id}' is forbidden in CEGIS sandbox"
         elif isinstance(node, ast.Attribute):
-            if node.attr in _FORBIDDEN_CEGIS_ATTRS or (node.attr.startswith("__") and node.attr.endswith("__")):
-                return False, f"SecurityError: Access to attribute '{node.attr}' is forbidden in CEGIS sandbox"
+            if node.attr in _FORBIDDEN_CEGIS_ATTRS or (
+                node.attr.startswith("__") and node.attr.endswith("__")):
+                return False, f"SecurityError: Access to attribute '{
+                    node.attr}' is forbidden in CEGIS sandbox"
         elif isinstance(node, ast.Name):
             if node.id in {"__builtins__", "__loader__", "__spec__"}:
-                return False, f"SecurityError: Reference to '{node.id}' is forbidden in CEGIS sandbox"
+                return False, f"SecurityError: Reference to '{
+                    node.id}' is forbidden in CEGIS sandbox"
 
     return True, None
 
@@ -205,10 +217,6 @@ def _build_restricted_cegis_globals(
 ) -> dict[str, object]:
     """Builds an isolated execution namespace with safe builtins and spatial primitives."""
     _ = exposed_libraries
-    import collections
-    import functools
-    import itertools
-    import math
 
 
     def _safe_import(
@@ -362,7 +370,6 @@ def _execute_in_restricted_sandbox(
     timeout_s: float,
 ) -> ExecutionOutcome:
     """Executes AST-validated candidate code in a restricted-builtins, timeout-bounded sandbox."""
-    import traceback
 
     t0 = time.perf_counter()
     box: dict[str, object] = {}
@@ -374,7 +381,8 @@ def _execute_in_restricted_sandbox(
             eval(compiled, env, env)  # noqa: S307
             transform_fn = env.get("transform")
             if not callable(transform_fn):
-                raise ValueError("Synthesized code does not define a callable `transform(grid)` function.")
+                raise ValueError("Synthesized code does not define a callable "
+                    "`transform(grid)` function.")
             raw_res = transform_fn(copy.deepcopy(grid_in))
             box["result"] = normalize_to_int_grid(raw_res)
         except Exception as exc:  # noqa: BLE001
@@ -420,19 +428,18 @@ def _execute_in_restricted_sandbox(
 
 def get_cegis_docker_transport() -> object | None:
     """Returns singleton DockerRPCTransport instance for isolated container execution (D-AUD-13)."""
-    global _DOCKER_TRANSPORT
     with _DOCKER_TRANSPORT_LOCK:
-        if _DOCKER_TRANSPORT is None:
+        if _DOCKER_TRANSPORT_HOLDER["instance"] is None:
             try:
-                from lucca.sandbox.rpc import DockerRPCTransport
-
-                t = DockerRPCTransport(container_name="lucca-file-sandbox", use_direct_fallback=False)
+                t = DockerRPCTransport(
+                    container_name="lucca-file-sandbox", use_direct_fallback=False
+                )
                 if t.is_docker_available():
-                    _DOCKER_TRANSPORT = t
+                    _DOCKER_TRANSPORT_HOLDER["instance"] = t
             except Exception as exc:
                 logger.debug("docker_transport_init_failed", error=str(exc))
-                _DOCKER_TRANSPORT = None
-        return _DOCKER_TRANSPORT
+                _DOCKER_TRANSPORT_HOLDER["instance"] = None
+        return _DOCKER_TRANSPORT_HOLDER["instance"]
 
 
 
@@ -476,7 +483,6 @@ from lucca.reasoning.relational.realize_real import during_real, point_in_interv
 
 def _prepare_cegis_code(code: str, t0: float) -> tuple[str | None, ExecutionOutcome | None]:
     """Sanitizes and AST-validates candidate CEGIS Python code."""
-    from lucca.sandbox.ast_sanitizer import sanitize_and_repair_python_code
 
     clean_code = strip_comments_and_docstrings(code)
     repaired_code, is_valid_syntax, syntax_err = sanitize_and_repair_python_code(clean_code)
@@ -526,12 +532,13 @@ def execute_unshackled_python(
     runner_script = (
         f"{_DOCKER_RUNNER_PRELUDE}\n{clean_code}\n\n"
         "if 'transform' not in locals() or not callable(locals()['transform']):\n"
-        "    raise ValueError('Synthesized code does not define a callable `transform(grid)` function.')\n"
+        "    raise ValueError('Synthesized code does not define a callable `transform(grid)` "
+            "function.')\n"
         f"_res = transform({json.dumps(grid_in)})\n"
         "print('__LUCCA_RESULT_START__')\nprint(json.dumps(_res))\nprint('__LUCCA_RESULT_END__')\n"
     )
     try:
-        res = getattr(rpc_client, "execute")(
+        res = rpc_client.execute(
             call_id=f"cegis-{time.time_ns()}",
             tool="run_python",
             args={"code": runner_script, "timeout": max(int(timeout_s), 2)},
@@ -540,18 +547,26 @@ def execute_unshackled_python(
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         if not getattr(res, "ok", False):
             err_msg = str(getattr(res, "stderr", "") or getattr(res, "content", "Execution failed"))
-            exc_matches = re.findall(r"^([A-Za-z_][A-Za-z0-9_]*(?:Error|Exception))\b", err_msg, re.MULTILINE)
-            err_type = exc_matches[-1] if exc_matches else ("TimeoutError" if "timeout" in err_msg.lower() or "timed out" in err_msg.lower() else "ExecutionError")
-            return ExecutionOutcome(False, None, err_type, err_msg, getattr(res, "stderr", None), elapsed_ms)
+            exc_matches = re.findall(r"^([A-Za-z_][A-Za-z0-9_]*(?:Error|Exc"
+                r"eption))\b", err_msg, re.MULTILINE)
+            err_type = exc_matches[
+                -1] if exc_matches else (
+                    "TimeoutError" if "timeout" in err_msg.lower() or "timed out"
+                        in err_msg.lower() else "ExecutionError")
+            return ExecutionOutcome(False, None, err_type, err_msg, getattr(res, "stderr", None),
+                elapsed_ms)
 
         content = str(getattr(res, "content", "") or "")
         m = re.search(r"__LUCCA_RESULT_START__\s*(.*?)\s*__LUCCA_RESULT_END__", content, re.DOTALL)
         if not m:
-            return ExecutionOutcome(False, None, "ValueError", "Function completed without structured output markers.", None, elapsed_ms)
-        return ExecutionOutcome(True, normalize_to_int_grid(json.loads(m.group(1).strip())), None, None, None, elapsed_ms)
+            return ExecutionOutcome(False, None, "ValueError", "Function completed without "
+                "structured output markers.", None, elapsed_ms)
+        return ExecutionOutcome(True, normalize_to_int_grid(json.loads(m.group(1).strip())), None,
+            None, None, elapsed_ms)
     except Exception as exc:
         logger.debug("execute_unshackled_python_failed", error=str(exc))
-        return ExecutionOutcome(False, None, type(exc).__name__, str(exc), None, (time.perf_counter() - t0) * 1000.0)
+        return ExecutionOutcome(False, None, type(exc).__name__, str(exc), None,
+            (time.perf_counter() - t0) * 1000.0)
 
 
 def execute_unshackled_python_batch(
@@ -576,13 +591,14 @@ def execute_unshackled_python_batch(
     runner_script = (
         f"{_DOCKER_RUNNER_PRELUDE}\n{clean_code}\n\n"
         "if 'transform' not in locals() or not callable(locals()['transform']):\n"
-        "    raise ValueError('Synthesized code does not define a callable `transform(grid)` function.')\n"
+        "    raise ValueError('Synthesized code does not define a callable `transform(grid)` "
+            "function.')\n"
         f"_inputs = {json.dumps(grids_in)}\n"
         "_outputs = [transform(_g) for _g in _inputs]\n"
         "print('__LUCCA_RESULT_START__')\nprint(json.dumps(_outputs))\nprint('__LUCCA_RESULT_END__')\n"
     )
     try:
-        res = getattr(rpc_client, "execute")(
+        res = rpc_client.execute(
             call_id=f"cegis-batch-{time.time_ns()}",
             tool="run_python",
             args={"code": runner_script, "timeout": max(int(timeout_s), 2)},
@@ -590,69 +606,92 @@ def execute_unshackled_python_batch(
         )
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         if not getattr(res, "ok", False):
-            err_msg = str(getattr(res, "stderr", "") or getattr(res, "content", "Batch execution failed"))
-            err_type = "TimeoutError" if ("timed out" in err_msg.lower() or "timeout" in err_msg.lower()) else "ExecutionError"
-            return [ExecutionOutcome(False, None, err_type, err_msg, getattr(res, "stderr", None), elapsed_ms) for _ in grids_in]
+            err_msg = str(getattr(res, "stderr", "") or getattr(res, "content",
+                "Batch execution failed"))
+            err_type = "TimeoutError" if (
+                "timed out" in err_msg.lower() or "timeout"
+                in err_msg.lower()) else "ExecutionError"
+            return [ExecutionOutcome(False, None, err_type, err_msg, getattr(res, "stderr", None),
+                elapsed_ms) for _ in grids_in]
 
         content = str(getattr(res, "content", "") or "")
         m = re.search(r"__LUCCA_RESULT_START__\s*(.*?)\s*__LUCCA_RESULT_END__", content, re.DOTALL)
         if not m:
-            return [ExecutionOutcome(False, None, "ValueError", "Batch completed without structured markers.", None, elapsed_ms) for _ in grids_in]
+            return [ExecutionOutcome(False, None, "ValueError", "Batch completed without "
+                "structured markers.", None, elapsed_ms) for _ in grids_in]
 
         raw_outputs = json.loads(m.group(1).strip())
         outcomes: list[ExecutionOutcome] = []
         per_ms = elapsed_ms / max(len(grids_in), 1)
         for raw in raw_outputs:
             try:
-                outcomes.append(ExecutionOutcome(True, normalize_to_int_grid(raw), None, None, None, per_ms))
+                outcomes.append(ExecutionOutcome(True, normalize_to_int_grid(raw), None, None, None,
+                    per_ms))
             except Exception as norm_err:
                 logger.debug("batch_grid_normalization_failed", error=str(norm_err))
-                outcomes.append(ExecutionOutcome(False, None, "TypeError", f"Output could not be normalized: {norm_err}", None, per_ms))
+                outcomes.append(ExecutionOutcome(False, None, "TypeError",
+                    f"Output could not be normalized: {norm_err}", None, per_ms))
         return outcomes
 
     except Exception as exc:
         logger.debug("execute_unshackled_python_batch_failed", error=str(exc))
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
-        return [ExecutionOutcome(False, None, type(exc).__name__, str(exc), None, elapsed_ms) for _ in grids_in]
+        return [ExecutionOutcome(False, None, type(exc).__name__, str(exc), None,
+            elapsed_ms) for _ in grids_in]
 
 
 CANONICAL_PRIMITIVES_PROMPT: Final[str] = (
     "======================================================================\n"
     "MANDATORY PRE-IMPORTED SPATIAL & RELATIONAL PRIMITIVES (In Global Scope):\n"
     "======================================================================\n"
-    "- `connected_components(arr, connectivity=8, background=0)`: returns list of Component objects with "
+    "- `connected_components(arr, connectivity=8, background=0)`: returns list of Component "
+        "objects with "
     "`.color`, `.mask`, `.bbox`, `.area`, `.centroid`, `.cropped_mask()`.\n"
-    "- `in_cavity(a, b)`: returns True iff region/component `a` is strictly enclosed inside the hollow cavity of `b` "
+    "- `in_cavity(a, b)`: returns True iff region/component `a` is strictly enclosed inside the "
+        "hollow cavity of `b` "
     "(4-connected border complement; correctly returns False for open U-shapes).\n"
     "- `extract_cavities(b)`: returns frozenset of (r, c) coordinates of hollow cavities in `b`.\n"
-    "- `extract_cavity_mask(b, shape=None)`: returns 2D boolean numpy mask of cavity/interior of `b`.\n"
-    "- `extract_exterior_mask(b, shape)`: returns 2D boolean numpy mask of cells OUTSIDE `b` and outside `b`'s cavities.\n"
-    "- `is_between(p, a, b)`: returns True iff point or component `p` lies strictly within the bounding span formed by anchors `a` and `b` (1D/2D betweenness).\n"
+    "- `extract_cavity_mask(b, shape=None)`: returns 2D boolean numpy mask of "
+        "cavity/interior of `b`.\n"
+    "- `extract_exterior_mask(b, shape)`: returns 2D boolean numpy mask of cells OUTSIDE `b` and "
+        "outside `b`'s cavities.\n"
+    "- `is_between(p, a, b)`: returns True iff point or component `p` lies strictly within the "
+        "bounding span formed by anchors `a` and `b` (1D/2D betweenness).\n"
     "- `part_of(a, b)`: returns True iff every cell of `a` is part of `b` (subset containment).\n"
-    "- `externally_connected(a, b, four_connected=True)`: returns True iff `a` and `b` touch at their boundary without overlapping.\n"
-    "- `above(a, b)`, `below(a, b)`, `left_of(a, b)`, `right_of(a, b)`: qualitative spatial ordering via Allen interval algebra.\n"
+    "- `externally_connected(a, b, four_connected=True)`: returns True iff `a` and `b` touch at "
+        "their boundary without overlapping.\n"
+    "- `above(a, b)`, `below(a, b)`, `left_of(a, b)`, `right_of(a, b)`: qualitative spatial "
+        "ordering via Allen interval algebra.\n"
     "- `bbox(mask)`: returns (min_r, min_c, max_r, max_c, h, w) or None.\n"
     "- `crop(arr, bbox_tuple)`: crops subgrid corresponding to bbox.\n"
     "- `centroid(mask)`: returns (mean_r, mean_c).\n"
-    "- `is_identical_shape(mask_a, mask_b)`: returns True if two binary shapes are identical under translation.\n"
+    "- `is_identical_shape(mask_a, mask_b)`: returns True if two binary shapes are identical under "
+        "translation.\n"
     "- `rot90(arr, k=1)`, `flip_h(arr)`, `flip_v(arr)`: symmetry transformations.\n"
     "- `canvas(h, w, fill_val=0)`: returns fresh numpy canvas of shape (h, w).\n"
     "- `paste(base, patch, top_r, left_c, transparent_val=None)`: pastes patch onto base grid.\n"
     "\n"
     "MANDATORY REASONING & PROGRAMMING CONTRACT:\n"
     "1. ENCLOSURE / CAVITY / INSIDE QUERIES:\n"
-    "   - When the task involves checking if an object or pixel is inside, enclosed by, or contained in a frame/cavity, "
+    "   - When the task involves checking if an object or pixel is inside, enclosed by, or "
+        "contained in a frame/cavity, "
     "YOU MUST USE `in_cavity(a, b)`, `extract_cavities(b)`, or `extract_cavity_mask(b)`.\n"
-    "   - FORBIDDEN HEURISTIC: NEVER use bounding-box coordinate comparisons (`min_r <= r <= max_r and min_c <= c <= max_c`) "
+    "   - FORBIDDEN HEURISTIC: NEVER use bounding-box coordinate comparisons (`min_r <= r <= max_r "
+        "and min_c <= c <= max_c`) "
     "as a test for enclosure. Bounding boxes fail on non-convex or concave containers.\n"
-    "   - FORBIDDEN BOILERPLATE: NEVER write manual BFS flood-fill queues or custom crawler loops from scratch. Call the built-in primitives.\n"
-    "   - MULTI-CONTAINER MANDATE: A grid may contain MULTIPLE independent containers (e.g. 2 or 3 separate frames/boxes). "
-    "NEVER assume there is only one largest container using `max(components, key=...)`. Iterate over ALL candidate containers.\n"
+    "   - FORBIDDEN BOILERPLATE: NEVER write manual BFS flood-fill queues or custom crawler loops "
+        "from scratch. Call the built-in primitives.\n"
+    "   - MULTI-CONTAINER MANDATE: A grid may contain MULTIPLE independent containers (e.g. 2 or 3 "
+        "separate frames/boxes). "
+    "NEVER assume there is only one largest container using `max(components, key=...)`. Iterate "
+        "over ALL candidate containers.\n"
     "2. NON-ENCLOSURE QUERIES (Collinearity, betweenness, counts, color mapping):\n"
-    "   - When the problem does NOT involve cavities or enclosed holes, use direct arithmetic or `is_between(p, a, b)`.\n"
+    "   - When the problem does NOT involve cavities or enclosed holes, use direct arithmetic or "
+        "`is_between(p, a, b)`.\n"
     "3. SYNTAX & CLEAN CODE:\n"
     "   - Return ONLY clean executable Python code inside a single ```python ... ``` block.\n"
-    "   - Absolutely NO comments (#), NO docstrings, and NO natural language explanations inside the code block.\n"
+    "   - Absolutely NO comments (#), NO docstrings, and NO natural language explanations inside "
+        "the code block.\n"
     "======================================================================\n"
 )
 
@@ -699,7 +738,8 @@ def parse_python_exception(stderr_text: str) -> tuple[str | None, str | None]:
     if not lines:
         return None, None
     last_line = lines[-1]
-    match = re.match(r"^([A-Za-z_]\w*Error|[A-Za-z_]\w*Exception|AssertionError):\s*(.*)$", last_line)
+    match = re.match(r"^([A-Za-z_]\w*Error|[A-Za-z_]\w*Exception|AssertionErro"
+        r"r):\s*(.*)$", last_line)
     if match:
         return match.group(1), match.group(2)
     if "Error" in last_line:
@@ -741,7 +781,8 @@ class PythonCEGISEngine:
         try:
             tid = task_id or f"py-cegis-{uuid.uuid4().hex[:8]}"
             turn_1_err = (
-                f"{result.traces[0].error_type or 'Error'}: {result.traces[0].error_message or result.traces[0].stderr[:120]}"
+                f"{result.traces[0].error_type or 'Error'}: "
+                f"{result.traces[0].error_message or result.traces[0].stderr[:120]}"
                 if result.traces and not result.traces[0].ok_exec
                 else None
             )
@@ -751,7 +792,8 @@ class PythonCEGISEngine:
                     "name": "initial_synthesis" if tr.turn == 1 else f"repair_turn_{tr.turn}",
                     "summary": f"ok_exec={tr.ok_exec}; out={tr.stdout[:60]}"
                     if tr.ok_exec
-                    else f"error={tr.error_type or 'RuntimeError'}: {(tr.error_message or tr.stderr)[:80]}",
+                    else f"error={
+                        tr.error_type or 'RuntimeError'}: {(tr.error_message or tr.stderr)[:80]}",
                 }
                 for tr in result.traces
             ]
@@ -779,10 +821,12 @@ class PythonCEGISEngine:
 
     def _get_rpc(self) -> DockerRPCTransport:
         if self._rpc is None:
-            self._rpc = DockerRPCTransport(container_name=self.container_name, use_direct_fallback=False)
+            self._rpc = DockerRPCTransport(container_name=self.container_name,
+                use_direct_fallback=False)
             self._rpc.ensure_container_running()
             try:
-                self._rpc.execute(call_id="cegis-warmup", tool="run_python", args={"code": "pass"}, timeout_s=15.0)
+                self._rpc.execute(call_id="cegis-warmup", tool="run_python", args={"code": "pass"},
+                    timeout_s=15.0)
             except Exception as e:
                 logger.warning("cegis_docker_warmup_failed", error=str(e))
         return self._rpc
@@ -801,7 +845,10 @@ class PythonCEGISEngine:
             resp = client.post(self.server_url, json=payload)
             resp.raise_for_status()
             choice = resp.json()["choices"][0]
-            return str(choice["message"].get("content") or "").strip(), str(choice.get("finish_reason") or "stop")
+            return str(
+                choice[
+                    "message"].get("content") or "").strip(), str(choice.get("finish_reason")
+                        or "stop")
 
     @staticmethod
     def _extract_output_pattern(stdout_val: str, output_pattern: str | None) -> str:
@@ -810,7 +857,8 @@ class PythonCEGISEngine:
             return text
         lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
         target_line = lines[-1] if lines else text
-        matches = list(re.finditer(output_pattern, target_line)) or list(re.finditer(output_pattern, text))
+        matches = list(re.finditer(output_pattern, target_line)) or list(re.finditer(output_pattern,
+            text))
         if matches:
             m = matches[-1]
             return m.group(1) if m.groups() else m.group(0)
@@ -840,14 +888,17 @@ class PythonCEGISEngine:
     ) -> CEGISResult:
         t0 = time.perf_counter()
         prompts = [
-            ("SYMBOLIC", "Solve using exact symbolic computation (sympy/z3) and print ONLY the final answer in ```python ... ```.", 0.1),
-            ("BRUTE_FORCE", "Solve using direct numerical simulation/enumeration and print ONLY the final answer in ```python ... ```.", 0.2),
+            ("SYMBOLIC", "Solve using exact symbolic computation (sympy/z3) and print ONLY the "
+                "final answer in ```python ... ```.", 0.1),
+            ("BRUTE_FORCE", "Solve using direct numerical simulation/enumeration and print ONLY "
+                "the final answer in ```python ... ```.", 0.2),
         ]
         traces: list[CEGISTrace] = []
         outputs: list[tuple[str, str, str]] = []
         for idx, (label, sys_p, temp) in enumerate(prompts, start=1):
             t_cand = time.perf_counter()
-            content, _ = self._query_llm([{"role": "system", "content": sys_p}, {"role": "user", "content": task_prompt}], temperature=temp)
+            content, _ = self._query_llm([{"role": "system", "content": sys_p}, {"role": "user",
+                "content": task_prompt}], temperature=temp)
             code = extract_python_code(content) or ""
             ok_exec, stdout_val, stderr_val = False, "", "No code extracted"
             if code:
@@ -855,13 +906,16 @@ class PythonCEGISEngine:
                 ok_exec, stdout_val, stderr_val = self._execute_code(sanitized_c if ok_s else code)
             elapsed_ms = (time.perf_counter() - t_cand) * 1000.0
             err_t, err_m = (None, None) if ok_exec else self._parse_err(stderr_val)
-            traces.append(CEGISTrace(idx, code, ok_exec, stdout_val, stderr_val, err_t, err_m, elapsed_ms))
+            traces.append(CEGISTrace(idx, code, ok_exec, stdout_val, stderr_val, err_t, err_m,
+                elapsed_ms))
             if ok_exec and stdout_val.strip():
-                outputs.append((label, self._extract_output_pattern(stdout_val, output_pattern).strip(), code))
+                outputs.append((label, self._extract_output_pattern(stdout_val,
+                    output_pattern).strip(), code))
 
         if len(outputs) == 2 and outputs[0][1] == outputs[1][1] and outputs[0][1] != "":
             total_ms = (time.perf_counter() - t0) * 1000.0
-            res_agreed = CEGISResult(True, outputs[0][2], outputs[0][1], 2, "CHECKED_FORMALIZATION_AGREED", None, traces, total_ms)
+            res_agreed = CEGISResult(True, outputs[0][2], outputs[0][1], 2,
+                "CHECKED_FORMALIZATION_AGREED", None, traces, total_ms)
             self._notify_outcome_sink(res_agreed, task_prompt)
             return res_agreed
 
@@ -869,10 +923,13 @@ class PythonCEGISEngine:
             last_tr = traces[-1]
             traces[-1] = CEGISTrace(
                 last_tr.turn, last_tr.code, last_tr.ok_exec, last_tr.stdout, last_tr.stderr,
-                "DisagreementError", f"Symbolic ({outputs[0][1]!r}) != Brute-Force ({outputs[1][1]!r})", last_tr.elapsed_ms,
+                "DisagreementError",
+                    f"Symbolic ({outputs[0][1]!r}) != Brute-Force ({outputs[1][1]!r})",
+                        last_tr.elapsed_ms,
             )
 
-        esc_res = self.synthesize_parallel(task_prompt=task_prompt, output_pattern=output_pattern, n_candidates=max(3, self.num_candidates))
+        esc_res = self.synthesize_parallel(task_prompt=task_prompt, output_pattern=output_pattern,
+            n_candidates=max(3, self.num_candidates))
         if esc_res.success and esc_res.predicted_output and esc_res.predicted_output.strip():
             return esc_res
         total_ms = (time.perf_counter() - t0) * 1000.0
@@ -894,7 +951,8 @@ class PythonCEGISEngine:
     ) -> CEGISResult:
         n = n_candidates if n_candidates is not None else self.num_candidates
         if n <= 1:
-            return self.synthesize_and_repair(task_prompt, system_prompt, test_harness, output_pattern)
+            return self.synthesize_and_repair(task_prompt, system_prompt, test_harness,
+                output_pattern)
         hints = [
             "Use a direct mathematical / algebraic formula where possible.",
             "Use simulation or step-by-step enumeration to derive the answer.",
@@ -904,19 +962,27 @@ class PythonCEGISEngine:
         ]
         for i in range(n):
             hint = hints[i % len(hints)]
-            aug_sys = f"{system_prompt}\nStrategy hint: {hint}" if system_prompt else f"You are an expert Python programmer.\nStrategy hint: {hint}"
+            aug_sys = f"{system_prompt}\nStrategy hint: {hint}" if system_prompt else (
+                "You are "
+                f"an expert Python programmer.\nStrategy hint: {hint}"
+            )
             t_cand = time.perf_counter()
-            content, _ = self._query_llm([{"role": "system", "content": aug_sys}, {"role": "user", "content": task_prompt}], temperature=0.5 + 0.1 * i)
+            content, _ = self._query_llm([{"role": "system", "content": aug_sys}, {"role": "user",
+                "content": task_prompt}], temperature=0.5 + 0.1 * i)
             code = extract_python_code(content)
             ok_exec, stdout_val, stderr_val, full_exec = False, "", "No code extracted", ""
             if code:
-                full_exec = f"{code}\n\n# --- Verification Harness ---\n{test_harness}" if (test_harness and test_harness.strip() not in code) else code
+                full_exec = (
+                    f"{code}\n\n# --- Verification Harness "
+                    f"---\n{test_harness}"
+                ) if (test_harness and test_harness.strip() not in code) else code
                 if "print" not in full_exec and "ans" in full_exec:
                     full_exec = f"{full_exec}\nprint(ans)"
                 ok_exec, stdout_val, stderr_val = self._execute_code(full_exec)
             elapsed_cand = (time.perf_counter() - t_cand) * 1000.0
             err_type, err_msg = (None, None) if ok_exec else self._parse_err(stderr_val)
-            trace = CEGISTrace(i + 1, full_exec, ok_exec, stdout_val, stderr_val, err_type, err_msg, elapsed_cand)
+            trace = CEGISTrace(i + 1, full_exec, ok_exec, stdout_val, stderr_val, err_type, err_msg,
+                elapsed_cand)
             pred = self._extract_output_pattern(stdout_val, output_pattern) if ok_exec else None
             result = CEGISResult(
                 ok_exec, full_exec if code else None, pred, 1, f"PARALLEL_CANDIDATE_{i + 1}",
@@ -924,7 +990,8 @@ class PythonCEGISEngine:
             )
             if ok_exec and (bool(stdout_val.strip()) or bool(test_harness)):
                 return result
-        return self.synthesize_and_repair(task_prompt, system_prompt, test_harness, output_pattern, temperature=0.1)
+        return self.synthesize_and_repair(task_prompt, system_prompt, test_harness, output_pattern,
+            temperature=0.1)
 
     def synthesize_and_repair(
         self,
@@ -943,7 +1010,9 @@ class PythonCEGISEngine:
         t0 = time.perf_counter()
         traces: list[CEGISTrace] = []
         messages: list[dict[str, str]] = list(exemplar_messages) if exemplar_messages else (
-            ([{"role": "system", "content": system_prompt}] if system_prompt else []) + [{"role": "user", "content": task_prompt}]
+            ([{"role": "system",
+                "content": system_prompt}] if system_prompt else []) + [{"role": "user",
+                    "content": task_prompt}]
         )
         last_code: str | None = None
         failure_stage: str | None = None
@@ -959,16 +1028,22 @@ class PythonCEGISEngine:
             code = extract_python_code(content)
             if not code:
                 elapsed_ms = (time.perf_counter() - t_turn) * 1000.0
-                traces.append(CEGISTrace(turn, "", False, "", "No valid Python code found in output", "TranslationError", "No code block extracted", elapsed_ms))
+                traces.append(CEGISTrace(turn, "", False, "", "No valid Python code "
+                    "found in output", "TranslationError", "No code block extracted", elapsed_ms))
                 failure_stage = "TRANSLATION_NO_CODE"
                 messages.append({"role": "assistant", "content": content[:400]})
-                messages.append({"role": "user", "content": "Error: No complete Python code block detected. Output ONLY ```python ... ```."})
+                messages.append({"role": "user", "content": "Error: No complete Python code block "
+                    "detected. Output ONLY ```python ... ```."})
                 continue
 
             last_code = code
-            full_exec_code = f"{prelude.strip()}\n\n{code}" if (prelude and prelude.strip() and prelude.strip() not in code) else code
+            full_exec_code = (
+                f"{prelude.strip()}\n\n"
+                f"{code}"
+            ) if (prelude and prelude.strip() and prelude.strip() not in code) else code
             if test_harness and test_harness.strip() not in full_exec_code:
-                full_exec_code = f"{full_exec_code}\n\n# --- Verification Harness ---\n{test_harness}"
+                full_exec_code = f"{
+                    full_exec_code}\n\n# --- Verification Harness ---\n{test_harness}"
             sanitized_exec, ok_san, _ = sanitize_python_code(full_exec_code)
             if ok_san:
                 full_exec_code = sanitized_exec
@@ -981,31 +1056,46 @@ class PythonCEGISEngine:
                 if not stdout_val.strip() or "<built-in function" in stdout_val:
                     ok_exec, stderr_val = False, "EmptyOutputError: Code printed no output."
                 elif output_pattern and not re.search(output_pattern, stdout_val):
-                    ok_exec, stderr_val = False, f"OutputFormatError: Stdout did not match {output_pattern!r}."
+                    ok_exec, stderr_val = False, f"OutputFormatError: Stdout did not match {
+                        output_pattern!r}."
 
             err_type, err_msg = parse_python_exception(stderr_val) if not ok_exec else (None, None)
-            traces.append(CEGISTrace(turn, full_exec_code, ok_exec, stdout_val, stderr_val, err_type, err_msg, elapsed_ms))
+            traces.append(CEGISTrace(turn, full_exec_code, ok_exec, stdout_val, stderr_val,
+                err_type, err_msg, elapsed_ms))
             if ok_exec:
                 predicted_out = self._extract_output_pattern(stdout_val, output_pattern)
                 total_elapsed = (time.perf_counter() - t0) * 1000.0
                 method = "VERIFIED_PROGRAM" if turn == 1 else "VERIFIED_REPAIRED_PROGRAM"
-                res_ok = CEGISResult(True, full_exec_code, predicted_out, turn, method, None, traces, total_elapsed)
-                self._notify_outcome_sink(res_ok, task_prompt, task_id=task_id, outcome_sink=outcome_sink)
+                res_ok = CEGISResult(True, full_exec_code, predicted_out, turn, method, None,
+                    traces, total_elapsed)
+                self._notify_outcome_sink(res_ok, task_prompt, task_id=task_id,
+                    outcome_sink=outcome_sink)
                 return res_ok
 
-            failure_stage = "SANDBOX_TIMEOUT_OR_RESOURCE_LIMIT" if ("TimeoutError" in stderr_val or "timed out" in stderr_val.lower()) else "EXECUTION_RUNTIME_ERROR"
+            failure_stage = (
+                "SANDBOX_TIMEOUT_OR_RESOUR"
+                "CE_LIMIT"
+            ) if (
+                "TimeoutError" in stderr_val or "timed out" in stderr_val.lower()) else (
+                    "EXECUTION_RU"
+                    "NTIME_ERROR"
+                )
             if turn < effective_max_turns:
-                cleaned_lines = [ln for ln in (code or content).splitlines() if not ln.strip().startswith("#")]
+                cleaned_lines = [
+                    ln for ln in (code or content).splitlines() if not ln.strip().startswith("#")]
                 compact_code = "\n".join(cleaned_lines[-40:])
                 repair_prompt = (
-                    f"Your Python code produced an error:\n[Error Type]: {err_type or 'RuntimeError'}\n"
-                    f"[Error Message]: {err_msg or stderr_val.strip()}\n[Traceback]:\n{stderr_val.strip()[-600:]}\n"
+                    f"Your Python code produced an error:\n[Error Type]: {
+                        err_type or 'RuntimeError'}\n"
+                    f"[Error Message]: {
+                        err_msg or stderr_val.strip()}\n[Traceback]:\n{stderr_val.strip()[-600:]}\n"
                     "Provide the corrected Python script inside ```python ... ```."
                 )
                 messages.append({"role": "assistant", "content": f"```python\n{compact_code}\n```"})
                 messages.append({"role": "user", "content": repair_prompt})
 
         total_elapsed = (time.perf_counter() - t0) * 1000.0
-        res_fail = CEGISResult(False, last_code, None, effective_max_turns, "INTERNAL_FALLBACK", failure_stage or "LLM_REASONING_LOGIC", traces, total_elapsed)
+        res_fail = CEGISResult(False, last_code, None, effective_max_turns, "INTERNAL_FALLBACK",
+            failure_stage or "LLM_REASONING_LOGIC", traces, total_elapsed)
         self._notify_outcome_sink(res_fail, task_prompt, task_id=task_id, outcome_sink=outcome_sink)
         return res_fail

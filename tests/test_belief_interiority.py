@@ -12,23 +12,22 @@ Verifies:
 
 from __future__ import annotations
 
+import queue
 import time
+from collections import deque
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
-import queue
-from collections import deque
-from pathlib import Path
-
 from lucca.core.config import get_config
 from lucca.core.orchestrator import Orchestrator
-from lucca.core.trace import TurnTrace
 from lucca.core.schemas import (
     ExecutionTier,
     Provenance,
     UnsignedPayload,
 )
+from lucca.core.trace import TurnTrace
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.signers import (
@@ -212,7 +211,7 @@ def test_sibling_autobiographical_fact_update(test_orch: Orchestrator) -> None:
         },
     )
     signed_init = test_orch.assistant_signer.sign(p_init)
-    seed_mid = test_orch.memory_store.commit(signed_init)
+    test_orch.memory_store.commit(signed_init)
 
     trace_corr = TurnTrace(
         trace_id="tr-corr-editor", session_id="s1", origin="text", mode="transcript"

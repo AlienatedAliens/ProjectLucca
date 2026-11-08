@@ -16,23 +16,23 @@ Invariants:
 from __future__ import annotations
 
 import ast
-from collections import defaultdict, deque
-from collections.abc import Callable
 import difflib
-from enum import Enum
 import hashlib
-from pathlib import Path
+import shutil
 import subprocess
 import time
-from typing import Final
+from collections import defaultdict, deque
+from collections.abc import Callable
+from enum import StrEnum
+from pathlib import Path
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 logger = structlog.get_logger(__name__)
 
 
-class OperationType(str, Enum):
+class OperationType(StrEnum):
     """Supported filesystem operation primitives in the staging DAG."""
 
     WRITE_FILE = "WRITE_FILE"
@@ -145,7 +145,7 @@ class GitStagingDAG:
 
         in_degree: dict[str, int] = {op_id: 0 for op_id in self.operations}
         for op_id in self.operations:
-            for dep_id in self.operations[op_id].dependencies:
+            for _dep_id in self.operations[op_id].dependencies:
                 in_degree[op_id] += 1
 
         queue: deque[str] = deque([op_id for op_id, deg in in_degree.items() if deg == 0])
@@ -195,7 +195,8 @@ class GitStagingDAG:
                     try:
                         orig_text = op.path.read_text(encoding="utf-8")
                     except Exception as exc:
-                        logger.debug("staged_diff_delete_read_failed", path=str(op.path), error=str(exc))
+                        logger.debug("staged_diff_delete_read_failed", path=str(op.path),
+                            error=str(exc))
                         orig_text = ""
                 diff_lines = list(
                     difflib.unified_diff(
@@ -261,8 +262,9 @@ class StagingTransaction:
         Returns (is_clean, porcelain_output_or_error).
         """
         try:
+            git_exe = shutil.which("git") or "git"
             proc = subprocess.run(
-                ["git", "status", "--porcelain"],
+                [git_exe, "status", "--porcelain"],
                 cwd=str(self.workspace_root),
                 capture_output=True,
                 text=True,
@@ -378,7 +380,8 @@ class StagingTransaction:
                     passed, reason = validator(op)
                     if not passed:
                         errors.append(
-                            f"Validation failed for op '{op.op_id}' ({op.path}): {reason or 'Unknown reason'}"
+                            f"Validation failed for op '{
+                                op.op_id}' ({op.path}): {reason or 'Unknown reason'}"
                         )
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("validator_execution_error", op_id=op.op_id, error=str(exc))

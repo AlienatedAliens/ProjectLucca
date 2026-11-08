@@ -30,11 +30,14 @@ OFFSETS_8: Final[tuple[tuple[int, int], ...]] = (
 
 
 def to_grid_region(obj: object) -> GridRegion:
-    """Coerces GridRegion, Component (with .mask), 2D numpy mask, or coordinate collections into GridRegion."""
+    """
+    Coerces GridRegion, Component (with .mask), 2D numpy mask, or coordinate collections into
+    GridRegion.
+    """
     if isinstance(obj, GridRegion):
         return obj
     if hasattr(obj, "mask"):
-        mask = getattr(obj, "mask")
+        mask = obj.mask
         if isinstance(mask, np.ndarray):
             coords = np.argwhere(mask)
             return GridRegion(points=frozenset((int(r), int(c)) for r, c in coords))
@@ -68,7 +71,7 @@ def x_projection(region: object) -> Interval1D:
 
 def above(a: object, b: object) -> bool:
     """True iff region A is qualitatively above region B in row coordinates.
-    
+
     In standard grid coordinates, row 0 is top. A is above B iff
     y(A) is BEFORE or MEETS y(B).
     """
@@ -96,7 +99,7 @@ def right_of(a: object, b: object) -> bool:
 
 def bbox_during(a: object, b: object) -> bool:
     """True iff A's bounding box is strictly during B's bounding box in both dimensions.
-    
+
     NOTE: This is an AABB filter, NOT topological enclosure.
     A blob in the concavity of a U-shape will have bbox_during == True,
     while in_cavity == False.

@@ -119,7 +119,10 @@ class CoherenceClaim(BaseModel, frozen=True):
 
 
 def format_tool_receipts_for_nli(receipts: Sequence[ToolReceipt]) -> str:
-    """Formats verified tool execution receipts into a structured NLI premise string (SPIKE-A / Milestone 36.6)."""
+    """
+    Formats verified tool execution receipts into a structured NLI premise string (SPIKE-A /
+    Milestone 36.6).
+    """
     ok_lines = [
         f"Tool {r.resolved_tool} succeeded with args {r.args} and output: {r.output or ''}"
         for r in receipts

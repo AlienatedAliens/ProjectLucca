@@ -23,6 +23,7 @@ from lucca.core.schemas import (
 )
 from lucca.memory.latent_probe import BelnapValue
 from lucca.reasoning.recall import tokenize_query
+from lucca.speech.engines import ENGINE_CATALOG, parse_engine_from_spec
 
 if TYPE_CHECKING:
     from lucca.core.cascade import EpistemicSubstrate, EvidenceItem, TrustTier
@@ -85,7 +86,6 @@ class CascadeSubstrateAdapters:
             now_local = datetime.now().astimezone()
             time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
             active_voice = cfg.voice or rt.tts.voice
-            from lucca.speech.engines import ENGINE_CATALOG, parse_engine_from_spec
             eng_id, _ = parse_engine_from_spec(str(active_voice))
             eng_desc = ENGINE_CATALOG.get(eng_id)
             eng_name = eng_desc.name if eng_desc else "Kokoro-82M"
@@ -104,7 +104,8 @@ class CascadeSubstrateAdapters:
                 f"Archetype: {cfg.archetype}. Voice: {active_voice}. "
                 f"Local Runtime: language model '{rt.llm.model_display_name()}' served by "
                 f"llama-server on the dGPU (context {rt.llm.ctx} tokens){vision_info}; "
-                f"speech recognition '{Path(rt.asr.model).name}' on the dGPU (CUDA float16, CPU fallback); "
+                f"speech recognition '{
+                    Path(rt.asr.model).name}' on the dGPU (CUDA float16, CPU fallback); "
                 f"{tts_info}. "
                 f"Host Workstation: {platform.node()} ({platform.platform()}). "
                 f"Core Purpose: Pair-programming, systems debugging, and desktop automation. "
@@ -222,7 +223,8 @@ class CascadeSubstrateAdapters:
             )
             wants_location = any(
                 re.search(rf"\b{re.escape(w)}\b", lower)
-                for w in ("location", "where", "located", "ip", "network", "city", "country", "place")
+                for w in ("location", "where", "located", "ip", "network", "city", "country",
+                    "place")
             )
             general_hw = any(
                 re.search(rf"\b{re.escape(w)}\b", lower)
@@ -297,7 +299,8 @@ class CascadeSubstrateAdapters:
                 else:
                     now_local = datetime.now().astimezone()
                     time_str = now_local.strftime("%A, %B %d, %Y, %I:%M %p (%Z, UTC%z)")
-                    iana_name = getattr(now_local.tzinfo, "key", None) or now_local.tzname() or "UTC"
+                    iana_name = getattr(now_local.tzinfo, "key",
+                        None) or now_local.tzname() or "UTC"
                     tz_abbr = now_local.strftime("%Z")
                     utc_offset = now_local.strftime("%z")
                     is_dst = bool(now_local.dst() and now_local.dst().total_seconds() != 0)
@@ -329,7 +332,8 @@ class CascadeSubstrateAdapters:
                 net_geo = get_host_network_and_location()
                 if net_geo.get("public_ip"):
                     loc_content = (
-                        f"Physical Host Geolocation: {net_geo.get('city')}, {net_geo.get('region')}, "
+                        f"Physical Host Geolocation: {
+                            net_geo.get('city')}, {net_geo.get('region')}, "
                         f"{net_geo.get('country')} (Coordinates: {net_geo.get('coordinates')}, "
                         f"ISP: {net_geo.get('isp')}, Public IP: {net_geo.get('public_ip')})"
                     )
@@ -444,7 +448,8 @@ class CascadeSubstrateAdapters:
                     names = [str(e.get("name", "")) for e in entries if isinstance(e, dict)]
                     if names:
                         content_str = (
-                            f"Inbox drop folder contains {len(names)} file(s) waiting to be imported: "
+                            f"Inbox drop folder contains {
+                                len(names)} file(s) waiting to be imported: "
                             f"{', '.join(names)}. (Location: host inbox/)"
                         )
                     else:
@@ -518,7 +523,8 @@ class CascadeSubstrateAdapters:
                     )
                 )
                 or ("files" in lower and "workspace" in lower)
-                or ("files" in lower and any(v in lower for v in ("have", "see", "show", "list", "any")))
+                or ("files" in lower and any(v in lower for v in ("have", "see", "show", "list",
+                    "any")))
             )
 
             if is_workspace_listing:
@@ -842,7 +848,8 @@ class CascadeSubstrateAdapters:
                         told_true=told_true,
                         told_false=told_false,
                         confidence=0.85,
-                        metadata=res.structured if isinstance(res.structured, dict) else {"query": search_query},
+                        metadata=res.structured if isinstance(res.structured,
+                            dict) else {"query": search_query},
                     )
                 )
         except Exception as exc:  # noqa: BLE001

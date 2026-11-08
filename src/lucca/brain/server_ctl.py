@@ -228,7 +228,9 @@ def scan_model_registry(models_dir: Path, active_model_rel: str = "") -> list[Mo
         is_vision_model = (
             "vision" in p_name_lower
             or "vl" in p_name_lower
-            or (paired_mmproj is not None and not is_audio_model and "vision" in str(paired_mmproj).lower())
+            or (
+                paired_mmproj is not None and not is_audio_model and "vision" in str(
+                    paired_mmproj).lower())
         )
 
         if is_audio_model and paired_mmproj is not None and paired_mmproj.exists():

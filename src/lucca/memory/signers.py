@@ -12,7 +12,7 @@ from typing import Final, Protocol
 
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload
-from lucca.memory.tokens import derive_provenance_key, hkdf_expand, hkdf_extract
+from lucca.memory.tokens import derive_provenance_key
 
 KNOWN_DEV_KEYS: Final[frozenset[str]] = frozenset(
     {
@@ -22,30 +22,6 @@ KNOWN_DEV_KEYS: Final[frozenset[str]] = frozenset(
         "default_master_key",
     }
 )
-
-
-def hkdf_extract(salt: bytes, ikm: bytes) -> bytes:
-    if not salt:
-        salt = b"\x00" * 32
-    return hmac.new(salt, ikm, hashlib.sha256).digest()
-
-
-def hkdf_expand(prk: bytes, info: bytes, length: int = 32) -> bytes:
-    t = b""
-    okm = b""
-    i = 1
-    while len(okm) < length:
-        t = hmac.new(prk, t + info + bytes([i]), hashlib.sha256).digest()
-        okm += t
-        i += 1
-    return okm[:length]
-
-
-def derive_provenance_key(master_key: bytes, provenance: Provenance) -> bytes:
-    """HKDF(SHA256, ikm=master, salt=b'lucca-v2', info=b'prov/' + provenance.value, L=32)."""
-    prk = hkdf_extract(salt=b"lucca-v2", ikm=master_key)
-    info = b"prov/" + provenance.value.encode("utf-8")
-    return hkdf_expand(prk, info=info, length=32)
 
 
 def canonicalize_payload_dict(d: Mapping[str, object]) -> bytes:

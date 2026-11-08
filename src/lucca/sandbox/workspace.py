@@ -95,7 +95,8 @@ class WorkspaceManager:
         """
         p = Path(filename)
         if p.name != filename or ".." in p.parts or p.is_absolute():
-            raise SandboxPathError("INVALID_FILENAME", f"Filename must be a simple basename, got: {filename}")
+            raise SandboxPathError("INVALID_FILENAME",
+                f"Filename must be a simple basename, got: {filename}")
 
         src = self.inbox_root / p.name
         if not src.is_file():

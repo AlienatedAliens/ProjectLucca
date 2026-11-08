@@ -33,10 +33,9 @@ Edge Cases Covered:
 
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from lucca.core.belief_service import BeliefService
 from lucca.core.cascade import (
@@ -53,7 +52,6 @@ from lucca.memory.reflection import ReflectionEngine
 from lucca.memory.signers import AssistantUtteranceSigner, UserSpeechSigner
 from lucca.memory.store import MemoryStore
 from lucca.reasoning.induction import cluster_phrasings, is_rule_conflict
-from lucca.senses.embed import LocalEmbeddingPort
 
 TEST_MASTER_KEY = b"01234567890123456789012345678901"
 
@@ -352,7 +350,7 @@ def test_edge_clustering_neutral_bridge_transitive_isolation() -> None:
 
     leader_a: str | None = None
     leader_c: str | None = None
-    for leader, count, members in clusters:
+    for leader, _count, members in clusters:
         if "always enforce single quotes" in members:
             leader_a = leader
         if "never enforce single quotes" in members:

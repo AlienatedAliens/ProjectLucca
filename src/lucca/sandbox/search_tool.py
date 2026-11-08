@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import html
 import re
+import shutil
+import subprocess
 import urllib.parse
 
 import httpx
@@ -121,7 +123,7 @@ def _simplify_search_query(q: str) -> str:
 def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
     """Fast probe to determine if a SearXNG candidate endpoint is alive and accepting traffic."""
     try:
-        probe_target = candidate_url.split("?")[0].replace("/search", "/")
+        probe_target = candidate_url.split("?", maxsplit=1)[0].replace("/search", "/")
         with httpx.Client(timeout=timeout, follow_redirects=True) as client:
             probe = client.get(probe_target)
             return probe.status_code in (200, 301, 302)
@@ -165,10 +167,9 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
 
     # Dynamically discover WSL NAT IP if on Windows
     try:
-        import subprocess as _sp  # noqa: PLC0415
-
-        wsl_out = _sp.check_output(
-            ["wsl.exe", "-e", "sh", "-c", "hostname -I"],
+        wsl_exe = shutil.which("wsl.exe") or "wsl.exe"
+        wsl_out = subprocess.check_output(
+            [wsl_exe, "-e", "sh", "-c", "hostname -I"],
             text=True,
             timeout=2.0,
         ).strip().split()
@@ -178,9 +179,8 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
         logger.debug("searxng_wsl_hostname_resolution_failed", error=str(exc))
 
     try:
-        import subprocess as _sp  # noqa: PLC0415
-
-        out = _sp.check_output(["arp", "-a"], text=True, timeout=1.0)
+        arp_exe = shutil.which("arp") or "arp"
+        out = subprocess.check_output([arp_exe, "-a"], text=True, timeout=1.0)
         for line in out.splitlines():
             if "00-15-5d" in line.lower() and "dynamic" in line.lower():
                 parts = line.split()
@@ -272,7 +272,8 @@ def _resolve_rfc_standards(query: str, max_results: int = 5) -> list[dict[str, s
                         for w in query.split()
                         if len(w) > 2
                         and w.lower()
-                        not in ("rfc", rfc_num, "what", "is", "the", "between", "difference", "according")
+                        not in ("rfc", rfc_num, "what", "is", "the", "between", "difference",
+                            "according")
                     ]
                     paras = text.split("\n\n")
                     matching: list[str] = []
@@ -561,8 +562,10 @@ def search_web(
             res_dict["target_entity"] = target_str
             res_dict["entity_absent_in_results"] = True
             msg += (
-                f"\n[WARNING: Target entity '{target_str}' was NOT found in retrieved search results. "
-                f"Do not extrapolate or fabricate details about '{target_str}' from adjacent entities.]"
+                f"\n[WARNING: Target entity '{
+                    target_str}' was NOT found in retrieved search results. "
+                f"Do not extrapolate or fabricate details about '{
+                    target_str}' from adjacent entities.]"
             )
         return res_dict, msg
 
@@ -600,8 +603,10 @@ def search_web(
         entity_absent = not found
         if entity_absent:
             formatted_lines.append(
-                f"[WARNING: Target entity '{target_str}' was NOT found in retrieved search results. "
-                f"Do not extrapolate or fabricate details about '{target_str}' from adjacent entities.]"
+                f"[WARNING: Target entity '{
+                    target_str}' was NOT found in retrieved search results. "
+                f"Do not extrapolate or fabricate details about '{
+                    target_str}' from adjacent entities.]"
             )
 
     content_str = "\n".join(formatted_lines).strip()

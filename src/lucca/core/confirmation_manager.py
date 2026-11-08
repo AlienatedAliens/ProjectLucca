@@ -13,12 +13,12 @@ import threading
 from typing import TYPE_CHECKING, Literal
 
 import structlog
-
-from lucca.senses.ring_buffer import FLAG_ABORT
-from lucca.core.ipc_schemas import Envelope, PlayAbortPayload, UIConfirmPayload
-from lucca.sandbox.policy import parse_confirmation_response
-from lucca.core.trace import TurnTrace, now_ns
 from pydantic import JsonValue
+
+from lucca.core.ipc_schemas import Envelope, PlayAbortPayload, UIConfirmPayload
+from lucca.core.trace import TurnTrace, now_ns
+from lucca.sandbox.policy import parse_confirmation_response
+from lucca.senses.ring_buffer import FLAG_ABORT
 
 if TYPE_CHECKING:
     from lucca.core.ipc_schemas import PTTReleasedPayload

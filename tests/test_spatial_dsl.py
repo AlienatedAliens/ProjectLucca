@@ -6,7 +6,6 @@ Project Lucca — Unit Tests for Spatial DSL & Metamorphic Invariance Module
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from lucca.reasoning.spatial_dsl import (
     PrimitiveDomain,
@@ -247,7 +246,7 @@ def test_sort_objects() -> None:
         [1, 0, 2, 0],
         [0, 0, 2, 0],
     ]
-    objs = find_objects(grid)
+    find_objects(grid)
     # obj for color 1 has height 3, width 1, area 3
     # obj for color 2 has height 3, width 1, area 3
     # Let's test with distinct heights

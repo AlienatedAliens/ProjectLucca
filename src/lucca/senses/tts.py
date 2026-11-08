@@ -243,7 +243,9 @@ class TTSWorker:
         self.set_dsp_config(pitch_semitones=p, enabled=True)
 
     def resolve_voice_style(self, voice_spec: str) -> str | npt.NDArray[np.float32]:
-        """Resolves a voice string to either a native voice ID, cloned vector, or cached blended array."""
+        """
+        Resolves a voice string to either a native voice ID, cloned vector, or cached blended array.
+        """
         if self.engine is None:
             return voice_spec
 
@@ -321,7 +323,8 @@ class TTSWorker:
                     resolved_voice = self.resolve_voice_style("lucca_inventor")
                 samples_f32, sr = self.engine.create(clean_text, voice=resolved_voice, speed=s)
         except Exception as exc:  # noqa: BLE001
-            logger.debug("tts_engine_synthesize_failed_fallback", engine=engine_type, error=str(exc))
+            logger.debug("tts_engine_synthesize_faile"
+                "d_fallback", engine=engine_type, error=str(exc))
             fallback_voice = self.resolve_voice_style("af_sarah")
             samples_f32, sr = self.engine.create(clean_text, voice=fallback_voice, speed=s)
 

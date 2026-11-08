@@ -5,75 +5,50 @@ Spec 01 §3, §4, §6, Spec 10, ADR-008
 
 import base64
 import io
-import json
 import os
-from pathlib import Path
 import queue
 import re
 import sys
 import threading
 import time
-import urllib.parse
 import wave
 from collections import deque
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Literal
 
 import structlog
-
-logger = structlog.get_logger(__name__)
-
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    except Exception as exc:  # noqa: BLE001, S110
-        logger.debug("reconfigure_stdout_failed", error=str(exc))
-if sys.stderr and hasattr(sys.stderr, "reconfigure"):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
-    except Exception as exc:  # noqa: BLE001, S110
-        logger.debug("reconfigure_stderr_failed", error=str(exc))
-
 import ulid
 import zmq
-from pydantic import JsonValue, ValidationError
+from pydantic import JsonValue
 
-from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
+from lucca.brain.chunker import StreamingChunker
 from lucca.brain.llm_client import LLMClient
 from lucca.brain.prompt_builder import (
-    build_planning_messages,
-    get_all_tool_definitions,
     set_persona,
 )
+from lucca.core.active_goals import ActiveGoalManager
 from lucca.core.affect import AffectSignal, AffectTracker
 from lucca.core.bdi_validator import SpeculativeBDIValidator
 from lucca.core.belief_service import BeliefService
-from lucca.core.capabilities import dispatch_invoke_skill
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.clock import SystemClock
+from lucca.core.code_preflight_service import CodePreflightService
+from lucca.core.cognitive_sink import CognitiveOutcomeSink
 from lucca.core.coherence import (
     ToolReceipt,
-    detect_promised_action_claims,
     detect_ungrounded_action_claims,
 )
-from lucca.core.config import get_config, load_heuristics
+from lucca.core.config import get_config
 from lucca.core.confirmation_manager import ConfirmationManager
 from lucca.core.corroboration import (
-    CQAnswer,
     CriticalQuestionResult,
-    Scheme,
-    adjust_confidence,
-    critical_questions,
-    detect_premise_scheme,
-    extract_receipt_source,
 )
-from lucca.core.cognitive_sink import CognitiveOutcomeSink
+from lucca.core.deduction_runner import DeductionAndPlanningRunner
 from lucca.core.episode_recall import EpisodeRecall
-from lucca.memory.episodic_code_cache import EpisodicCodeCache
 from lucca.core.ipc_schemas import (
     Envelope,
     PlayAbortPayload,
-    PlayBeginPayload,
     PTTReleasedPayload,
     UIConfigUpdatePayload,
     UIConfirmResultPayload,
@@ -85,12 +60,10 @@ from lucca.core.ipc_schemas import (
 from lucca.core.memory_commit_service import (
     MemoryCommitService,
 )
+from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
 from lucca.core.proof_policy import (
     is_cross_reference_command,
     load_ratification_domains,
-    meets_standard,
-    required_standard,
-    required_threshold,
 )
 from lucca.core.reasoning_context import ProofTraceStep, ReasoningContext, ReasoningEntry
 from lucca.core.schemas import (
@@ -105,51 +78,38 @@ from lucca.core.schemas import (
     Provenance,
     RetrievalQuery,
     RouteAction,
-    RouteDecision,
     RuleOutcome,
     RuleState,
-    Say,
     SignedPayload,
-    TokenDelta,
     ToolCall,
-    ToolCallEnd,
     ToolResult,
     TTSChunk,
     UnsignedPayload,
-    canonicalize_predicate,
-    is_valid_predicate,
-    standard_for_confidence,
 )
 from lucca.core.self_diagnosis import Diagnosis, DiagnosisEngine
 from lucca.core.signer_factory import SignerFactory
 from lucca.core.speech_output_manager import SpeechOutputManager
 from lucca.core.speech_stream_pipeline import SpeechStreamPipeline
 from lucca.core.text_utils import normalize_transcript
-from lucca.core.code_preflight_service import CodePreflightService
-from lucca.core.deduction_runner import DeductionAndPlanningRunner
 from lucca.core.tool_dispatcher import ToolDispatcher
 from lucca.core.trace import TurnTrace, log_turn_trace, now_ns
 from lucca.core.turn_pipeline import (
-    SubTurnScratchpadBuffer,
     TurnInput,
     TurnPipeline,
     normalize_spelled_words,
-    synthesize_plan_narration,
 )
-from lucca.core.active_goals import ActiveGoalManager
-from lucca.core.tool_shortlister import check_tool_fit
 from lucca.core.user_model import UserModel
 from lucca.core.visual_session import VisualSessionStore
 from lucca.memory.db import DatabaseManager
+from lucca.memory.episodic_code_cache import EpisodicCodeCache
 from lucca.memory.reflection import ReflectionEngine, is_rollup_due
-from lucca.memory.working import WorkingMemory
-from lucca.reasoning.consolidation import ConsolidationEngine
 from lucca.memory.signers import (
     AssistantUtteranceSigner,
     CoherenceBreachSigner,
     ToolResultSigner,
     UserSpeechSigner,
 )
+from lucca.memory.working import WorkingMemory
 from lucca.ports import (
     ClockPort,
     MemoryStorePort,
@@ -158,15 +118,14 @@ from lucca.ports import (
     STTPort,
     TTSPort,
 )
+from lucca.reasoning.consolidation import ConsolidationEngine
 from lucca.reasoning.lifecycle import RuleLifecycleManager
-from lucca.reasoning.scheme.eval import evaluate_plan, evaluate_rule
 from lucca.router.calibration import fit_guard_from_db
 from lucca.router.heuristic import HeuristicRouter
 from lucca.router.labeler import derive_label, persist_decision_label
 from lucca.sandbox.output_supervisor import OutputSupervisorSession
 from lucca.sandbox.policy import parse_confirmation_response
-from lucca.sandbox.preflight import extract_python_code
-from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS, PreflightResult
+from lucca.sandbox.schemas import PreflightResult
 from lucca.sandbox.service import SandboxService
 from lucca.senses.asr import ASRWorker
 from lucca.senses.ring_buffer import (
@@ -179,6 +138,17 @@ from lucca.senses.tts import TTSWorker
 from lucca.senses.verifier import VerifierWorker
 
 logger = structlog.get_logger(__name__)
+
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stdout_failed", error=str(exc))
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    try:
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception as exc:  # noqa: BLE001, S110
+        logger.debug("reconfigure_stderr_failed", error=str(exc))
 
 TurnState = Literal[
     "idle", "listening", "thinking", "speaking", "confirm_wait", "postturn", "degraded", "offline"
@@ -501,7 +471,6 @@ class Orchestrator:
         # WO-21 Phase 3: Proactive Web-Fact Ratification & Cross-Reference
         self.ratification_domains: set[str] = load_ratification_domains()
         try:
-            from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
 
             get_neural_hazard_classifier()
         except Exception as _nh_exc:  # noqa: BLE001
@@ -517,7 +486,8 @@ class Orchestrator:
             self.memory_store.retriever.active_goals = self.active_goals
 
         # WO-21 Phase 4 & WO-36: Semantic Theory of Mind User Model & Goal-Biased CBR Episode Recall
-        embed_port = getattr(self.memory_store, "embedding_port", None) if self.memory_store else None
+        embed_port = getattr(self.memory_store, "embedding_port",
+            None) if self.memory_store else None
         self.user_model = UserModel(db=self.db, embedder=embed_port, verifier=verifier_inst)
         self.episode_recall = EpisodeRecall(
             db=self.db,
@@ -1098,7 +1068,8 @@ class Orchestrator:
         if self.active_trace:
             self.active_trace.interrupted = True
 
-        # 2. Terminate in-flight LLM streaming request (aborts socket/HTTP generator and releases slot)
+        # 2. Terminate in-flight LLM streaming request (aborts socket/HTTP generator and releases
+        # slot)
         target_trace_id = self.active_trace.trace_id if self.active_trace else None
         self.llm.abort(trace_id=target_trace_id)
         self.chunker.reset()
@@ -1713,7 +1684,9 @@ class Orchestrator:
         return None
 
     def maybe_run_nightly_rollup(self, now: float | None = None) -> int:
-        """Executes nightly roll-up and DreamRetrospective if due and records persistent timestamp."""
+        """
+        Executes nightly roll-up and DreamRetrospective if due and records persistent timestamp.
+        """
         if not self.reflection_engine:
             return 0
         current_time = now if now is not None else time.time()
@@ -1756,7 +1729,12 @@ class Orchestrator:
         grammar: str | None = None,
     ) -> None:
         """Executes streaming LLM response generation (delegates to SpeechStreamPipeline)."""
-        self.speech_stream.stream_llm_speech(
+        pipeline = (
+            self.speech_stream
+            if isinstance(getattr(self, "speech_stream", None), SpeechStreamPipeline)
+            else SpeechStreamPipeline(self)
+        )
+        pipeline.stream_llm_speech(
             trace=trace,
             user_msg=user_msg,
             decision_id=decision_id,
@@ -1971,7 +1949,10 @@ class Orchestrator:
         return self.tool_dispatcher.handle_schedule_event(call_id, args)
 
     def maybe_fire_due_events(self, now: float | None = None) -> list[str]:
-        """Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus notifications."""
+        """
+        Claims due scheduled events from the sandbox store, speaks reminders, and publishes bus
+        notifications.
+        """
         if not hasattr(self, "sandbox") or not hasattr(self.sandbox, "claim_due_events"):
             return []
         try:

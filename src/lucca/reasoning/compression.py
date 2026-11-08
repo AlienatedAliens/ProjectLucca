@@ -12,21 +12,18 @@ correctness via Z3 SMT, and emits verified candidates strictly into QUARANTINE.
 
 from __future__ import annotations
 
-import copy
-import re
-import time
 from typing import Final
 
-from pydantic import BaseModel, Field
 import structlog
+import z3
+from pydantic import BaseModel
 
-from lucca.core.schemas import CandidateRule, ToolSchema
-from lucca.core.scratchpad import MacroTestCase, ScratchpadFalsifier
+from lucca.core.schemas import ToolSchema
+from lucca.core.scratchpad import ScratchpadFalsifier
 from lucca.reasoning.cost import (
     ast_cost,
     ast_depth,
     compute_compression_savings,
-    compute_description_length,
 )
 from lucca.reasoning.egraph import (
     anti_unify_many,
@@ -43,13 +40,14 @@ from lucca.reasoning.scheme.macros import (
 )
 from lucca.reasoning.scheme.parser import (
     STATE_PREDICATES,
-    SchemeAtom,
     SchemeNode,
     Symbol,
     parse_expr,
     to_canonical,
 )
-from lucca.reasoning.smt_verifier import SMTVerifier
+from lucca.reasoning.smt_verifier import SMTVerifier, StateContext
+from lucca.reasoning.spatial_dsl import register_macro_primitive
+from lucca.reasoning.spatial_scheme import GLOBAL_MACRO_REGISTRY
 
 logger = structlog.get_logger(__name__)
 
@@ -157,8 +155,7 @@ class DreamCoderMacroMiner:
         Beta-reduces rewritten macro calls into underlying primitives and formally verifies
         via Z3 that the beta-expanded expression is equivalent to the original expression.
         """
-        import z3
-        from lucca.reasoning.smt_verifier import StateContext
+
 
         for orig_inst, rew_inst in zip(instances, rewritten_instances, strict=False):
             try:
@@ -170,7 +167,8 @@ class DreamCoderMacroMiner:
             if to_canonical(expanded_inst) != to_canonical(orig_inst):
                 return (
                     False,
-                    f"Beta-reduced macro {to_canonical(expanded_inst)} != original {to_canonical(orig_inst)}",
+                    f"Beta-reduced macro {
+                        to_canonical(expanded_inst)} != original {to_canonical(orig_inst)}",
                 )
 
             try:
@@ -181,9 +179,13 @@ class DreamCoderMacroMiner:
                 solver.set("timeout", 500)
                 solver.add(z3_orig != z3_exp)
                 if solver.check() == z3.sat:
-                    return False, "Z3 found counterexample where beta-reduced macro != original expression"
+                    return False, (
+                        "Z3 found counterexample where beta-reduced macro != original "
+                        "expression"
+                    )
             except ValueError:
-                # Non-SMT domain primitive expression already verified via structural canonical equality above
+                # Non-SMT domain primitive expression already verified via structural canonical
+                # equality above
                 pass
             except Exception as exc:  # noqa: BLE001
                 logger.debug("compression_z3_equivalence_error", error=str(exc))
@@ -213,7 +215,8 @@ class DreamCoderMacroMiner:
                 compression_savings=0.0,
                 falsification_passed=False,
                 smt_verified=False,
-                rejection_reason=f"Insufficient instances: {len(instances)} < {MIN_INSTANCES_FOR_MINING}",
+                rejection_reason=f"Insufficient instances: {
+                    len(instances)} < {MIN_INSTANCES_FOR_MINING}",
             )
 
         # 1. First-Order Anti-Unification
@@ -264,7 +267,8 @@ class DreamCoderMacroMiner:
         depth = ast_depth(template)
         if depth > MAX_MACRO_DEPTH:
             reason = f"D-REAS-05 violation: macro depth {depth} exceeds limit {MAX_MACRO_DEPTH}"
-            logger.warning("macro_bound_rejected", macro=macro_name, depth=depth, limit=MAX_MACRO_DEPTH)
+            logger.warning("macro_bound_rejected", macro=macro_name, depth=depth,
+                limit=MAX_MACRO_DEPTH)
             return MinedMacroCandidate(
                 name=macro_name,
                 params=params,
@@ -281,7 +285,8 @@ class DreamCoderMacroMiner:
         # Check macro expansion step count
         reg = MacroRegistry({macro_name: macro_def})
         expander = MacroExpander(reg)
-        sample_call: SchemeNode = [Symbol(macro_name), *[Symbol(f"val_{i}") for i in range(len(params))]]
+        sample_call: SchemeNode = [Symbol(macro_name),
+            *[Symbol(f"val_{i}") for i in range(len(params))]]
         try:
             expander.expand(sample_call)
             step_count = expander.step_count
@@ -301,7 +306,8 @@ class DreamCoderMacroMiner:
             )
 
         if step_count > MAX_MACRO_STEPS:
-            reason = f"D-REAS-05 violation: expansion steps {step_count} exceeds limit {MAX_MACRO_STEPS}"
+            reason = f"D-REAS-05 violation: expansion steps {
+                step_count} exceeds limit {MAX_MACRO_STEPS}"
             return MinedMacroCandidate(
                 name=macro_name,
                 params=params,
@@ -434,7 +440,8 @@ class DreamCoderMacroMiner:
                 promo = self.lifecycle.promote_if_eligible(managed.rule_id)
                 active = (managed.status == "ACTIVE")
                 if active or promo.promoted:
-                    raise RuntimeError("D-REAS-06 invariant breached: mined macro auto-promoted to ACTIVE")
+                    raise RuntimeError("D-REAS-06 invariant breached: mined macro "
+                        "auto-promoted to ACTIVE")
             except Exception as reg_exc:
                 logger.warning("macro_lifecycle_registration_error", error=str(reg_exc))
                 return MinedMacroCandidate(
@@ -618,13 +625,12 @@ def register_mined_primitive(
     if macro_registry is not None:
         macro_registry.register(macro_def)
     else:
-        from lucca.reasoning.spatial_scheme import GLOBAL_MACRO_REGISTRY
         GLOBAL_MACRO_REGISTRY.register(macro_def)
 
-    from lucca.reasoning.spatial_dsl import register_macro_primitive
     register_macro_primitive(
         name=candidate.name,
         params=candidate.params,
-        doc=f"Mined primitive (savings={candidate.compression_savings:.2f}): {candidate.body_canonical}",
+        doc=f"Mined primitive (savings={
+            candidate.compression_savings:.2f}): {candidate.body_canonical}",
     )
     return True

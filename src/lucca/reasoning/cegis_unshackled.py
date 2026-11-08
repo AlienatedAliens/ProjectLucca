@@ -54,16 +54,14 @@ if TYPE_CHECKING:
 
 logger = structlog.get_logger(__name__)
 
-
 def extract_hypothesis(text: str) -> str | None:
     """Extracts structured hypothesis block from model response if present."""
-    m = re.search(r"(?:HYPOTHESIS|Hypothesis):?\s*(.+?)(?=```python|```|$)", text, re.DOTALL | re.IGNORECASE)
+    m = re.search(r"(?:HYPOTHESIS|Hypothesis):?\s*(.+?)(?=```pyt"
+        r"hon|```|$)", text, re.DOTALL | re.IGNORECASE)
     if m:
         cleaned = m.group(1).strip()
         return cleaned if len(cleaned) > 10 else None
     return None
-
-
 
 @dataclass(frozen=True)
 class CEGISTurn:
@@ -81,7 +79,6 @@ class CEGISTurn:
     hypothesis: str | None = None
     is_backtrack: bool = False
 
-
 @dataclass(frozen=True)
 class CEGISRunResult:
     """Comprehensive outcome of the Counterexample-Guided Inductive Synthesis loop."""
@@ -94,8 +91,6 @@ class CEGISRunResult:
     total_elapsed_ms: float = 0.0
     error_summary: str | None = None
 
-
-
 class UnshackledCEGISEngine:
     """
     Autonomous Counterexample-Guided Inductive Synthesis (CEGIS) Engine for Lucca v1.44.0.
@@ -103,33 +98,24 @@ class UnshackledCEGISEngine:
     algorithmic Python transformation code on the fly with structured cell diff guidance.
     """
 
-    def __init__(
-        self,
-        server_url: str = "http://127.0.0.1:8080/v1/chat/completions",
-        timeout_seconds: float = 120.0,
-        max_turns: int = 4,
-        k_samples: int = 4,
-        outcome_sink: CognitiveOutcomeSink | None = None,
-    ) -> None:
+    def __init__(self, server_url: str = "http://127.0.0.1:8080/v1/chat/completions",
+        timeout_seconds: float = 120.0, max_turns: int = 4, k_samples: int = 4,
+        outcome_sink: CognitiveOutcomeSink | None = None,) -> None:
         self.server_url = server_url
         self.timeout_seconds = timeout_seconds
         self.max_turns = max_turns
         self.k_samples = k_samples
         self.outcome_sink = outcome_sink
 
-    def _notify_outcome_sink(
-        self,
-        result: CEGISRunResult,
-        task_data: dict[str, object],
-        hint: str | None = None,
-        outcome_sink: CognitiveOutcomeSink | None = None,
-    ) -> None:
+    def _notify_outcome_sink(self, result: CEGISRunResult, task_data: dict[str, object],
+        hint: str | None = None, outcome_sink: CognitiveOutcomeSink | None = None,) -> None:
         """Forwards UnshackledCEGISEngine run outcome to CognitiveOutcomeSink (Milestone 36.1)."""
         sink = outcome_sink or self.outcome_sink
         if sink is None:
             return
         try:
-            task_id = str(task_data.get("id") or task_data.get("task_id") or f"arc-{uuid.uuid4().hex[:8]}")
+            task_id = str(
+                task_data.get("id") or task_data.get("task_id") or f"arc-{uuid.uuid4().hex[:8]}")
             turn_1_err: str | None = None
             verified_strat: str | None = None
             if result.turns:
@@ -139,55 +125,36 @@ class UnshackledCEGISEngine:
                 elif t1.failure_diff:
                     turn_1_err = t1.failure_diff.summary_message
                 last_t = result.turns[-1]
-                verified_strat = last_t.hypothesis or ("Multi-turn spatial repair" if result.turns_taken >= 2 else "Direct synthesis")
-            turn_traces: list[dict[str, object]] = [
-                {
-                    "turn": tr.turn,
+                verified_strat = last_t.hypothesis or (
+                    "Multi-turn spatial repair" if result.turns_taken >= 2 else "Direct synthesis")
+            turn_traces: list[dict[str, object]] = [ { "turn": tr.turn,
                     "name": "initial_synthesis" if tr.turn == 1 else f"repair_turn_{tr.turn}",
-                    "summary": f"passed={tr.passed_examples}/{tr.total_examples}; err={tr.execution_error or (tr.failure_diff.summary_message if tr.failure_diff else 'none')}",
-                }
-                for tr in result.turns
-            ]
-            status_label = (
-                "VERIFIED_REPAIRED_PROGRAM"
+                    "summary": f"passed={tr.passed_examples}/{tr.total_examples}; " "err="
+                        f"{tr.execution_error or (tr.failure_diff.summary_message
+                        if tr.failure_diff else 'none')}", } for tr in result.turns ]
+            status_label = ("VERIFIED_REPAIRED_PROGRAM"
                 if (result.success and result.turns_taken >= 2)
                 else ("CHECKED_FORMALIZATION_AGREED" if result.success else "INTERNAL_FALLBACK")
             )
-            sink.record_cegis_outcome(
-                task_id=task_id,
-                problem_summary=verified_strat or hint or f"Spatial grid transformation ({task_id})",
-                engine_name="UnshackledCEGISEngine",
-                success=result.success,
-                turns_taken=result.turns_taken,
-                final_code=result.final_code,
-                turn_1_error=turn_1_err,
-                verified_strategy=verified_strat,
-                turn_traces=turn_traces,
-                status_label=status_label,
-            )
+            sink.record_cegis_outcome(task_id=task_id,
+                problem_summary=verified_strat or hint or f"Spatial grid transformation ({
+                    task_id})", engine_name="UnshackledCEGISEngine", success=result.success,
+                turns_taken=result.turns_taken, final_code=result.final_code,
+                turn_1_error=turn_1_err, verified_strategy=verified_strat,
+                turn_traces=turn_traces, status_label=status_label,)
         except Exception as sink_err:  # noqa: BLE001
             logger.debug("unshackled_cegis_outcome_sink_failed", error=str(sink_err))
 
-    def query_llm(
-        self,
-        prompt: str,
-        system_prompt: str | None = None,
-        temperature: float = 0.2,
-        max_tokens: int = 2048,
-        stop: list[str] | None = None,
-    ) -> str:
+    def query_llm(self, prompt: str, system_prompt: str | None = None, temperature: float = 0.2,
+        max_tokens: int = 2048, stop: list[str] | None = None,) -> str:
         """Queries local llama-server instance synchronously."""
         messages: list[dict[str, str]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
-        payload: dict[str, object] = {
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": False,
-            "chat_template_kwargs": {"enable_thinking": False},
-        }
+        payload: dict[str, object] = { "messages": messages, "temperature": temperature,
+            "max_tokens": max_tokens, "stream": False,
+            "chat_template_kwargs": {"enable_thinking": False}, }
         if stop:
             payload["stop"] = stop
         with httpx.Client(timeout=self.timeout_seconds) as client:
@@ -201,22 +168,18 @@ class UnshackledCEGISEngine:
     def _format_train_examples(train_pairs: list[dict[str, list[list[int]]]]) -> str:
         blocks: list[str] = []
         for idx, ex in enumerate(train_pairs, start=1):
-            blocks.append(
-                f"### Demonstration {idx}:\n"
+            blocks.append(f"### Demonstration {idx}:\n"
                 f"Input ({len(ex['input'])}x{len(ex['input'][0]) if ex['input'] else 0}):\n"
                 f"{json.dumps(ex['input'])}\n"
                 f"Output ({len(ex['output'])}x{len(ex['output'][0]) if ex['output'] else 0}):\n"
-                f"{json.dumps(ex['output'])}\n"
-            )
+                f"{json.dumps(ex['output'])}\n")
         return "\n".join(blocks)
 
-    def verify_candidate(
-        self,
-        code: str,
-        train_pairs: list[dict[str, list[list[int]]]],
+    def verify_candidate(self, code: str, train_pairs: list[dict[str, list[list[int]]]],
     ) -> tuple[bool, int, int | None, GridDiff | None, str | None]:
         """
-        Evaluates candidate code against all training demonstrations using batch container execution.
+        Evaluates candidate code against all training demonstrations using batch container
+        execution.
         Returns (all_passed, passed_count, first_failing_idx, first_diff, error_message).
         """
         if not train_pairs:
@@ -224,7 +187,7 @@ class UnshackledCEGISEngine:
         inputs = [p["input"] for p in train_pairs]
         outcomes = execute_unshackled_python_batch(code, inputs)
         passed_count = 0
-        for idx, (pair, outcome) in enumerate(zip(train_pairs, outcomes)):
+        for idx, (pair, outcome) in enumerate(zip(train_pairs, outcomes, strict=False)):
             if not outcome.success or outcome.output_grid is None:
                 err_msg = f"{outcome.error_type}: {outcome.error_message}"
                 return False, passed_count, idx, None, err_msg
@@ -235,9 +198,7 @@ class UnshackledCEGISEngine:
                 return False, passed_count, idx, diff, None
         return True, passed_count, None, None, None
 
-    def verify_or_mutate_candidate(
-        self,
-        code: str,
+    def verify_or_mutate_candidate(self, code: str,
         train_pairs: list[dict[str, list[list[int]]]],
     ) -> tuple[str, bool, int, int | None, GridDiff | None, str | None]:
         """
@@ -246,7 +207,8 @@ class UnshackledCEGISEngine:
         single-point AST mutations (boolean polarity, mask inversion, argument swap).
         Returns (best_code, all_passed, passed_count, first_failing_idx, first_diff, error_message).
         """
-        all_passed, passed_count, fail_idx, fail_diff, err_msg = self.verify_candidate(code, train_pairs)
+        all_passed, passed_count, fail_idx, fail_diff, err_msg = self.verify_candidate(code,
+            train_pairs)
         if all_passed or not code.strip():
             return code, all_passed, passed_count, fail_idx, fail_diff, err_msg
         mutants = generate_ast_mutants(code)
@@ -256,14 +218,11 @@ class UnshackledCEGISEngine:
         best_diff = fail_diff
         best_err = err_msg
         for mutant in mutants:
-            m_passed, m_count, m_fail_idx, m_diff, m_err = self.verify_candidate(mutant, train_pairs)
+            m_passed, m_count, m_fail_idx, m_diff, m_err = self.verify_candidate(mutant,
+                train_pairs)
             if m_passed:
-                logger.info(
-                    "cegis_ast_mutant_repaired_100_train",
-                    original_passed=passed_count,
-                    mutant_passed=m_count,
-                    total=len(train_pairs),
-                )
+                logger.info("cegis_ast_mutant_repaired_100_train", original_passed=passed_count,
+                    mutant_passed=m_count, total=len(train_pairs),)
                 return mutant, True, m_count, None, None, None
             if m_count > best_passed_count:
                 best_code = mutant
@@ -273,44 +232,40 @@ class UnshackledCEGISEngine:
                 best_err = m_err
         return best_code, False, best_passed_count, best_fail_idx, best_diff, best_err
 
-    def synthesize_turn_1(
-        self,
-        task_data: dict[str, object],
-        hint: str | None = None,
-        temperature: float = 0.2,
-        k_samples: int | None = None,
+    def synthesize_turn_1(self, task_data: dict[str, object], hint: str | None = None,
+        temperature: float = 0.2, k_samples: int | None = None,
     ) -> tuple[str, str | None, str]:
         """
         Synthesizes initial candidate Python program (Turn 1) using Hypothesis-First Abduction.
-        Employs Best-of-K sampling across temperature schedule, selecting by training demonstration accuracy.
+        Employs Best-of-K sampling across temperature schedule, selecting by training demonstration
+        accuracy.
         """
         raw_train = task_data.get("train", [])
-        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train,
+            list) else [])
         train_desc = self._format_train_examples(train_pairs)
         system_prompt = (
             "You are an expert algorithmic programmer and neurosymbolic reasoning engine.\n"
-            "Your objective is to deduce the exact invariant spatial transformation mapping 2D integer grids "
-            "from input to output across all demonstrations, and implement it as a clean Python function."
-        )
-        user_prompt_lines: list[str] = [
-            CANONICAL_PRIMITIVES_PROMPT,
-            "",
-            "Analyze the following input-output grid demonstrations carefully:",
-            "",
-            train_desc,
+            "Your objective is to deduce the exact invariant spatial transformation mapping 2D "
+                "integer grids "
+            "from input to output across all demonstrations, and implement it as a clean "
+                "Python function.")
+        user_prompt_lines: list[str] = [ CANONICAL_PRIMITIVES_PROMPT, "",
+            "Analyze the following input-output grid demonstrations carefully:", "", train_desc,
             "Format Requirement (Hypothesis-First):",
             "Begin your response with a concise HYPOTHESIS block before emitting code:",
-            "HYPOTHESIS:",
-            "- Background Color: <int> (<name>)",
+            "HYPOTHESIS:", "- Background Color: <int> (<name>)",
             "- Canvas Sizing: <same_as_input | fixed HxW | cropped | expanded>",
-            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | cavities | lines>",
+            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | "
+                "cavities | lines>",
             "- Core Transformation Invariant: <1-2 sentences clearly stating the spatial rule>",
-            "- Algorithmic Recipe: <step 1, step 2, step 3>",
-            "",
-            "Specifications & Rules:",
-            "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` that solves this transformation.",
-            "2. All utilities listed above are ALREADY in global scope. Do NOT import from `__main__` or `spatial_utils`.",
-            "3. Return executable Python code inside a single ```python ... ``` block. Absolutely NO comments (#), NO docstrings, and NO markdown explanation outside the block.",
+            "- Algorithmic Recipe: <step 1, step 2, step 3>", "", "Specifications & Rules:",
+            "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` "
+                "that solves this transformation.",
+            "2. All utilities listed above are ALREADY in global scope. Do NOT import from "
+                "`__main__` or `spatial_utils`.",
+            "3. Return executable Python code inside a single ```python ... ``` block. Absolutely "
+                "NO comments (#), NO docstrings, and NO markdown explanation outside the block.",
         ]
         if hint:
             user_prompt_lines.append(f"\nUser / System Guidance: {hint}")
@@ -319,27 +274,19 @@ class UnshackledCEGISEngine:
         temperatures = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5][:k] if k > 1 else [temperature]
         best_candidate: tuple[int, int, str, str | None] | None = None
         for s_idx, t in enumerate(temperatures):
-            response_text = self.query_llm(
-                prompt=prompt,
-                system_prompt=system_prompt,
-                temperature=t,
-                max_tokens=2048,
-            )
+            response_text = self.query_llm(prompt=prompt, system_prompt=system_prompt,
+                temperature=t, max_tokens=2048,)
             cand_code = extract_python_code(response_text)
             cand_code = strip_comments_and_docstrings(cand_code)
             cand_hypo = extract_hypothesis(response_text)
             if not cand_code:
                 continue
-            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(cand_code, train_pairs)
+            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(
+                cand_code, train_pairs)
             if all_passed:
-                logger.info(
-                    "turn1_best_of_k_train_passed",
-                    sample=s_idx + 1,
-                    total_samples=len(temperatures),
-                    temperature=t,
-                    passed=passed_count,
-                    total=len(train_pairs),
-                )
+                logger.info("turn1_best_of_k_train_passed", sample=s_idx + 1,
+                    total_samples=len(temperatures), temperature=t, passed=passed_count,
+                    total=len(train_pairs),)
                 return cand_code, cand_hypo, prompt
             score = (passed_count, -len(cand_code))
             if best_candidate is None or score > (best_candidate[0], best_candidate[1]):
@@ -348,39 +295,29 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def synthesize_repair_turn(
-        self,
-        prior_code: str,
-        task_data: dict[str, object],
-        failing_idx: int,
-        diff: GridDiff | None,
-        err_msg: str | None,
-        turn_num: int,
-        temperature: float = 0.25,
-        prior_hypothesis: str | None = None,
-        k_samples: int | None = None,
-    ) -> tuple[str, str | None, str]:
+    def synthesize_repair_turn(self, prior_code: str, task_data: dict[str, object],
+        failing_idx: int, diff: GridDiff | None, err_msg: str | None, turn_num: int,
+        temperature: float = 0.25, prior_hypothesis: str | None = None,
+        k_samples: int | None = None,) -> tuple[str, str | None, str]:
         """
         Synthesizes a repaired program using structured counterexample diffs (Turn 2..K).
         Samples multiple candidates and selects by demonstration pass accuracy.
         """
         raw_train = task_data.get("train", [])
-        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train,
+            list) else [])
         failing_pair = train_pairs[failing_idx]
         train_desc = self._format_train_examples(train_pairs)
         system_prompt = (
             "You are an expert algorithmic debugger and neurosymbolic program repair engine.\n"
-            "Your previous implementation failed on a training demonstration. Analyze the exact counterexample diff, "
-            "locate the flaw in your logic, and output a corrected, fully verified `transform` function."
-        )
-        repair_prompt_lines: list[str] = [
-            f"### CEGIS REPAIR TURN {turn_num}:",
-            f"Your previous Python code failed on Demonstration {failing_idx + 1}.",
-            "",
-            CANONICAL_PRIMITIVES_PROMPT,
-            "",
-            f"Previous Code Attempt:\n```python\n{prior_code}\n```",
-        ]
+            "Your previous implementation failed on a training demonstration. Analyze the exact "
+                "counterexample diff, "
+            "locate the flaw in your logic, and output a corrected, fully verified "
+                "`transform` function.")
+        repair_prompt_lines: list[str] = [ f"### CEGIS REPAIR TURN {turn_num}:",
+            f"Your previous Python code failed on Demonstration {failing_idx + 1}.", "",
+            CANONICAL_PRIMITIVES_PROMPT, "",
+            f"Previous Code Attempt:\n```python\n{prior_code}\n```", ]
         if prior_hypothesis:
             repair_prompt_lines.append(f"\nPrevious Hypothesis:\n{prior_hypothesis}\n")
         repair_prompt_lines.append("### Failure Diagnostic:")
@@ -390,51 +327,40 @@ class UnshackledCEGISEngine:
             repair_prompt_lines.append(diff.format_counterexample_prompt(max_examples=16))
             outcome = execute_unshackled_python(prior_code, failing_pair["input"])
             if outcome.success and outcome.output_grid:
-                side_by_side = render_grid_side_by_side(
-                    expected=failing_pair["output"],
-                    actual=outcome.output_grid,
-                    use_color=False,
-                )
-                repair_prompt_lines.append("\nGrid Comparison (Expected vs Predicted vs Diff):\n" + side_by_side)
-        repair_prompt_lines.extend([
-            "",
-            "All Training Demonstrations for Reference:",
-            train_desc,
-            "Instructions for Repair:",
+                side_by_side = render_grid_side_by_side(expected=failing_pair["output"],
+                    actual=outcome.output_grid, use_color=False,)
+                repair_prompt_lines.append("\nGrid Comparison (Expected vs Predicted "
+                    "vs Diff):\n" + side_by_side)
+        repair_prompt_lines.extend([ "", "All Training Demonstrations for Reference:",
+            train_desc, "Instructions for Repair:",
             "1. Analyze why the previous code failed the counterexample demonstration.",
-            "2. For enclosure/containment queries, you MUST use `in_cavity`, `extract_cavities`, or `extract_cavity_mask`.",
-            "3. Bounding box `min/max` coordinate check is STRICTLY FORBIDDEN for enclosure checks.",
+            "2. For enclosure/containment queries, you MUST use `in_cavity`, `extract_cavities`, "
+                "or `extract_cavity_mask`.",
+            "3. Bounding box `min/max` coordinate check is STRICTLY FORBIDDEN for "
+                "enclosure checks.",
             "4. Do NOT assume single containers; iterate over all candidate containers.",
-            "5. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others simultaneously.",
-            "6. Return ONLY executable Python code inside a single ```python ... ``` block. Absolutely NO comments or docstrings.",
-        ])
+            "5. Modify your logic so that it satisfies Demonstration 1, 2, ... and ALL others "
+                "simultaneously.",
+            "6. Return ONLY executable Python code inside a single ```python ... ``` block. "
+                "Absolutely NO comments or docstrings.", ])
         prompt = "\n".join(repair_prompt_lines)
         k = k_samples if k_samples is not None else self.k_samples
         temperatures = [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5][:k] if k > 1 else [temperature]
         best_candidate: tuple[int, int, str, str | None] | None = None
         for s_idx, t in enumerate(temperatures):
-            response_text = self.query_llm(
-                prompt=prompt,
-                system_prompt=system_prompt,
-                temperature=t,
-                max_tokens=2048,
-            )
+            response_text = self.query_llm(prompt=prompt, system_prompt=system_prompt,
+                temperature=t, max_tokens=2048,)
             cand_code = extract_python_code(response_text)
             cand_code = strip_comments_and_docstrings(cand_code)
             cand_hypo = extract_hypothesis(response_text)
             if not cand_code:
                 continue
-            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(cand_code, train_pairs)
+            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(
+                cand_code, train_pairs)
             if all_passed:
-                logger.info(
-                    "repair_best_of_k_train_passed",
-                    turn=turn_num,
-                    sample=s_idx + 1,
-                    total_samples=len(temperatures),
-                    temperature=t,
-                    passed=passed_count,
-                    total=len(train_pairs),
-                )
+                logger.info("repair_best_of_k_train_passed", turn=turn_num, sample=s_idx + 1,
+                    total_samples=len(temperatures), temperature=t, passed=passed_count,
+                    total=len(train_pairs),)
                 return cand_code, cand_hypo, prompt
             score = (passed_count, -len(cand_code))
             if best_candidate is None or score > (best_candidate[0], best_candidate[1]):
@@ -443,95 +369,74 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def synthesize_backtrack_turn(
-        self,
-        task_data: dict[str, object],
-        turn_num: int,
-        failed_hypotheses: list[str],
-        prior_error: str | None = None,
-        temperature: float = 0.35,
-        k_samples: int | None = None,
-    ) -> tuple[str, str | None, str]:
+    def synthesize_backtrack_turn(self, task_data: dict[str, object], turn_num: int,
+        failed_hypotheses: list[str], prior_error: str | None = None, temperature: float = 0.35,
+        k_samples: int | None = None,) -> tuple[str, str | None, str]:
         """
         Synthesizes a fresh candidate from scratch when previous branches reached an impasse.
         Discards the failed code branch and forces the model to explore an alternative hypothesis.
         """
         raw_train = task_data.get("train", [])
-        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train,
+            list) else [])
         train_desc = self._format_train_examples(train_pairs)
         system_prompt = (
             "You are an expert algorithmic programmer and neurosymbolic reasoning engine.\n"
-            "Your previous hypothesis failed completely. You must formulate a fresh, alternative conceptual hypothesis "
-            "and implement a brand-new transformation function from scratch."
-        )
-        user_prompt_lines: list[str] = [
-            f"### CLEAN-SLATE BACKTRACKING (TURN {turn_num}):",
+            "Your previous hypothesis failed completely. You must formulate a fresh, alternative "
+                "conceptual hypothesis "
+            "and implement a brand-new transformation function from scratch.")
+        user_prompt_lines: list[str] = [ f"### CLEAN-SLATE BACKTRACKING (TURN {turn_num}):",
             "The previous code branch failed completely across all demonstrations (0 passed).",
             "CRITICAL: Discard the previous approach completely. Do NOT attempt to patch it.",
-            "",
-            CANONICAL_PRIMITIVES_PROMPT,
-            "",
-            "Previous Failed Hypotheses:",
-        ]
+            "", CANONICAL_PRIMITIVES_PROMPT, "", "Previous Failed Hypotheses:", ]
         for idx, h in enumerate(failed_hypotheses, start=1):
             user_prompt_lines.append(f"- Hypothesis {idx}: {h}")
         if prior_error:
             user_prompt_lines.append(f"\nObserved Failure: {prior_error}")
-        user_prompt_lines.extend([
-            "",
-            "Formulate a FRESH, ALTERNATIVE hypothesis from scratch.",
-            "Consider whether:",
-            "- Background color was misidentified (e.g. non-zero background or inverted foreground).",
+        user_prompt_lines.extend([ "",
+            "Formulate a FRESH, ALTERNATIVE hypothesis from scratch.", "Consider whether:",
+            "- Background color was misidentified (e.g. non-zero background or inverted "
+                "foreground).",
             "- Connectivity is 8-connected instead of 4-connected (or vice-versa).",
-            "- The rule depends on enclosed cavities, hollow shapes, or spatial order (top-to-bottom / size).",
+            "- The rule depends on enclosed cavities, hollow shapes, or spatial order "
+                "(top-to-bottom / size).",
             "- The output canvas has different dimensions or is a crop of a specific bounding box.",
-            "- The transformation is rotational or reflective symmetry.",
-            "",
+            "- The transformation is rotational or reflective symmetry.", "",
             "Format Requirement (Hypothesis-First):",
-            "Begin with a fresh HYPOTHESIS block before the code:",
-            "HYPOTHESIS:",
+            "Begin with a fresh HYPOTHESIS block before the code:", "HYPOTHESIS:",
             "- Background Color: <int> (<name>)",
             "- Canvas Sizing: <same_as_input | fixed HxW | cropped | expanded>",
-            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | cavities | lines>",
+            "- Objects & Topology: <individual pixels | 4-connected | 8-connected | "
+                "cavities | lines>",
             "- Core Transformation Invariant: <1-2 sentences clearly stating the fresh rule>",
-            "- Algorithmic Recipe: <step 1, step 2, step 3>",
-            "",
-            "All Training Demonstrations for Reference:",
-            train_desc,
-            "Specifications & Rules:",
-            "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` that solves this transformation.",
-            "2. For enclosure/containment queries, you MUST use `in_cavity`, `extract_cavities`, or `extract_cavity_mask`.",
+            "- Algorithmic Recipe: <step 1, step 2, step 3>", "",
+            "All Training Demonstrations for Reference:", train_desc, "Specifications & Rules:",
+            "1. Write a Python function `def transform(grid: list[list[int]]) -> list[list[int]]:` "
+                "that solves this transformation.",
+            "2. For enclosure/containment queries, you MUST use `in_cavity`, `extract_cavities`, "
+                "or `extract_cavity_mask`.",
             "3. Bounding box `min/max` is STRICTLY FORBIDDEN for enclosure checks.",
             "4. Do NOT assume single containers; iterate over all candidate containers.",
-            "5. Return executable Python code inside a single ```python ... ``` block. Prioritize clean, complete, fully closed Python code.",
-        ])
+            "5. Return executable Python code inside a single ```python ... ``` block. Prioritize "
+                "clean, complete, fully closed Python code.", ])
         prompt = "\n".join(user_prompt_lines)
         k = k_samples if k_samples is not None else self.k_samples
         temperatures = [0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55][:k] if k > 1 else [temperature]
         best_candidate: tuple[int, int, str, str | None] | None = None
         for s_idx, t in enumerate(temperatures):
-            response_text = self.query_llm(
-                prompt=prompt,
-                system_prompt=system_prompt,
-                temperature=t,
-                max_tokens=2048,
-            )
+            response_text = self.query_llm(prompt=prompt, system_prompt=system_prompt,
+                temperature=t, max_tokens=2048,)
             cand_code = extract_python_code(response_text)
             cand_code = strip_comments_and_docstrings(cand_code)
             cand_hypo = extract_hypothesis(response_text)
             if not cand_code:
                 continue
-            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(cand_code, train_pairs)
+            cand_code, all_passed, passed_count, _, _, _ = self.verify_or_mutate_candidate(
+                cand_code, train_pairs)
             if all_passed:
-                logger.info(
-                    "backtrack_best_of_k_train_passed",
-                    turn=turn_num,
-                    sample=s_idx + 1,
-                    total_samples=len(temperatures),
-                    temperature=t,
-                    passed=passed_count,
-                    total=len(train_pairs),
-                )
+                logger.info("backtrack_best_of_k_train_passed", turn=turn_num, sample=s_idx + 1,
+                    total_samples=len(temperatures), temperature=t, passed=passed_count,
+                    total=len(train_pairs),)
                 return cand_code, cand_hypo, prompt
             score = (passed_count, -len(cand_code))
             if best_candidate is None or score > (best_candidate[0], best_candidate[1]):
@@ -540,12 +445,8 @@ class UnshackledCEGISEngine:
             return best_candidate[2], best_candidate[3], prompt
         return "", None, prompt
 
-    def run_cegis_loop(
-        self,
-        task_data: dict[str, object],
-        hint: str | None = None,
-        max_turns: int | None = None,
-        outcome_sink: CognitiveOutcomeSink | None = None,
+    def run_cegis_loop(self, task_data: dict[str, object], hint: str | None = None,
+        max_turns: int | None = None, outcome_sink: CognitiveOutcomeSink | None = None,
     ) -> CEGISRunResult:
         """
         Executes the full multi-turn CEGIS loop for a given task.
@@ -554,7 +455,8 @@ class UnshackledCEGISEngine:
         t0 = time.perf_counter()
         effective_max_turns = max_turns or self.max_turns
         raw_train = task_data.get("train", [])
-        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train, list) else [])
+        train_pairs = cast(list[dict[str, list[list[int]]]], raw_train if isinstance(raw_train,
+            list) else [])
         total_examples = len(train_pairs)
         traces: list[CEGISTurn] = []
         current_code: str = ""
@@ -569,122 +471,76 @@ class UnshackledCEGISEngine:
                 is_backtrack = False
             else:
                 last_trace = traces[-1]
-                should_backtrack = (
-                    consecutive_zero_passes >= 1
-                    and (turn_idx >= 3 or last_trace.execution_error is not None)
-                )
+                should_backtrack = (consecutive_zero_passes >= 1
+                    and (turn_idx >= 3 or last_trace.execution_error is not None))
                 if should_backtrack:
                     failed_hypos = [t.hypothesis for t in traces if t.hypothesis]
                     if not failed_hypos and current_hypothesis:
                         failed_hypos = [current_hypothesis]
-                    code, hypo, prompt = self.synthesize_backtrack_turn(
-                        task_data=task_data,
-                        turn_num=turn_idx,
-                        failed_hypotheses=failed_hypos,
-                        prior_error=last_trace.execution_error or (f"Cell diff on demo {(last_trace.first_failure_idx or 0) + 1}" if last_trace.failure_diff else None),
-                        temperature=0.35,
-                    )
+                    code, hypo, prompt = self.synthesize_backtrack_turn(task_data=task_data,
+                        turn_num=turn_idx, failed_hypotheses=failed_hypos,
+                        prior_error=last_trace.execution_error or ("Cell diff on demo "
+                            f"{(last_trace.first_failure_idx or 0) + 1}" if last_trace.failure_diff
+                            else None), temperature=0.35,)
                     is_backtrack = True
                 else:
-                    code, hypo, prompt = self.synthesize_repair_turn(
-                        prior_code=current_code,
-                        task_data=task_data,
-                        failing_idx=last_trace.first_failure_idx or 0,
-                        diff=last_trace.failure_diff,
-                        err_msg=last_trace.execution_error,
-                        turn_num=turn_idx,
-                        temperature=0.2 + (min(turn_idx, 5) * 0.05),
-                        prior_hypothesis=current_hypothesis,
-                    )
+                    code, hypo, prompt = self.synthesize_repair_turn(prior_code=current_code,
+                        task_data=task_data, failing_idx=last_trace.first_failure_idx or 0,
+                        diff=last_trace.failure_diff, err_msg=last_trace.execution_error,
+                        turn_num=turn_idx, temperature=0.2 + (min(turn_idx, 5) * 0.05),
+                        prior_hypothesis=current_hypothesis,)
                     is_backtrack = False
             current_code = code
             if hypo:
                 current_hypothesis = hypo
             turn_elapsed = (time.perf_counter() - turn_t0) * 1000.0
             if not code or not code.strip():
-                traces.append(
-                    CEGISTurn(
-                        turn=turn_idx,
-                        code="",
-                        passed_examples=0,
-                        total_examples=total_examples,
-                        first_failure_idx=0,
-                        failure_diff=None,
+                traces.append(CEGISTurn(turn=turn_idx, code="", passed_examples=0,
+                        total_examples=total_examples, first_failure_idx=0, failure_diff=None,
                         execution_error="No executable Python code extracted from LLM response.",
-                        prompt_used=prompt,
-                        elapsed_ms=turn_elapsed,
-                        hypothesis=current_hypothesis,
-                        is_backtrack=is_backtrack,
-                    )
-                )
+                        prompt_used=prompt, elapsed_ms=turn_elapsed,
+                        hypothesis=current_hypothesis, is_backtrack=is_backtrack,))
                 consecutive_zero_passes += 1
                 turn_idx += 1
                 continue
-            code, all_passed, passed_count, fail_idx, fail_diff, err_msg = self.verify_or_mutate_candidate(
-                code, train_pairs
-            )
+            (code, all_passed, passed_count, fail_idx, fail_diff, err_msg,
+            ) = self.verify_or_mutate_candidate(code, train_pairs)
             current_code = code
             if passed_count == 0:
                 consecutive_zero_passes += 1
             else:
                 consecutive_zero_passes = 0
-            traces.append(
-                CEGISTurn(
-                    turn=turn_idx,
-                    code=code,
-                    passed_examples=passed_count,
-                    total_examples=total_examples,
-                    first_failure_idx=fail_idx,
-                    failure_diff=fail_diff,
-                    execution_error=err_msg,
-                    prompt_used=prompt,
-                    elapsed_ms=turn_elapsed,
-                    hypothesis=current_hypothesis,
-                    is_backtrack=is_backtrack,
-                )
-            )
-            logger.info(
-                "cegis_turn_evaluated",
-                turn=turn_idx,
-                passed=passed_count,
-                total=total_examples,
-                all_passed=all_passed,
-                is_backtrack=is_backtrack,
-                elapsed_ms=turn_elapsed,
-            )
+            traces.append(CEGISTurn(turn=turn_idx, code=code, passed_examples=passed_count,
+                    total_examples=total_examples, first_failure_idx=fail_idx,
+                    failure_diff=fail_diff, execution_error=err_msg, prompt_used=prompt,
+                    elapsed_ms=turn_elapsed, hypothesis=current_hypothesis,
+                    is_backtrack=is_backtrack,))
+            logger.info("cegis_turn_evaluated", turn=turn_idx, passed=passed_count,
+                total=total_examples, all_passed=all_passed, is_backtrack=is_backtrack,
+                elapsed_ms=turn_elapsed,)
             if all_passed:
                 total_elapsed = (time.perf_counter() - t0) * 1000.0
                 raw_test = task_data.get("test", [])
-                test_pairs = cast(list[dict[str, list[list[int]]]], raw_test if isinstance(raw_test, list) else [])
+                test_pairs = cast(list[dict[str, list[list[int]]]], raw_test if isinstance(raw_test,
+                    list) else [])
                 test_preds = self.predict_test(code, test_pairs)
-                res_ok = CEGISRunResult(
-                    success=True,
-                    final_code=code,
-                    turns_taken=turn_idx,
-                    turns=traces,
-                    test_predictions=test_preds,
-                    total_elapsed_ms=total_elapsed,
-                    error_summary=None,
-                )
+                res_ok = CEGISRunResult(success=True, final_code=code, turns_taken=turn_idx,
+                    turns=traces, test_predictions=test_preds, total_elapsed_ms=total_elapsed,
+                    error_summary=None,)
                 self._notify_outcome_sink(res_ok, task_data, hint=hint, outcome_sink=outcome_sink)
                 return res_ok
-            # Adaptive budget extension: if at current limit and showing positive progress, grant 1 bonus turn
-            if turn_idx == limit_turns and passed_count > 0 and limit_turns < effective_max_turns + 2:
-                logger.info(
-                    "adaptive_cegis_turn_extended",
-                    turn=turn_idx,
-                    passed=passed_count,
-                    total=total_examples,
-                )
+            # Adaptive budget extension: if at current limit and showing positive progress, grant 1
+            # bonus turn
+            if (
+                turn_idx == limit_turns and passed_count > 0 and limit_turns < effective_max_turns
+                + 2):
+                logger.info("adaptive_cegis_turn_extended", turn=turn_idx, passed=passed_count,
+                    total=total_examples,)
                 limit_turns += 1
             turn_idx += 1
         total_elapsed = (time.perf_counter() - t0) * 1000.0
-        res_fail = CEGISRunResult(
-            success=False,
-            final_code=current_code,
-            turns_taken=len(traces),
-            turns=traces,
-            test_predictions=[],
+        res_fail = CEGISRunResult(success=False, final_code=current_code,
+            turns_taken=len(traces), turns=traces, test_predictions=[],
             total_elapsed_ms=total_elapsed,
             error_summary=f"Failed to satisfy 100% of demonstrations after {len(traces)} turns.",
         )
@@ -693,8 +549,7 @@ class UnshackledCEGISEngine:
 
     @staticmethod
 
-    def predict_test(
-        code: str, test_pairs: list[dict[str, list[list[int]]]]
+    def predict_test(code: str, test_pairs: list[dict[str, list[list[int]]]]
     ) -> list[list[list[int]]]:
         """Runs the verified code on the unseen test input(s)."""
         predictions: list[list[list[int]]] = []
@@ -706,9 +561,7 @@ class UnshackledCEGISEngine:
                 predictions.append([])
         return predictions
 
-
-__all__ = [
-    "ANSI_DIFF_HIGHLIGHT", "ANSI_RESET", "ARC_ANSI_BG", "ARC_PALETTE_NAMES",
+__all__ = [ "ANSI_DIFF_HIGHLIGHT", "ANSI_RESET", "ARC_ANSI_BG", "ARC_PALETTE_NAMES",
     "CANONICAL_PRIMITIVES_PROMPT", "CEGISResult", "CEGISRunResult", "CEGISTrace",
     "CEGISTurn", "CellMismatch", "DEFAULT_CONTAINER", "DEFAULT_MAX_TURNS",
     "DEFAULT_TIMEOUT_S", "ExecutionOutcome", "GridDiff", "PythonCEGISEngine",
@@ -718,5 +571,4 @@ __all__ = [
     "execute_unshackled_python", "execute_unshackled_python_batch",
     "extract_hypothesis", "generate_ast_mutants", "normalize_to_int_grid",
     "parse_python_exception", "render_grid_ansi", "render_grid_side_by_side",
-    "strip_comments_and_docstrings", "validate_cegis_ast_safety",
-]
+    "strip_comments_and_docstrings", "validate_cegis_ast_safety", ]

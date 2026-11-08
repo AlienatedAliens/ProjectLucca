@@ -88,7 +88,8 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
                 ),
                 "deep_extract": ToolParameter(
                     type="boolean",
-                    description="Fetch and extract clean page text from top search results using Scrapling",
+                    description="Fetch and extract clean page text from top search results "
+                        "using Scrapling",
                     required=False,
                 ),
             },
@@ -122,11 +123,13 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "list_dir": ToolSchema(
             name="list_dir",
-            description="List files and directories in the workspace. Set rel_path='inbox' to inspect incoming files waiting in the host inbox drop folder.",
+            description="List files and directories in the workspace. Set rel_path='inbox' to "
+                "inspect incoming files waiting in the host inbox drop folder.",
             parameters={
                 "rel_path": ToolParameter(
                     type="string",
-                    description="Relative directory path under workspace (or 'inbox' for incoming drop folder)",
+                    description="Relative directory path under workspace (or 'inbox' for incoming "
+                        "drop folder)",
                     required=False,
                 ),
                 "recursive": ToolParameter(
@@ -157,7 +160,8 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "run_python": ToolSchema(
             name="run_python",
-            description="Execute deterministic Python code in an isolated sandbox with numpy, scipy, sympy, and z3 installed.",
+            description="Execute deterministic Python code in an isolated sandbox with numpy, "
+                "scipy, sympy, and z3 installed.",
             parameters={
                 "code": ToolParameter(
                     type="string", description="Python code to execute", required=True
@@ -364,8 +368,10 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
             description=(
                 "Safely evaluate basic mathematical expressions and scalar arithmetic "
                 "(e.g. '1982 - 1917', '53 * 72 / 4', 'sqrt(144)', 'abs(a - b)'). "
-                "Only standard scalar arithmetic is supported (no equations, variables, or 'solve for x'). "
-                "For equations, linear systems, intervals, algorithms, or custom logic, use run_python."
+                "Only standard scalar arithmetic is supported (no equations, variables, or "
+                    "'solve for x'). "
+                "For equations, linear systems, intervals, algorithms, or custom logic, use "
+                    "run_python."
             ),
             parameters={
                 "expr": ToolParameter(
@@ -420,7 +426,8 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "inbox_handoff": ToolSchema(
             name="inbox_handoff",
-            description="Move files from the inbox drop folder into the workspace. Pass 'all' or '*' to import all files, or pass a specific filename.",
+            description="Move files from the inbox drop folder into the workspace. Pass 'all' or "
+                "'*' to import all files, or pass a specific filename.",
             parameters={
                 "filename": ToolParameter(
                     type="string",
@@ -433,7 +440,8 @@ def get_default_native_tools() -> dict[str, ToolSchema]:
         ),
         "screenshot_capture": ToolSchema(
             name="screenshot_capture",
-            description="Capture the primary display as a JPEG image to reason about what is on screen.",
+            description="Capture the primary display as a JPEG image to reason about what is "
+                "on screen.",
             parameters={},
             risk=Risk.READ,
             target="shared",

@@ -509,7 +509,8 @@ class InferenceStep(BaseModel):
 
     premises: list[str] = Field(
         ...,
-        description="List of premise statements resolving to signed facts or '<source> asserts <claim>'.",
+        description="List of premise statements resolving to signed facts or '<source> "
+            "asserts <claim>'.",
     )
     s: str = Field(..., description="Subject identifier or slug.")
     p: str = Field(..., description="Predicate slug conforming to is_valid_predicate.")
@@ -738,7 +739,8 @@ class RouteFeatures(BaseModel):
     reasoning_domain: str | None = None
     deliberation_lane: bool = False  # D-DUAL-01: hard reasoning on deliberation lane
     floor_hold_cue: str | None = None  # Spoken cue to hold the floor while deliberating
-    exposed_libraries: list[str] = Field(default_factory=list)  # D-REAS-10: shared workspace modules
+    # D-REAS-10: shared workspace modules
+    exposed_libraries: list[str] = Field(default_factory=list)
 
 
 class RouteDecision(BaseModel):
@@ -754,7 +756,8 @@ class RouteDecision(BaseModel):
     reasoning_domain: str | None = None
     deliberation_lane: bool = False  # D-DUAL-01: hard reasoning routed to deliberation lane
     floor_hold_cue: str | None = None  # Optional spoken cue to hold the conversational floor
-    exposed_libraries: list[str] = Field(default_factory=list)  # D-REAS-10: shared workspace modules
+    # D-REAS-10: shared workspace modules
+    exposed_libraries: list[str] = Field(default_factory=list)
     max_tokens: int | None = None  # Turn-specific token ceiling (e.g. AIME combinatorics 1536)
 
 

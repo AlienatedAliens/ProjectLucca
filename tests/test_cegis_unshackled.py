@@ -3,14 +3,11 @@ Unit tests for Unshackled CEGIS Engine and Structured Cell Diff
 v1.44.0 General Reasoning Core
 """
 
-import pytest
 
 from lucca.reasoning.cegis_unshackled import (
     CellMismatch,
-    GridDiff,
     compute_detailed_grid_diff,
     execute_unshackled_python,
-    normalize_to_int_grid,
     render_grid_ansi,
     render_grid_side_by_side,
 )

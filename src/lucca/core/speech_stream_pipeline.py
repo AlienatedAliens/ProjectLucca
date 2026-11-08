@@ -13,8 +13,8 @@ import json
 import re
 from typing import TYPE_CHECKING
 
-from pydantic import JsonValue
 import structlog
+from pydantic import JsonValue
 
 from lucca.brain.chunker import StreamingChunker, sanitize_for_voice
 from lucca.brain.prompt_builder import get_all_tool_definitions
@@ -64,7 +64,9 @@ class SpeechStreamPipeline:
         tool_args: dict[str, object],
         tool_res: ToolResult,
     ) -> None:
-        """Registers verified URLs from search, fetch, or browse receipts on the output supervisor."""
+        """
+        Registers verified URLs from search, fetch, or browse receipts on the output supervisor.
+        """
         orch = self._orch
         if tool_name == "search_web" and getattr(tool_res, "structured", None):
             search_urls: list[str] = []
@@ -275,7 +277,8 @@ class SpeechStreamPipeline:
                     memories=memories,
                     tools=round_tools,
                     messages=messages,
-                    tool_messages=scratchpad_buffer.messages if scratchpad_buffer.messages else None,
+                    tool_messages=scratchpad_buffer.messages if scratchpad_buffer.messages
+                        else None,
                     trace_id=trace.trace_id,
                     epistemic_context=epistemic_context,
                     stance_tag=current_stance,
@@ -529,7 +532,11 @@ class SpeechStreamPipeline:
                             error_signature=err_sig,
                         )
                         if div_report.diverged or call_signatures.count(call_sig) >= 2:
-                            loop_diverged = True
+                            if (
+                                not (tool_res is not None and tool_res.ok)
+                                or len(call_signatures) >= 3
+                            ):
+                                loop_diverged = True
                             reason_str = (
                                 div_report.reason.value
                                 if div_report.reason is not None
@@ -548,7 +555,8 @@ class SpeechStreamPipeline:
                                 "call and it returned a result above. Use that "
                                 "result, or try a different approach — do not "
                                 f"repeat it. Divergence Guard ({reason_str}): "
-                                f"{div_report.detail}. Synthesize your final response now without calling further tools.]"
+                                f"{div_report.detail}. Synthesize your final response now without "
+                                "calling further tools.]"
                             )
                         # WO-13.1: Pre-Narration Sanity-Check Guard (Fault Mode C)
                         if tool_res is not None and tool_res.ok and content_str:
@@ -596,8 +604,10 @@ class SpeechStreamPipeline:
                             failed_tools=failed_names,
                         )
                         honesty_text += (
-                            f"\n[Execution Feedback Loop: Tool '{failed_names}' produced an execution error or traceback. "
-                            f"Diagnose the error, fix the syntax/logic/attribute mistake, and re-call the tool to verify the result.]"
+                            f"\n[Execution Feedback Loop: Tool '{
+                                failed_names}' produced an execution error or traceback. "
+                            "Diagnose the error, fix the syntax/logic/attribute mistake, and "
+                            "re-call the tool to verify the result.]"
                         )
                     scratchpad_buffer.add_user_directive(honesty_text)
 
@@ -665,10 +675,13 @@ class SpeechStreamPipeline:
                                 scratchpad_buffer.add_user_directive(
                                     "[Honesty & Grounding Directive: Your previous draft response "
                                     f"({round_text_str[:160]!r}) claimed or simulated performing "
-                                    f"an action without a verified tool receipt ({ungrounded_breach}). "
+                                    f"an action without a verified tool receipt ({
+                                        ungrounded_breach}). "
                                     "Discard that draft completely and respond again from scratch: "
-                                    "either call an available tool now to perform the action for real, "
-                                    "or state plainly and honestly that you cannot perform or inspect "
+                                    "either call an available tool now to perform the action "
+                                        "for real, "
+                                    "or state plainly and honestly that you cannot perform "
+                                        "or inspect "
                                     "that action directly and have NOT done so.]"
                                 )
                                 continue

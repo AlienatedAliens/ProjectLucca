@@ -28,11 +28,11 @@ from __future__ import annotations
 import ast
 import io
 import keyword
-from typing import Tuple
 import textwrap
 import tokenize
 
 import structlog
+import sympy as _sp_ref
 
 logger = structlog.get_logger(__name__)
 
@@ -44,14 +44,19 @@ def _looks_like_code(block: str) -> bool:
         "if ", "elif ", "else:", "for ", "while ", "try:", "except",
         "with ", "assert ", "lambda ",
     )
-    lines = [l.strip() for l in block.splitlines() if l.strip()]
+    lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
     if not lines:
         return False
-    matches = sum(1 for l in lines if any(l.startswith(k) for k in keywords) or ("=" in l and not l.startswith(("#", "-", "*", ">"))))
+    matches = sum(
+        1
+        for ln in lines
+        if any(ln.startswith(k) for k in keywords)
+        or ("=" in ln and not ln.startswith(("#", "-", "*", ">")))
+    )
     return matches >= 1
 
 
-def _try_parse(code: str) -> Tuple[bool, ast.AST | None, str]:
+def _try_parse(code: str) -> tuple[bool, ast.AST | None, str]:
     """Helper to safely parse AST."""
     try:
         tree = ast.parse(code)
@@ -78,11 +83,18 @@ def _normalize_tokens(code: str) -> str:
                 if not is_kw:
                     if prev.type == tokenize.NUMBER and tok.type == tokenize.NAME:
                         new_tokens.append((tokenize.OP, "*"))
-                    elif prev.type == tokenize.NUMBER and tok.type == tokenize.OP and tok.string == "(":
+                    elif (
+                        prev.type == tokenize.NUMBER and tok.type == tokenize.OP and tok.string
+                        == "("
+                    ):
                         new_tokens.append((tokenize.OP, "*"))
-                    elif prev.type == tokenize.OP and prev.string == ")" and tok.type in (tokenize.NAME, tokenize.NUMBER):
+                    elif prev.type == tokenize.OP and prev.string == ")" and tok.type in (
+                        tokenize.NAME, tokenize.NUMBER):
                         new_tokens.append((tokenize.OP, "*"))
-                    elif prev.type == tokenize.OP and prev.string == ")" and tok.type == tokenize.OP and tok.string == "(":
+                    elif (
+                        prev.type == tokenize.OP and prev.string == ")" and tok.type == tokenize.OP
+                        and tok.string == "("
+                    ):
                         new_tokens.append((tokenize.OP, "*"))
 
             if tok.type == tokenize.OP and tok.string == "^":
@@ -109,7 +121,8 @@ def _normalize_tokens(code: str) -> str:
         return tokenize.untokenize(new_tokens)
     except Exception as exc:
         err_str = str(exc)
-        _noisy = ("line continuation", "unterminated string", "unindent", "unexpected eof", "syntax")
+        _noisy = ("line continuation", "unterminated string", "unindent", "unexpected eof",
+            "syntax")
         if not any(n in err_str.lower() for n in _noisy):
             logger.debug("tokenize_normalization_fallback", error=err_str)
         return code
@@ -137,7 +150,7 @@ def _close_brackets_and_quotes(code: str) -> str:
     return code
 
 
-def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
+def extract_python_code_tolerant(raw_text: str) -> tuple[str, str]:
     """
     Extracts Python code from raw LLM output using multi-stage tolerant fallback.
     Order of extraction:
@@ -189,8 +202,8 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
     # --- Stage 2: Unfenced code blocks ---
     lines = text.splitlines()
     code_lines = []
-    for l in lines:
-        trimmed = l.strip()
+    for ln in lines:
+        trimmed = ln.strip()
         if not trimmed:
             continue
         if any(
@@ -201,7 +214,7 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
                 "with ", "assert ",
             )
         ) or ("=" in trimmed and not trimmed.startswith(("#", "-", "*", ">"))):
-            code_lines.append(l)
+            code_lines.append(ln)
 
     if code_lines:
         candidate_raw = "\n".join(code_lines).strip()
@@ -239,7 +252,7 @@ def extract_python_code_tolerant(raw_text: str) -> Tuple[str, str]:
     return "", "empty"
 
 
-def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
+def sanitize_and_repair_python_code(raw_code: str) -> tuple[str, bool, str]:
     """
     Sanitize, repair, and guarantee execution for python code.
     Returns:
@@ -290,7 +303,6 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
     # Step 4: Semantic AST validation, cleanup, and import injection
     # 4a. Filter hallucinated imports in `from sympy import ...`
     try:
-        import sympy as _sp_ref
         _valid_sympy_names = set(dir(_sp_ref))
     except Exception as exc:
         logger.debug("sympy_dir_inspection_failed", error=str(exc))
@@ -309,16 +321,20 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
-            # 4b-1. Rewrite expr.solve(...) -> sp.solve(expr, ...) (except when z3 is the receiver or module)
+            # 4b-1. Rewrite expr.solve(...) -> sp.solve(expr, ...) (except when z3 is the receiver
+            # or module)
             if isinstance(node.func, ast.Attribute) and node.func.attr == "solve":
-                if not (isinstance(node.func.value, ast.Name) and node.func.value.id in ("sp", "sympy", "z3", "s", "solver", "opt")):
+                if not (isinstance(node.func.value, ast.Name) and node.func.value.id in ("sp",
+                    "sympy", "z3", "s", "solver", "opt")):
                     if "z3" not in code or "sympy" in code:
                         caller_expr = node.func.value
-                        node.func = ast.Attribute(value=ast.Name(id="sp", ctx=ast.Load()), attr="solve", ctx=ast.Load())
+                        node.func = ast.Attribute(value=ast.Name(id="sp", ctx=ast.Load()),
+                            attr="solve", ctx=ast.Load())
                         node.args.insert(0, caller_expr)
                         modified_ast = True
 
-            # 4b-2. Rewrite expr.coeff(...) -> expr.expand().coeff(...) for unexpanded SymPy expressions (Milestone 36.5)
+            # 4b-2. Rewrite expr.coeff(...) -> expr.expand().coeff(...) for unexpanded SymPy
+            # expressions (Milestone 36.5)
             if isinstance(node.func, ast.Attribute) and node.func.attr == "coeff":
                 caller_expr = node.func.value
                 is_already_expanded = (
@@ -347,7 +363,8 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
 
     # 4c. Inspect all used names, attribute bases, and defined/imported symbols
     used_names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
-    used_attr_bases = {node.value.id for node in ast.walk(tree) if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name)}
+    used_attr_bases = {node.value.id for node in ast.walk(tree) if isinstance(node,
+        ast.Attribute) and isinstance(node.value, ast.Name)}
 
     imported_modules: set[str] = set()
     imported_names: set[str] = set()
@@ -372,45 +389,80 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
 
     imports_to_add: list[str] = []
 
-    z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or", "And", "Not", "Distinct"}
-    has_z3 = "z3" in used_attr_bases or "z3" in imported_modules or any(z in used_names for z in z3_symbols)
+    z3_symbols = {"Solver", "Int", "Ints", "Real", "Reals", "Bool", "Bools", "sat", "unsat", "Or",
+        "And", "Not", "Distinct"}
+    has_z3 = "z3" in used_attr_bases or "z3" in imported_modules or any(
+        z in used_names for z in z3_symbols)
     unassigned_used = used_names - assigned_names
 
-    # Check if sympy is needed (do not inject sympy into pure Z3 scripts just because `solve` or `simplify` is called)
-    sympy_symbols = {"symbols", "Symbol", "solveset", "factor", "expand", "Matrix", "Rational", "Eq", "diff", "integrate", "pi", "oo", "prime", "totient", "divisor_sigma", "primepi"}
+    # Check if sympy is needed (do not inject sympy into pure Z3 scripts just because `solve` or
+    # `simplify` is called)
+    sympy_symbols = {"symbols", "Symbol", "solveset", "factor", "expand", "Matrix", "Rational",
+        "Eq", "diff", "integrate", "pi", "oo", "prime", "totient", "divisor_sigma", "primepi"}
     if not has_z3:
         sympy_symbols = sympy_symbols | {"solve", "simplify"}
-    if ("sp" in used_attr_bases or "sympy" in used_attr_bases or "sympy" in unassigned_used or any(s in unassigned_used for s in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
+    if (
+        "sp" in used_attr_bases or "sympy" in used_attr_bases or "sympy" in unassigned_used or any(
+            s in unassigned_used for s
+            in sympy_symbols)) and "sympy" not in imported_modules and "sp" not in imported_names:
         imports_to_add.append("import sympy\nimport sympy as sp\nfrom sympy import *")
 
     # Check if math is needed
     math_symbols = {"sqrt", "factorial", "gcd", "lcm", "floor", "ceil", "comb", "perm"}
-    if ("math" in used_attr_bases or any(m in unassigned_used for m in math_symbols)) and "math" not in imported_modules and "sympy" not in imported_modules:
+    if (
+        "math" in used_attr_bases or any(
+            m in unassigned_used for m
+            in math_symbols
+        )
+    ) and "math" not in imported_modules and "sympy" not in imported_modules:
         imports_to_add.append("import math")
 
     # Check if itertools is needed
-    itertools_symbols = {"permutations", "combinations", "product", "accumulate", "count", "cycle", "repeat"}
-    if ("itertools" in used_attr_bases or any(it in unassigned_used for it in itertools_symbols)) and "itertools" not in imported_modules:
+    itertools_symbols = {"permutations", "combinations", "product", "accumulate", "count", "cycle",
+        "repeat"}
+    if (
+        "itertools" in used_attr_bases or any(
+            it in unassigned_used for it
+            in itertools_symbols)) and "itertools" not in imported_modules:
         imports_to_add.append("import itertools")
 
     # Check if fractions.Fraction is needed
-    if "Fraction" in unassigned_used and "Fraction" not in imported_names and "fractions" not in imported_modules:
+    if (
+        "Fraction" in unassigned_used and "Fraction" not in imported_names and "fractions" not
+        in imported_modules
+    ):
         imports_to_add.append("from fractions import Fraction")
 
     # Check if container_world / ContainerWorld / World / KnowledgeBase / Agent is needed
     cw_symbols = {"ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"}
-    if ("container_world" in used_attr_bases or any(c in unassigned_used for c in cw_symbols)) and "container_world" not in imported_modules and not any(c in imported_names for c in cw_symbols):
-        imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, BeliefTracker, Agent")
+    if (
+        "container_world" in used_attr_bases or any(
+            c in unassigned_used for c
+            in cw_symbols)) and "container_world" not in imported_modules and not any(c
+            in imported_names for c in cw_symbols):
+        imports_to_add.append("from container_world import ContainerWorld, World, KnowledgeBase, "
+            "BeliefTracker, Agent")
 
     # Check if z3 is needed
     if has_z3:
         if "z3" not in imported_modules and not any(z in imported_names for z in z3_symbols):
             imports_to_add.append(
-                "import z3\nfrom z3 import *\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\n    z3.IntNumRef.__int__ = lambda self: self.as_long()\n    z3.IntNumRef.__index__ = lambda self: self.as_long()\nexcept Exception:\n    pass"
+
+                    "import z3\nfrom z3 import *\ntry:\n    z3.Solver.sat = z3.sat\n    "
+                    "z3.Solver.unsat = z3.unsat\n    z3.IntNumRef.__int__ = lambda self: "
+                        "self.as_long()\n    z3.IntNumRef.__index__ = lambda self: "
+                        "self.as_long()\nexcept Exception:\n    pass"
+
             )
         elif "z3.Solver.sat" not in code:
             imports_to_add.append(
-                "import z3\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = z3.unsat\n    z3.IntNumRef.__int__ = lambda self: self.as_long()\n    z3.IntNumRef.__index__ = lambda self: self.as_long()\nexcept Exception:\n    pass"
+
+                    "import z3\ntry:\n    z3.Solver.sat = z3.sat\n    z3.Solver.unsat = "
+                        "z3.unsat\n   "
+                    " z3.IntNumRef.__int__ = lambda self: self.as_long()\n    "
+                        "z3.IntNumRef.__index__ = lambda self: self.as_long()\nexcept Exception:\n "
+                        "   pass"
+
             )
 
     if imports_to_add:
@@ -453,15 +505,18 @@ def sanitize_and_repair_python_code(raw_code: str) -> Tuple[str, bool, str]:
             if target_name and target_name not in ("_", "__"):
                 code = code + f"\nprint({target_name})"
         elif isinstance(tree.body[-1], ast.Expr):
-            # Replace/append print for unprinted trailing expression (e.g. w.query(...) or sp.totient(...))
+            # Replace/append print for unprinted trailing expression (e.g. w.query(...) or
+            # sp.totient(...))
             try:
                 last_expr_code = ast.unparse(tree.body[-1].value)
                 code = code + f"\nprint({last_expr_code})"
             except Exception as exc:
                 logger.debug("ast_unparse_last_expr_failed", error=str(exc))
-        elif "solve" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "solve" for stmt in tree.body):
+        elif "solve" in assigned_names and any(isinstance(stmt,
+            ast.FunctionDef) and stmt.name == "solve" for stmt in tree.body):
             code = code + "\nprint(solve())"
-        elif "main" in assigned_names and any(isinstance(stmt, ast.FunctionDef) and stmt.name == "main" for stmt in tree.body):
+        elif "main" in assigned_names and any(isinstance(stmt,
+            ast.FunctionDef) and stmt.name == "main" for stmt in tree.body):
             code = code + "\nprint(main())"
 
     return code, True, ""

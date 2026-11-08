@@ -1,5 +1,6 @@
 """
-Project Lucca — Deduction, Walton Corroboration, Ratification & Planning Runner (WO-43 Phase 2, Sub-Step 2.5)
+Project Lucca — Deduction, Walton Corroboration, Ratification & Planning Runner (WO-43 Phase 2,
+Sub-Step 2.5)
 Spec D-REAS-09, WO-20, WO-21, WO-22, WO-23
 
 Encapsulates rule chain evaluation, abductive deduction with the bounded Gather Ladder,
@@ -13,12 +14,12 @@ import json
 import os
 import re
 import time
-from typing import TYPE_CHECKING
 import urllib.parse
+from typing import TYPE_CHECKING
 
-from pydantic import JsonValue, ValidationError
 import structlog
 import ulid
+from pydantic import JsonValue, ValidationError
 
 from lucca.brain.prompt_builder import build_planning_messages
 from lucca.core.coherence import ToolReceipt
@@ -54,6 +55,7 @@ from lucca.core.schemas import (
 from lucca.core.trace import TurnTrace
 from lucca.core.turn_pipeline import synthesize_plan_narration
 from lucca.sandbox.schemas import EXTRA_TOOL_SCHEMAS, TOOL_ARG_SCHEMAS
+from lucca.sandbox.web_tool import fetch_url
 from lucca.senses.ring_buffer import FLAG_EOS
 
 if TYPE_CHECKING:
@@ -63,7 +65,10 @@ logger = structlog.get_logger(__name__)
 
 
 class DeductionAndPlanningRunner:
-    """Executes deductive rule chains, abductive gather-ladder reasoning, Walton corroboration, and GoalPlan steps."""
+    """
+    Executes deductive rule chains, abductive gather-ladder reasoning, Walton corroboration, and
+    GoalPlan steps.
+    """
 
     def __init__(self, orchestrator: Orchestrator) -> None:
         self._orch = orchestrator
@@ -112,7 +117,10 @@ class DeductionAndPlanningRunner:
         context: ReasoningContext | None = None,
         trace: TurnTrace | None = None,
     ) -> SignedPayload | None:
-        """Commits the conclusion of a completed chain as INFERRED with its proof trace (WO-20 Phase 4)."""
+        """
+        Commits the conclusion of a completed chain as INFERRED with its proof trace (WO-20 Phase
+        4).
+        """
         orch = self._orch
         ctx = context if context is not None else getattr(orch, "current_reasoning_context", None)
         if ctx is None or len(ctx) == 0:
@@ -168,14 +176,18 @@ class DeductionAndPlanningRunner:
         return signed
 
     def proof_trace(self) -> list[ProofTraceStep]:
-        """Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4)."""
+        """
+        Exposes the current turn's reasoning context proof trace (Spec D-REAS-09, WO-20 Phase 2/4).
+        """
         ctx = getattr(self._orch, "current_reasoning_context", None)
         if ctx is None:
             return []
         return ctx.proof_trace()
 
     def validate_premise(self, premise: str, context: ReasoningContext) -> tuple[bool, str | None]:
-        """Validates a premise against signed tool receipts, reasoning context, or the signed store."""
+        """
+        Validates a premise against signed tool receipts, reasoning context, or the signed store.
+        """
         orch = self._orch
         clean = premise.strip()
 
@@ -279,7 +291,8 @@ class DeductionAndPlanningRunner:
                                 )
                                 if (
                                     not getattr(v_res, "degraded", False)
-                                    and str(getattr(v_res, "label", "")).upper().endswith("ENTAILMENT")
+                                    and str(getattr(v_res, "label",
+                                        "")).upper().endswith("ENTAILMENT")
                                     and float(getattr(v_res, "score", 0.0)) >= 0.75
                                 ):
                                     return (True, None)
@@ -319,16 +332,14 @@ class DeductionAndPlanningRunner:
                 if words:
                     clauses = " AND ".join(["m.content LIKE ?" for _ in words])
                     params = [f"%{w}%" for w in words]
+                    q_head = (
+                        "SELECT m.content FROM memories m "
+                        "JOIN provenance_envelopes e ON m.entry_id = e.entry_id "
+                        "WHERE e.grounding_eligible = 1 AND "
+                    )
+                    sql = "".join((q_head, clauses))
                     with orch.db.read_cursor() as cur:
-                        cur.execute(
-                            f"""
-                            SELECT m.content
-                            FROM memories m
-                            JOIN provenance_envelopes e ON m.entry_id = e.entry_id
-                            WHERE e.grounding_eligible = 1 AND {clauses}
-                            """,
-                            tuple(params),
-                        )
+                        cur.execute(sql, tuple(params))
                         for r in cur.fetchall():
                             hits.append(r[0])
             except Exception as exc:  # noqa: BLE001
@@ -505,7 +516,10 @@ class DeductionAndPlanningRunner:
         context: ReasoningContext | None = None,
         llm: object | None = None,
     ) -> tuple[list[InferenceStep], str | None]:
-        """Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase 3)."""
+        """
+        Runs the abductive deduction loop with bounded gather ladder (Spec D-REAS-09, WO-20 Phase
+        3).
+        """
         orch = self._orch
         effective_llm = llm if llm is not None else getattr(orch, "llm", None)
         if effective_llm is None:
@@ -685,7 +699,8 @@ class DeductionAndPlanningRunner:
                 for k in ("user", "you", "live", "from", "born", "home", "partner")
             )
             if is_personal:
-                spoken = f"I don't have anything verified about {retry_premise} — can you tell me about it?"
+                spoken = f"I don't have anything verified about {
+                    retry_premise} — can you tell me about it?"
             else:
                 spoken = f"I can't verify {retry_premise}, so I can't deduce that yet."
 
@@ -701,9 +716,15 @@ class DeductionAndPlanningRunner:
                 proof_trace_steps = ctx.proof_trace()
                 conf = min(s.confidence for s in proof_trace_steps) if proof_trace_steps else 1.0
                 if conf < 0.50:
-                    spoken = f"I'm guessing {final_entry.s} {final_entry.p} {final_entry.o}, but that's just speculation."
+                    spoken = (
+                        f"I'm guessing {final_entry.s} {final_entry.p} {final_entry.o}, but "
+                        "that's just speculation."
+                    )
                 else:
-                    spoken = f"I think {final_entry.s} {final_entry.p} {final_entry.o}, but I'm not sure enough to keep it."
+                    spoken = (
+                        f"I think {final_entry.s} {final_entry.p} {final_entry.o}, but I'm "
+                        "not sure enough to keep it."
+                    )
                 logger.info(
                     "chain_concluded_speculation",
                     confidence=conf,
@@ -1203,7 +1224,6 @@ class DeductionAndPlanningRunner:
         if not getattr(orch, "enable_deep_cross_reference", default_enabled):
             return ""
         try:
-            from lucca.sandbox.web_tool import fetch_url
 
             structured, content = fetch_url(url=url, max_chars=6000)
             if structured.get("ok") and isinstance(content, str):

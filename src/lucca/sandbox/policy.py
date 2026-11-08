@@ -5,6 +5,7 @@ Spec 09 §7, Spec 12 §3, TM-03b, Milestone 2 §2.7 & §2.8
 
 from __future__ import annotations
 
+import base64
 import enum
 import hashlib
 import hmac
@@ -12,6 +13,7 @@ import json
 import re
 import secrets
 import time
+import urllib.parse
 from typing import Literal
 
 from pydantic import JsonValue
@@ -244,8 +246,10 @@ class SequenceGuard:
         self.turn_tools.clear()
 
     def register_sensitive_content(self, text: str) -> None:
-        """Registers high-entropy or sensitive substrings (plus Base64/Hex encodings) from private files/memory."""
-        import base64
+        """
+        Registers high-entropy or sensitive substrings (plus Base64/Hex encodings) from private
+        files/memory.
+        """
         self.active_taint |= TaintFlags.SENSITIVE_MEMORY
         words = re.split(r"[\s=:]+", text)
         for w in words:
@@ -254,7 +258,8 @@ class SequenceGuard:
                 if len(candidate) >= 8:
                     low = candidate.lower()
                     self.sensitive_tokens.add(low)
-                    b64_full = base64.b64encode(candidate.encode("utf-8")).decode("ascii").rstrip("=").lower()
+                    b64_full = base64.b64encode(
+                        candidate.encode("utf-8")).decode("ascii").rstrip("=").lower()
                     if len(b64_full) >= 8:
                         self.sensitive_tokens.add(b64_full)
                     hex_str = candidate.encode("utf-8").hex().lower()
@@ -270,7 +275,6 @@ class SequenceGuard:
         Validates whether tool_name is permitted given preceding tools in this turn and taint state.
         Returns (allowed, reason).
         """
-        import urllib.parse
         # 1. Single-turn sequence checks
         network_tools = ("fetch_url", "search_web", "browse_page", "research", "research_topic")
         private_read_tools = ("read_file", "note_read", "memory_search", "clipboard_read")

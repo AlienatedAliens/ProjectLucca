@@ -11,11 +11,9 @@ Provides:
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
-import logging
-
-logger = logging.getLogger(__name__)
 
 from lucca.reasoning.scheme.macros import MacroDefinition
 from lucca.reasoning.scheme.parser import (
@@ -23,8 +21,11 @@ from lucca.reasoning.scheme.parser import (
     SchemeAtom,
     SchemeNode,
     Symbol,
+    parse_expr,
     to_canonical,
 )
+
+logger = logging.getLogger(__name__)
 
 ENodeKey = tuple[SchemeAtom, tuple[int, ...]]
 
@@ -151,7 +152,8 @@ class EGraph:
 
     def saturate(self, rules: list[RewriteRule] | None = None, iter_limit: int = 30) -> int:
         """Runs equality saturation over this egraph using rules (or standard rules)."""
-        active_rules = rules if rules is not None else (STANDARD_REWRITE_RULES + SPATIAL_REWRITE_RULES)
+        active_rules = rules if rules is not None else (
+            STANDARD_REWRITE_RULES + SPATIAL_REWRITE_RULES)
         return equality_saturate(self, active_rules, iter_limit=iter_limit)
 
     def extract(
@@ -381,7 +383,6 @@ class RewriteRule:
         name: str = "",
         bidirectional: bool = False,
     ) -> RewriteRule:
-        from lucca.reasoning.scheme.parser import parse_expr
 
         return cls(
             lhs=parse_expr(lhs_sexpr),
@@ -394,7 +395,8 @@ class RewriteRule:
 def is_pattern_var(node: SchemeNode) -> str | None:
     """Returns variable name if node is a pattern variable (e.g. '?x', '?s'), else None."""
     if isinstance(node, Symbol):
-        if node.name.startswith("?") or node.name.startswith("arg_") or node.name.startswith("param_"):
+        if node.name.startswith(
+            "?") or node.name.startswith("arg_") or node.name.startswith("param_"):
             return node.name
     elif isinstance(node, str):
         if node.startswith("?") or node.startswith("arg_") or node.startswith("param_"):
@@ -530,8 +532,10 @@ def _fold_constants(egraph: EGraph) -> bool:
             op = head.name if isinstance(head, Symbol) else str(head)
             if op in ("+", "-", "*", "/", "min", "max") and len(children) >= 1:
                 child_consts = [_get_class_constant(egraph, ch) for ch in children]
-                if all(isinstance(c, (int, float)) and not isinstance(c, bool) for c in child_consts):
-                    nums: list[float] = [float(c) for c in child_consts if isinstance(c, (int, float)) and not isinstance(c, bool)]
+                if all(isinstance(c, (int, float)) and not isinstance(c,
+                    bool) for c in child_consts):
+                    nums: list[float] = [float(c) for c in child_consts if isinstance(c, (int,
+                        float)) and not isinstance(c, bool)]
                     try:
                         res: float | int | None = None
                         if op == "+":
@@ -760,7 +764,8 @@ DISCRETE_SPATIAL_REWRITE_RULES: list[RewriteRule] = [
     RewriteRule.from_sexpr("(flip-v (flip-v ?g))", "?g", name="flip-v-involution"),
     RewriteRule.from_sexpr("(rot90 ?g 0)", "?g", name="rot90-zero"),
     RewriteRule.from_sexpr("(rot90 ?g 4)", "?g", name="rot90-four"),
-    RewriteRule.from_sexpr("(crop-to-content (crop-to-content ?g))", "(crop-to-content ?g)", name="crop-idempotent"),
+    RewriteRule.from_sexpr("(crop-to-content "
+        "(crop-to-content ?g))", "(crop-to-content ?g)", name="crop-idempotent"),
 ]
 
 

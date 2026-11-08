@@ -26,7 +26,6 @@ from lucca.sandbox.file_tool import validate_rel_path
 from lucca.sandbox.policy import SequenceGuard, TaintFlags, requires_confirmation
 from lucca.sandbox.rpc import _inject_shared_workspace_prelude
 
-
 # =============================================================================
 # 1. ContainerWorld v1.38 Epistemic False-Belief & Initial-World Tests
 # =============================================================================

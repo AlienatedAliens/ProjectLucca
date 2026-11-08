@@ -16,15 +16,15 @@ Invariants:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from enum import Enum, StrEnum
 import os
-from pathlib import Path
 import re
 import time
+from collections.abc import Sequence
+from enum import StrEnum
+from pathlib import Path
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 from lucca.core.schemas import VerifierLabel
 from lucca.ports import SemanticVerifierPort
@@ -96,7 +96,7 @@ def information_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
     if a == b:
         return a
-    if a == BelnapValue.NEITHER or b == BelnapValue.NEITHER:
+    if BelnapValue.NEITHER in (a, b):
         return BelnapValue.NEITHER
     if a == BelnapValue.BOTH:
         return b
@@ -117,7 +117,7 @@ def information_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
         return b
     if b == BelnapValue.NEITHER:
         return a
-    if a == BelnapValue.BOTH or b == BelnapValue.BOTH:
+    if BelnapValue.BOTH in (a, b):
         return BelnapValue.BOTH
     return BelnapValue.BOTH
 
@@ -126,7 +126,7 @@ def truth_meet(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
     Truth meet (∧_t): logical AND in the Belnap truth ordering (F <= {BOT, TOP} <= T).
     """
-    if a == BelnapValue.FALSE or b == BelnapValue.FALSE:
+    if BelnapValue.FALSE in (a, b):
         return BelnapValue.FALSE
     if a == BelnapValue.TRUE:
         return b
@@ -141,7 +141,7 @@ def truth_join(a: BelnapValue, b: BelnapValue) -> BelnapValue:
     """
     Truth join (∨_t): logical OR in the Belnap truth ordering (F <= {BOT, TOP} <= T).
     """
-    if a == BelnapValue.TRUE or b == BelnapValue.TRUE:
+    if BelnapValue.TRUE in (a, b):
         return BelnapValue.TRUE
     if a == BelnapValue.FALSE:
         return b
@@ -206,7 +206,7 @@ def has_structural_proposition_conflict(premise: str, hypothesis: str) -> bool:
     return False
 
 
-class ProbeTargetType(str, Enum):
+class ProbeTargetType(StrEnum):
     """Domain category for the non-destructive latent probe."""
 
     FILESYSTEM_PATH = "FILESYSTEM_PATH"
@@ -216,7 +216,7 @@ class ProbeTargetType(str, Enum):
     MEMORY_ASSERTION = "MEMORY_ASSERTION"
 
 
-class ProbeActionRecommendation(str, Enum):
+class ProbeActionRecommendation(StrEnum):
     """Actionable directive yielded by the Belnap probe evaluation."""
 
     ACCEPT_AS_TRUE = "ACCEPT_AS_TRUE"
@@ -307,15 +307,14 @@ class BelnapLatentInvestigator:
                 val = BelnapValue.FALSE
                 rec = ProbeActionRecommendation.ACCEPT_AS_FALSE
                 receipt = f"Path '{p}' verified absent on filesystem."
+        elif not actual_exists:
+            val = BelnapValue.TRUE
+            rec = ProbeActionRecommendation.ACCEPT_AS_TRUE
+            receipt = f"Path '{p}' verified absent as expected."
         else:
-            if not actual_exists:
-                val = BelnapValue.TRUE
-                rec = ProbeActionRecommendation.ACCEPT_AS_TRUE
-                receipt = f"Path '{p}' verified absent as expected."
-            else:
-                val = BelnapValue.FALSE
-                rec = ProbeActionRecommendation.ACCEPT_AS_FALSE
-                receipt = f"Path '{p}' contradicts negative claim; path exists."
+            val = BelnapValue.FALSE
+            rec = ProbeActionRecommendation.ACCEPT_AS_FALSE
+            receipt = f"Path '{p}' contradicts negative claim; path exists."
 
         elapsed = (time.perf_counter() - t0) * 1000.0
         return LatentProbeResponse(
@@ -451,7 +450,10 @@ class BelnapLatentInvestigator:
         elif lexical_conflict:
             val = BelnapValue.BOTH
             rec = ProbeActionRecommendation.SOLICIT_USER_CLARIFICATION
-            receipt = "Polarity or value mismatch detected between existing memory and candidate claim."
+            receipt = (
+                "Polarity or value mismatch detected between existing memory and "
+                "candidate claim."
+            )
             clarification = self.generate_clarification_prompt(
                 existing_premise, candidate_hypothesis
             )

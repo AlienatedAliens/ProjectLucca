@@ -12,12 +12,10 @@ Tests the 5 ratified engines:
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
 import wave
+from pathlib import Path
 
 import numpy as np
-import pytest
 from PyQt6.QtWidgets import QApplication
 
 from lucca.senses.ring_buffer import get_playback_ring

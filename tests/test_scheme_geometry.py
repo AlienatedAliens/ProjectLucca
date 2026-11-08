@@ -7,6 +7,7 @@ containment checks, areas, perimeters, and Scheme macro integration.
 from __future__ import annotations
 
 import math
+
 import pytest
 
 from lucca.reasoning.scheme.eval import evaluate_expr
@@ -141,8 +142,8 @@ def test_discrete_spatial_scheme_eval():
 
 def test_scheme_sketch_hole_extraction():
     from lucca.reasoning.scheme.parser import parse_expr
-    from lucca.reasoning.topology import extract_hole_info, is_hole_node
     from lucca.reasoning.spatial_scheme import evaluate_spatial_sketch
+    from lucca.reasoning.topology import extract_hole_info, is_hole_node
 
     ast = parse_expr("(complete-symmetry input :axis ?hole-axis)")
     assert isinstance(ast, list)
@@ -193,9 +194,9 @@ def test_egraph_discrete_spatial_pruning():
 
 
 def test_topology_enumerate_hole_bindings():
-    from lucca.reasoning.topology import enumerate_hole_bindings
     from lucca.reasoning.scheme.eval import SchemeEvaluator
     from lucca.reasoning.scheme.prims import PURE_PRIMITIVES
+    from lucca.reasoning.topology import enumerate_hole_bindings
 
     evaluator = SchemeEvaluator(gas_limit=500, timeout_ms=50.0)
 

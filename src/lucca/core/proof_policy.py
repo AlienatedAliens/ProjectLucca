@@ -76,7 +76,8 @@ POLICY_TABLE_2D: Final[dict[tuple[str, Hazard], ProofStandard]] = {
 }
 
 def classify_hazard(claim_or_topic: str) -> Hazard:
-    """Classifies the hazard level of a claim or topic using the OpenVINO NPU 5-class neural classifier
+    """
+    Classifies the hazard level of a claim or topic using the OpenVINO NPU 5-class neural classifier
     (WO-41 Phase 4 Milestone 4.1, replacing WO-21 keyword/regex lists).
 
     Classification taxonomy:

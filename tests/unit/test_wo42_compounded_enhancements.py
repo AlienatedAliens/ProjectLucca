@@ -12,9 +12,10 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from lucca.core.capabilities import get_default_native_tools
+from lucca.core.coherence import ToolReceipt
 from lucca.core.corroboration import (
-    CQAnswer,
     Q_AUTH_INDEPENDENT_CORROB,
+    CQAnswer,
     Scheme,
     compute_proposition_alignment,
     critical_questions,
@@ -25,7 +26,6 @@ from lucca.core.schemas import (
     VerificationResult,
     VerifierLabel,
 )
-from lucca.core.coherence import ToolReceipt
 from lucca.core.tool_shortlister import NATIVE_TOOL_CATEGORIES, shortlist_tools
 from lucca.reasoning.induction import RuleInducer
 from lucca.sandbox.schemas import SearchWebArgs

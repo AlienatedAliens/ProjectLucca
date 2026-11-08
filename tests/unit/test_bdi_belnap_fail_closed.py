@@ -9,6 +9,8 @@ from pathlib import Path
 from lucca.core.belief_service import BeliefService
 from lucca.core.cascade import (
     BelnapValue as CascadeBelnapValue,
+)
+from lucca.core.cascade import (
     EpistemicSearchCascade,
     EpistemicSubstrate,
     EvidenceItem,

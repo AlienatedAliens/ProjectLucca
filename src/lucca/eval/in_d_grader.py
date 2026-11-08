@@ -12,13 +12,13 @@ Invariants:
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
+import sys
 import time
+from pathlib import Path
 from typing import Final
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
 from lucca.memory.db import DatabaseManager
 from lucca.reasoning.lifecycle import RuleLifecycleManager
@@ -106,7 +106,9 @@ def grade_in_d(
                     c_at = float(row[3]) if len(row) > 3 and row[3] is not None else 0.0
                     p_at = float(row[4]) if len(row) > 4 and row[4] is not None else None
 
-                    is_ind = ("induced" in r_id.lower() or "mined" in r_id.lower() or "defmacro" in src_canon.lower())
+                    is_ind = (
+                        "induced" in r_id.lower() or "mined" in r_id.lower() or "defmacro"
+                        in src_canon.lower())
                     entry = INDSkillEntry(
                         rule_id=r_id,
                         status=st,
@@ -146,7 +148,11 @@ def grade_in_d(
 
 def save_in_d_report(report: INDGraderReport, output_dir: Path | None = None) -> Path:
     """Saves the IN-D grader report to a timestamped JSON file and a latest symlink/file."""
-    target_dir = output_dir or REPORT_DIR
+    shim_mod = sys.modules.get("lucca.evaluation.in_d_grader")
+    shim_dir = getattr(shim_mod, "REPORT_DIR", None) if shim_mod is not None else None
+    target_dir = output_dir or (
+        shim_dir if isinstance(shim_dir, Path) and shim_dir != REPORT_DIR else REPORT_DIR
+    )
     target_dir.mkdir(parents=True, exist_ok=True)
 
     ts_str = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())

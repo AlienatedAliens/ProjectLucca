@@ -81,7 +81,8 @@ class ActionClaimGrammarSupervisor:
             try:
                 self._grammar_text = self.grammar_path.read_text(encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
-                logger.debug("action_claim_gbnf_load_failed", path=str(self.grammar_path), error=str(exc))
+                logger.debug("action_claim_gbnf_load_failed", path=str(self.grammar_path),
+                    error=str(exc))
 
     def evaluate_clause(
         self,
@@ -99,7 +100,9 @@ class ActionClaimGrammarSupervisor:
         """
         t0 = time.perf_counter()
 
-        run_neural = self.use_neural_verifier if use_neural_verifier is None else use_neural_verifier
+        run_neural = (
+            self.use_neural_verifier if use_neural_verifier is None else use_neural_verifier
+        )
         if run_neural and user_context is not None:
             try:
                 from lucca.sandbox.neural_claim_verifier import (  # noqa: PLC0415
@@ -136,7 +139,8 @@ class ActionClaimGrammarSupervisor:
                             (
                                 f"OpenVINO 4-Class Neural Verifier ({verdict.device}) "
                                 f"detected ungrounded action/state claim "
-                                f"(class={verdict.predicted_class}, p={verdict.prob_ungrounded_claim:.3f})."
+                                f"(class={verdict.predicted_class}, "
+                                f"p={verdict.prob_ungrounded_claim:.3f})."
                             ),
                             elapsed_us,
                         )
@@ -188,7 +192,8 @@ class ActionClaimGrammarSupervisor:
         if not clean:
             clean = raw_clean
 
-        # 1. Check synchronous execution / completion-notification patterns before future intent filter
+        # 1. Check synchronous execution / completion-notification patterns before future intent
+        # filter
         is_sync_future = bool(_SYNCHRONOUS_EXECUTION_FUTURE_REGEX.search(clean))
         has_stage_or_fake_scan = bool(
             _STAGE_DIRECTION_OR_FAKE_SCAN_REGEX.search(clause)
@@ -288,7 +293,8 @@ class ActionClaimGrammarSupervisor:
             ).strip(".,!?;:\"' ")
             t_unquoted = t_clean.replace("'", "").replace('"', "")
             tool_map: dict[str, tuple[str, ...]] = {
-                "save": ("note_write", "write_file", "memory_commit", "inbox_handoff", "schedule_event"),
+                "save": ("note_write", "write_file", "memory_commit", "inbox_handoff",
+                    "schedule_event"),
                 "write": ("note_write", "write_file", "memory_commit"),
                 "create": ("note_write", "write_file", "memory_commit", "schedule_event"),
                 "note": ("note_write", "memory_commit"),
@@ -339,7 +345,8 @@ class ActionClaimGrammarSupervisor:
                 v_clean = v.strip().lower()
                 t_clean = t.strip()
                 v_stem = EXPANDED_STEM_MAP.get(v_clean, v_clean)
-                if v_stem not in ALL_ACTION_VERBS or _CONVERSATIONAL_META_TARGETS_REGEX.match(t_clean):
+                if v_stem not in ALL_ACTION_VERBS or _CONVERSATIONAL_META_TARGETS_REGEX.match(
+                    t_clean):
                     continue
                 structured_matches.append((v_clean, t_clean, sm.group(0)))
 
@@ -397,18 +404,22 @@ class ActionClaimGrammarSupervisor:
                         flags=re.IGNORECASE,
                     )
                     remainder = re.sub(r"^\s*both\s+", "", remainder, flags=re.IGNORECASE)
-                    raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*", remainder) if t.strip()]
+                    raw_targets = [t.strip() for t in re.split(r"\s+and\s+|\s*,\s*",
+                        remainder) if t.strip()]
                     for target_item in raw_targets:
                         claims_to_verify.append((verb, target_item, m_canon.group(0)))
 
-        # (b) Initiating or execution status banner: "I'm initiating the reboot now", "Command executed:"
+        # (b) Initiating or execution status banner: "I'm initiating the reboot now", "Command
+        # executed:"
         if not claims_to_verify:
-            m_init = _INITIATING_ACTION_REGEX.search(raw_clean) or _INITIATING_ACTION_REGEX.search(clean)
+            m_init = _INITIATING_ACTION_REGEX.search(
+                raw_clean) or _INITIATING_ACTION_REGEX.search(clean)
             if m_init:
                 prefix = raw_clean[: m_init.start()].lower()
                 if not _NEGATION_PREFIX_PATTERN.search(prefix):
                     verb_noun = (m_init.group(1) or "execute").lower()
-                    stem = "reboot" if ("reboot" in verb_noun or "restart" in verb_noun) else verb_noun
+                    stem = "reboot" if (
+                        "reboot" in verb_noun or "restart" in verb_noun) else verb_noun
                     target = m_init.group(2) or verb_noun
                     claims_to_verify.append((stem, target, m_init.group(0)))
 
@@ -425,7 +436,8 @@ class ActionClaimGrammarSupervisor:
                     is_explicit_1p = m_prog.group(1) is not None
                     verb = (m_prog.group(1) or m_prog.group(3)).lower()
                     target = (m_prog.group(2) or m_prog.group(4)).strip()
-                    # Strip harmless completion / in-progress tail before checking gerund predicate verbs
+                    # Strip harmless completion / in-progress tail before checking gerund predicate
+                    # verbs
                     target_for_check = re.sub(
                         r"\s+(?:will\s+take\s+a\s+(?:moment|second|minute|few\s+\w+)|is\s+(?:in\s+progress|currently\s+running|underway|complete|done))[\.!]?$",
                         "",
@@ -443,7 +455,8 @@ class ActionClaimGrammarSupervisor:
                         )
                     )
                     is_bare_preposition = bool(
-                        re.match(r"^(?:on|in|at|to|from|with|by|for|of|as)\b[\.!]?$", target, re.IGNORECASE)
+                        re.match(r"^(?:on|in|at|to|from|with|by|for|of|a"
+                            r"s)\b[\.!]?$", target, re.IGNORECASE)
                     )
                     is_definition_or_title_header = (
                         not is_explicit_1p
@@ -535,7 +548,8 @@ class ActionClaimGrammarSupervisor:
                 if not _NEGATION_PREFIX_PATTERN.search(prefix_comp):
                     claims_to_verify.append(("update", m_comp.group(0).strip(), m_comp.group(0)))
 
-        # (g) Context-Aware Multi-Turn Elliptical Action Completion ("Done. How does that look for you?")
+        # (g) Context-Aware Multi-Turn Elliptical Action Completion ("Done. How does that look for
+        # you?")
         if not claims_to_verify and is_elliptical_action_confirmation(
             clause, user_context=user_context, full_narration=full_narration
         ):
@@ -546,7 +560,8 @@ class ActionClaimGrammarSupervisor:
             ):
                 claims_to_verify.append(("complete", "confirmed_companion_action", raw_clean))
 
-        # (h) Single-Turn Simulated Inspection + Readout ("Let me check your schedule. Yep, you have...")
+        # (h) Single-Turn Simulated Inspection + Readout ("Let me check your schedule. Yep, you
+        # have...")
         if not claims_to_verify and is_sim_inspect:
             claims_to_verify.append(("inspect", "simulated_live_inspection", raw_clean))
 
@@ -563,7 +578,7 @@ class ActionClaimGrammarSupervisor:
 
         # 7. Grounding verification
         ungrounded: list[str] = []
-        for verb, target, matched_text in claims_to_verify:
+        for verb, target, _matched_text in claims_to_verify:
             if not _is_grounded(verb, target):
                 ungrounded.append(f"{verb} {target}")
 

@@ -4,8 +4,10 @@ Project Lucca — Relational & Mereotopological Kernel
 Public interface for Organ A:
 - Typed Sorts: Interval1D, GridRegion, RealRegion, Region, Object, Network
 - Allen 1D Algebra: AllenRelation, relation_1d, converse, compose, ALLEN_COMPOSITION_TABLE
-- Discrete Mereotopology: part_of, externally_connected, partially_overlaps, in_cavity, extract_cavities
-- Grid Realization: y_projection, x_projection, above, below, left_of, right_of, bbox_during, extract_connected_components
+- Discrete Mereotopology: part_of, externally_connected, partially_overlaps, in_cavity,
+extract_cavities
+- Grid Realization: y_projection, x_projection, above, below, left_of, right_of, bbox_during,
+extract_connected_components
 - Real Realization: during_real, point_in_interval
 
 Zero-Any typing strictly enforced per D-AUD-01.
@@ -31,8 +33,8 @@ from .mereo import (
 )
 from .realize_grid import (
     above,
-    below,
     bbox_during,
+    below,
     extract_connected_components,
     left_of,
     right_of,

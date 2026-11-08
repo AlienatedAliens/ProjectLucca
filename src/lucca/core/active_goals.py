@@ -5,7 +5,8 @@ WO-36 Milestone 36.2 & Spec D-REAS-09
 Maintains active user goals and shared collaborative intent:
 1. Gated strictly on USER_EXPLICIT or USER_DERIVED provenance envelopes.
 2. Backed by persistent SQLite active_goals table (migration 0009).
-3. Injects active goal context as a lightweight retrieval boost in HybridRetriever and EpisodeRecall.
+3. Injects active goal context as a lightweight retrieval boost in HybridRetriever and
+EpisodeRecall.
 
 Zero-Any typing invariant strictly enforced per D-AUD-01.
 """
@@ -73,7 +74,8 @@ class ActiveGoalManager:
         prov_str = str(provenance).strip()
         if prov_str not in ALLOWED_GOAL_PROVENANCES:
             raise ValueError(
-                f"ActiveGoal creation requires USER_EXPLICIT or USER_DERIVED provenance, got '{prov_str}'"
+                f"ActiveGoal creation requires USER_EXPLICIT or USER_DERIVED provenance, got '{
+                    prov_str}'"
             )
 
         clean_title = title.strip()
@@ -104,7 +106,8 @@ class ActiveGoalManager:
                     conn.execute(
                         """
                         INSERT INTO active_goals
-                        (goal_id, title, description, status, priority, provenance, provenance_envelope_id, created_at, updated_at)
+                        (goal_id, title, description, status, priority, provenance,
+                        provenance_envelope_id, created_at, updated_at)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (

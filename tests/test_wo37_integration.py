@@ -16,15 +16,13 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 
-import pytest
-
 from lucca.core.coherence import ToolReceipt
 from lucca.core.memory_commit_service import _clean_truncate, _extract_stance_topic
 from lucca.core.orchestrator import Orchestrator
 from lucca.core.schemas import Done, LLMUsage, TokenDelta, VerifierLabel
 from lucca.core.trace import TurnTrace
 from lucca.core.turn_pipeline import TurnInput, TurnPipeline
-from lucca.senses.verifier import VERIFIER_MINILM_DIR, VerifierWorker
+from lucca.senses.verifier import VerifierWorker
 from tests.fakes.fake_asr import FakeASR
 from tests.fakes.fake_llm import FakeLLM
 from tests.fakes.fake_tts import FakeTTS

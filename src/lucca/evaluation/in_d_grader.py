@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from lucca.eval.in_d_grader import (
+    REPORT_DIR,
     INDGraderReport,
     INDSkillEntry,
-    REPORT_DIR,
     grade_in_d,
     save_in_d_report,
 )

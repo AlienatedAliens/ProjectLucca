@@ -117,8 +117,8 @@ def test_non_target_tool_passthrough() -> None:
 
 def test_docker_in_harness_skip_on_dockerless(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """_make_hw_orchestrator with use_docker=True skips loudly when docker is unavailable."""
-    from tests.test_a1_live_hw import _make_hw_orchestrator
     from lucca.sandbox.rpc import DockerRPCTransport
+    from tests.test_a1_live_hw import _make_hw_orchestrator
 
     monkeypatch.setattr(DockerRPCTransport, "is_docker_available", lambda self: False)
     with pytest.raises(pytest.skip.Exception) as exc_info:

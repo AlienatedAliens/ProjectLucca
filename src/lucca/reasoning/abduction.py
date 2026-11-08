@@ -19,30 +19,23 @@ from __future__ import annotations
 import copy
 import math
 import threading
-from dataclasses import dataclass
-from typing import Final
 
-from pydantic import BaseModel, Field
 import structlog
 import z3
+from pydantic import BaseModel, Field
 
-_Z3_LOCK = threading.Lock()
-
-from lucca.reasoning.cost import ast_cost
 from lucca.reasoning.scheme.eval import SchemeEvaluator
 from lucca.reasoning.scheme.parser import (
-    ALLOWED_OPS,
     Keyword,
     SchemeAtom,
     SchemeNode,
     Symbol,
-    parse_expr,
-    to_canonical,
 )
 from lucca.reasoning.scheme.prims import PURE_PRIMITIVES
 from lucca.reasoning.topology import extract_hole_info, is_hole_node
 
 logger = structlog.get_logger(__name__)
+_Z3_LOCK = threading.Lock()
 
 
 class AbductiveHypothesis(BaseModel):
@@ -159,10 +152,9 @@ class BackwardAbductionSolver:
                 if hole_is_first:
                     res = target_val * known_arg
                     return int(res) if isinstance(res, float) and res.is_integer() else res
-                else:
-                    if target_val != 0:
-                        res = known_arg / target_val
-                        return int(res) if res.is_integer() else res
+                elif target_val != 0:
+                    res = known_arg / target_val
+                    return int(res) if res.is_integer() else res
         except (ZeroDivisionError, OverflowError):
             return None
         return None
@@ -194,12 +186,14 @@ class BackwardAbductionSolver:
                 return hole_vars[name]
             if name in input_env:
                 v = input_env[name]
-                return z3.IntVal(int(v)) if isinstance(v, (int, float)) and float(v).is_integer() else None
+                return z3.IntVal(int(v)) if isinstance(v, (int,
+                    float)) and float(v).is_integer() else None
             return None
         if isinstance(node, str):
             if node in input_env:
                 v = input_env[node]
-                return z3.IntVal(int(v)) if isinstance(v, (int, float)) and float(v).is_integer() else None
+                return z3.IntVal(int(v)) if isinstance(v, (int,
+                    float)) and float(v).is_integer() else None
             return None
         if isinstance(node, list) and len(node) >= 2:
             head = node[0]
@@ -241,12 +235,15 @@ class BackwardAbductionSolver:
         target_val: int | float | str | bool = 0,
         test_cases: list[dict[str, object]] | None = None,
     ) -> dict[str, list[AbductiveHypothesis]]:
-        """Uses Z3 constraint solving to deduce hole expressions consistent across all test cases."""
+        """
+        Uses Z3 constraint solving to deduce hole expressions consistent across all test cases.
+        """
         results: dict[str, list[AbductiveHypothesis]] = {h[0]: [] for h in holes}
         if not holes:
             return results
 
-        # 1. Try solving for constant integer hole values that satisfy ALL test_cases (or compound sketch)
+        # 1. Try solving for constant integer hole values that satisfy ALL test_cases (or compound
+        # sketch)
         if test_cases:
             with _Z3_LOCK:
                 return self._solve_holes_z3_locked(sketch, holes, target_val, test_cases, results)
@@ -302,11 +299,13 @@ class BackwardAbductionSolver:
                                     candidate_expr=c_str,
                                     confidence=0.98,
                                     heuristic_rank=1,
-                                    derivation_rationale=f"Z3 multi-case constant solution: {h_name} = {c_str}",
+                                    derivation_rationale=f"Z3 multi-case constant solution: {
+                                        h_name} = {c_str}",
                                 )
                             )
 
-            # 2. Try solving each hole as a linear/quadratic symbolic expression over input vars via Z3
+            # 2. Try solving each hole as a linear/quadratic symbolic expression over input vars via
+            # Z3
             first_in = test_cases[0].get("inputs", test_cases[0].get("input", {}))
             var_names: list[str] = []
             if isinstance(first_in, dict):
@@ -444,7 +443,8 @@ class BackwardAbductionSolver:
                                             candidate_expr=str(solved),
                                             confidence=0.95,
                                             heuristic_rank=1,
-                                            derivation_rationale=f"Inverted {op} with {val2}: {solved}",
+                                            derivation_rationale=f"Inverted {
+                                                op} with {val2}: {solved}",
                                         )
                                     )
                                 else:
@@ -467,7 +467,8 @@ class BackwardAbductionSolver:
                                             candidate_expr=str(solved),
                                             confidence=0.95,
                                             heuristic_rank=1,
-                                            derivation_rationale=f"Inverted {op} with {val1}: {solved}",
+                                            derivation_rationale=f"Inverted {
+                                                op} with {val1}: {solved}",
                                         )
                                     )
                                 else:
@@ -494,7 +495,8 @@ class BackwardAbductionSolver:
                                                     candidate_expr=c_s,
                                                     confidence=0.85,
                                                     heuristic_rank=len(hypotheses) + 1,
-                                                    derivation_rationale=f"Multiplicative factor decomposition of {t_int}: {d} * {q}",
+                                                    derivation_rationale="Multiplicative factor "
+                                                        f"decomposition of {t_int}: {d} * {q}",
                                                 )
                                             )
                         elif op == "+":
@@ -524,9 +526,11 @@ class BackwardAbductionSolver:
                         other_vals = [_eval_pure_safe(c) for c in other_children]
                         if all(isinstance(v, (int, float)) for v in other_vals):
                             if op == "+":
-                                partial = sum(float(v) for v in other_vals if isinstance(v, (int, float)))
+                                partial = sum(float(v) for v in other_vals if isinstance(v, (int,
+                                    float)))
                                 rem = target_val - partial
-                                rem_clean: int | float = int(rem) if float(rem).is_integer() else rem
+                                rem_clean: int | float = int(
+                                    rem) if float(rem).is_integer() else rem
                             else:
                                 partial = 1.0
                                 for v in other_vals:
@@ -541,13 +545,15 @@ class BackwardAbductionSolver:
                                         candidate_expr=str(rem_clean),
                                         confidence=0.95,
                                         heuristic_rank=1,
-                                        derivation_rationale=f"N-ary {op} algebraic inversion: {rem_clean}",
+                                        derivation_rationale=f"N-ary {
+                                            op} algebraic inversion: {rem_clean}",
                                     )
                                 )
                             else:
                                 hypotheses.extend(
                                     self.invert_goal_for_sketch(
-                                        hole_children[0], rem_clean, hole_name, test_cases=test_cases
+                                        hole_children[0], rem_clean, hole_name,
+                                            test_cases=test_cases
                                     )
                                 )
 

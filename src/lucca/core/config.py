@@ -62,7 +62,8 @@ class LLMSettings(BaseModel):
     draft_kv_type_v: str = "q4_0"
     cpu_moe: bool = True
     moe_expert_cache_mib: int | None = 7680  # 7.5 GB VRAM LRU cache for active MoE experts
-    ubatch: int = 2048  # Physical micro-batch size for tensor core saturation and full 1120 vision tokens
+    # Physical micro-batch size for tensor core saturation and full 1120 vision tokens
+    ubatch: int = 2048
     # RAM budget for the llama-server prompt prefix cache (--cache-ram, MiB).
     # Bounded to 4 GiB: the 8 GiB default thrashed and crashed under the WO-8
     # battery workload (60 distinct low-similarity prompts). Production turns
@@ -105,7 +106,8 @@ class LLMSettings(BaseModel):
     # supervisor) against external threats and accidents; nothing screens what
     # the user says or what Lucca says back.
 
-    @field_validator("chat_template_file", "chat_template", "display_name", "draft_model", mode="before")
+    @field_validator("chat_template_file", "chat_template", "display_name", "draft_model",
+        mode="before")
     @classmethod
     def _blank_to_none(cls, v: object) -> object:
         if isinstance(v, str) and (not v.strip() or v.strip().lower() in ("none", "null")):
@@ -311,7 +313,8 @@ def resolve_or_create_master_key(
             return cfg_k.encode("utf-8")
 
     # 3. Persistent disk key
-    home = config.home_dir if config else (Path("C:/ProjectLucca") if Path("C:/ProjectLucca").exists() else Path("."))
+    home = config.home_dir if config else (
+        Path("C:/ProjectLucca") if Path("C:/ProjectLucca").exists() else Path("."))
     target_dir = key_dir or (home / "data" / "keys")
     key_file = target_dir / "master.key"
 

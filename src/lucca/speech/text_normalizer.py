@@ -111,7 +111,9 @@ def num_to_ordinal(n: int) -> str:
         words[-1] = _ORDINALS_ONES[_ONES.index(last)]
     elif last.endswith("y"):
         words[-1] = last[:-1] + "ieth"
-    elif last.endswith("hundred") or last.endswith("thousand") or last.endswith("million") or last.endswith("billion"):
+    elif last.endswith(
+        "hundred") or last.endswith(
+            "thousand") or last.endswith("million") or last.endswith("billion"):
         words[-1] = last + "th"
     return " ".join(words)
 

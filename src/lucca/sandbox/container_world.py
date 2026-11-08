@@ -2,7 +2,8 @@
 Project Lucca — ContainerWorld Spatial & Theory-of-Mind State Tracker
 Spec 09 / Neurosymbolic Tool Engine
 Provides deterministic tracking of physical locations, initial shared knowledge,
-and per-agent belief states to eliminate autoregressive attention collapse on spatial object tracking.
+and per-agent belief states to eliminate autoregressive attention collapse on spatial object
+tracking.
 """
 
 from __future__ import annotations
@@ -14,17 +15,20 @@ import re
 class ContainerWorld:
     """
     Deterministic Theory-of-Mind & Spatial State Tracker.
-    Maintains ground-truth physical locations, initial shared locations, and per-agent belief states.
+    Maintains ground-truth physical locations, initial shared locations, and per-agent belief
+    states.
     """
 
     def __init__(self) -> None:
         self.world: dict[str, str] = {}  # item -> current physical location
         self.initial_world: dict[str, str] = {}  # item -> initial location at start of narrative
         self.beliefs: dict[str, dict[str, str]] = {}  # agent -> item -> believed location
-        self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}  # observer -> target -> item -> location
+        # observer -> target -> item -> location
+        self.second_order_beliefs: dict[str, dict[str, dict[str, str]]] = {}
         self.room_occupants: dict[str, list[str]] = {}  # room -> list of occupants
         self.agent_locations: dict[str, str] = {}  # agent -> current room
-        self.event_log: list[dict[str, object]] = []  # ordered epistemic event log for arbitrary depth k>=3 ToM
+        # ordered epistemic event log for arbitrary depth k>=3 ToM
+        self.event_log: list[dict[str, object]] = []
 
     @property
     def rooms(self) -> dict[str, list[str]]:
@@ -33,7 +37,10 @@ class ContainerWorld:
 
     @staticmethod
     def _coerce_observer_list(val: object) -> list[str]:
-        """Coerces a single string, comma-separated string, or iterable into a clean lowercase observer list."""
+        """
+        Coerces a single string, comma-separated string, or iterable into a clean lowercase observer
+        list.
+        """
         if val is None:
             return []
         if isinstance(val, str):
@@ -42,7 +49,8 @@ class ContainerWorld:
                 return []
             if "," in cleaned:
                 parts = [p.strip().removeprefix("and ").strip() for p in cleaned.split(",")]
-                return [p.lower() for p in parts if p and p.lower() not in ("none", "null", "nobody", "no one", "alone")]
+                return [p.lower() for p in parts if p and p.lower() not in ("none", "null",
+                    "nobody", "no one", "alone")]
             return [cleaned.lower()]
         if isinstance(val, (list, tuple, set)):
             out: list[str] = []
@@ -50,7 +58,8 @@ class ContainerWorld:
                 out.extend(ContainerWorld._coerce_observer_list(elem))
             return out
         s_val = str(val).strip().lower()
-        return [s_val] if s_val and s_val not in ("none", "null", "nobody", "no one", "alone") else []
+        return [s_val] if s_val and s_val not in ("none", "null", "nobody", "no one",
+            "alone") else []
 
     def process_event(self, ev: dict[str, object]) -> None:
         """
@@ -64,7 +73,10 @@ class ContainerWorld:
         """
         raw_agent = ev.get("agent") if "agent" in ev else ev.get("actor")
         action = str(ev.get("action") or "move").strip().lower()
-        item = str(ev.get("item") or ev.get("obj") or ev.get("object") or ev.get("entity") or "").strip().lower()
+        item = str(
+            ev.get(
+                "item") or ev.get(
+                    "obj") or ev.get("object") or ev.get("entity") or "").strip().lower()
         loc = str(
             ev.get("location")
             or ev.get("loc")
@@ -98,7 +110,8 @@ class ContainerWorld:
         )
         observers = self._coerce_observer_list(raw_observers)
 
-        if isinstance(raw_agent, (list, tuple, set)) or (isinstance(raw_agent, str) and "," in raw_agent):
+        if isinstance(raw_agent, (list, tuple, set)) or (isinstance(raw_agent,
+            str) and "," in raw_agent):
             observers.extend(self._coerce_observer_list(raw_agent))
             agent = ""
         else:
@@ -222,7 +235,8 @@ class ContainerWorld:
         )
         observers = self._coerce_observer_list(kw_obs)
         kw_agent = kwargs.get("agent") if "agent" in kwargs else kwargs.get("actor")
-        kw_item = kwargs.get("item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
+        kw_item = kwargs.get(
+            "item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
         kw_loc = (
             kwargs.get("location")
             or kwargs.get("loc")
@@ -311,11 +325,17 @@ class ContainerWorld:
         )
 
     def place(self, *args: object, **kwargs: object) -> None:
-        """Convenience method to record a placement event (supports (agent, item, loc), (item, loc), or (item, loc, observers))."""
+        """
+        Convenience method to record a placement event (supports (agent, item, loc), (item, loc), or
+        (item, loc, observers)).
+        """
         self._dispatch_action("place", *args, **kwargs)
 
     def move(self, *args: object, **kwargs: object) -> None:
-        """Convenience method to record a movement event (supports (agent, item, loc), (item, loc), or (agent, item, loc, observers))."""
+        """
+        Convenience method to record a movement event (supports (agent, item, loc), (item, loc), or
+        (agent, item, loc, observers)).
+        """
         self._dispatch_action("move", *args, **kwargs)
 
     def set_room_occupants(self, room: str, occupants: list[str]) -> None:
@@ -332,14 +352,17 @@ class ContainerWorld:
 
     def tell(self, speaker: str, listener: str, item: str, location: str | None = None) -> None:
         """
-        Agent communication action: speaker tells listener that item is at location (Milestone 36.5).
-        If location is omitted, uses speaker's current belief (or ground-truth world state) for item.
+        Agent communication action: speaker tells listener that item is at location (Milestone
+        36.5).
+        If location is omitted, uses speaker's current belief (or ground-truth world state) for
+        item.
         Updates listener's belief about item, and speaker's second-order belief about listener.
         """
         spk = speaker.strip().lower()
         lis = listener.strip().lower()
         it = item.strip().lower()
-        resolved_loc = location.strip().lower() if location is not None else (self.query(spk, it) or "")
+        resolved_loc = location.strip().lower() if location is not None else (self.query(spk,
+            it) or "")
         if not resolved_loc:
             return
         loc = resolved_loc
@@ -411,8 +434,10 @@ class ContainerWorld:
         - w.query(item) -> ground-truth physical location
         """
         kw_obs = kwargs.get("observer") or kwargs.get("observer_agent") or kwargs.get("agent1")
-        kw_tgt = kwargs.get("target") or kwargs.get("target_agent") or kwargs.get("agent") or kwargs.get("agent2")
-        kw_item = kwargs.get("item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
+        kw_tgt = kwargs.get(
+            "target") or kwargs.get("target_agent") or kwargs.get("agent") or kwargs.get("agent2")
+        kw_item = kwargs.get(
+            "item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
 
         if len(args) >= 3:
             return self.query_second_order(args[0], args[1], args[2])
@@ -448,7 +473,8 @@ class ContainerWorld:
         target_item = item.strip().lower()
         if target_agent:
             agent = target_agent.strip().lower()
-            # If caller swapped (item, agent), detect when `agent` is a known item and `target_item` is not
+            # If caller swapped (item, agent), detect when `agent` is a known item and `target_item`
+            # is not
             if agent in self.world and target_item not in self.world:
                 agent, target_item = target_item, agent
 
@@ -499,7 +525,8 @@ class ContainerWorld:
             or kwargs.get("inner_agent")
             or kwargs.get("agent")
         )
-        kw_item = kwargs.get("item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
+        kw_item = kwargs.get(
+            "item") or kwargs.get("obj") or kwargs.get("object") or kwargs.get("entity")
 
         if len(args) == 2 and isinstance(args[0], (list, tuple)):
             return self.query_recursive([str(x) for x in args[0]], str(args[1]))
@@ -576,9 +603,11 @@ class ContainerWorld:
         sob = state.get("second_order_beliefs")
         self.world = dict(w) if isinstance(w, dict) else {}
         self.initial_world = dict(iw) if isinstance(iw, dict) else {}
-        self.beliefs = {k: dict(v) for k, v in b.items() if isinstance(v, dict)} if isinstance(b, dict) else {}
+        self.beliefs = {k: dict(v) for k, v in b.items() if isinstance(v, dict)} if isinstance(b,
+            dict) else {}
         self.second_order_beliefs = (
-            {k: {k2: dict(v2) for k2, v2 in v.items() if isinstance(v2, dict)} for k, v in sob.items() if isinstance(v, dict)}
+            {k: {k2: dict(v2) for k2, v2 in v.items() if isinstance(v2, dict)} for k,
+                v in sob.items() if isinstance(v, dict)}
             if isinstance(sob, dict)
             else {}
         )
@@ -652,7 +681,8 @@ class ContainerWorld:
         t_item = item.strip().lower()
         cur_obs = obs
         for nxt in sub:
-            if cur_obs not in self.second_order_beliefs or nxt not in self.second_order_beliefs[cur_obs]:
+            if cur_obs not in self.second_order_beliefs or nxt not in self.second_order_beliefs[
+                cur_obs]:
                 if t_item in self.initial_world:
                     return self.initial_world[t_item]
                 return self.query(None, t_item)
@@ -757,5 +787,6 @@ class Agent:
         return f"Agent({self.name!r})"
 
 
-__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent", "extract_events_from_json_text"]
+__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent",
+    "extract_events_from_json_text"]
 

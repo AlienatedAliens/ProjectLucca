@@ -80,7 +80,8 @@ def _extract_stance_topic(text: str) -> str:
         if marker in lower:
             pre = text[: lower.find(marker)].strip(" ,:.-")
             if pre:
-                pre = re.sub(r"\b(when|if|while|as|because|since|that|and|or|but)\s*$", "", pre, flags=re.IGNORECASE).strip(" ,:.-")
+                pre = re.sub(r"\b(when|if|while|as|because|since|that|and|o"
+                    r"r|but)\s*$", "", pre, flags=re.IGNORECASE).strip(" ,:.-")
                 if pre:
                     clause = re.split(r"[.!?;\n]+", pre)[-1].strip()
                     candidate = _clean_truncate(clause, 40)
@@ -337,7 +338,8 @@ _PASSIVE_FACT_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     (
         "visited_location",
         re.compile(
-            r"\b(?:we were|i was)\s+(?:on\s+holiday|on\s+vacation|traveling|travelling|staying)\s+in\s+([A-Za-z][A-Za-z\s\-']{2,40}?)(?:[.,!?;]|$)",
+            r"\b(?:we were|i "
+                r"was)\s+(?:on\s+holiday|on\s+vacation|traveling|travelling|staying)\s+in\s+([A-Za-z][A-Za-z\s\-']{2,40}?)(?:[.,!?;]|$)",
             re.IGNORECASE,
         ),
     ),
@@ -677,9 +679,12 @@ class MemoryCommitService:
                                 )
                                 existing_row = cur.fetchone()
                             if existing_row is not None:
-                                old_mem_id = str(existing_row[0])
+                                str(existing_row[0])
                                 old_content = str(existing_row[1])
-                                if old_content.strip().lower() != str(signed_fact.content).strip().lower():
+                                if (
+                                    old_content.strip().lower() != str(
+                                        signed_fact.content).strip().lower()
+                                ):
                                     belnap_val = BelnapLatentInvestigator.evaluate_nli_verdict(
                                         v_res, has_lexical_conflict=True
                                     )

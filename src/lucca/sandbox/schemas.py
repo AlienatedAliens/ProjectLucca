@@ -225,7 +225,8 @@ class ClipboardReadArgs(BaseModel):
 
 
 class InboxHandoffArgs(BaseModel):
-    filename: str = Field(default="all", description="Filename in inbox/ to import, or 'all' to import all files, or 'list' to inspect")
+    filename: str = Field(default="all", description="Filename in inbox/ to import, or 'all' to "
+        "import all files, or 'list' to inspect")
 
     @model_validator(mode="before")
     @classmethod

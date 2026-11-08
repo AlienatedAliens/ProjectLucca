@@ -77,7 +77,9 @@ _MIN_TOPICAL_TOKENS: Final[int] = 2
 
 
 class BeliefService:
-    """Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b)."""
+    """
+    Encapsulates belief contradiction detection and pending update speech (F-ARCH-103, WO-18b).
+    """
 
     def __init__(
         self,
@@ -331,10 +333,13 @@ class BeliefService:
     _check_contradictions = check_contradictions
 
     def maybe_speak_pending_updates(self, trace: TurnTrace) -> None:
-        """Processes queued unflagged belief revision sentences without speaking them aloud (WO-26 Phase 1).
+        """
+        Processes queued unflagged belief revision sentences without speaking them aloud (WO-26
+        Phase 1).
 
         Maintains the interiority barrier: logs the revision to structured audit telemetry
-        and publishes a system caption, but strictly quarantines it from conversational TTS and history.
+        and publishes a system caption, but strictly quarantines it from conversational TTS and
+        history.
         """
         while self.pending_spoken_updates:
             spoken_update = self.pending_spoken_updates.popleft()
@@ -345,7 +350,9 @@ class BeliefService:
                     trace_id=trace.trace_id if trace else None,
                 )
                 print(f"[Lucca Revision] 💡 {spoken_update}", flush=True)
-                if self._orchestrator is not None and hasattr(self._orchestrator, "_publish_caption"):
-                    self._orchestrator._publish_caption(spoken_update, source="system", is_final=True)
+                if self._orchestrator is not None and hasattr(self._orchestrator,
+                    "_publish_caption"):
+                    self._orchestrator._publish_caption(spoken_update, source="system",
+                        is_final=True)
 
     _maybe_speak_pending_updates = maybe_speak_pending_updates

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import JsonValue
 
-from lucca.core.config import get_config
+from lucca.core.config import get_config, resolve_or_create_master_key
 from lucca.core.schemas import Provenance, RuleState, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.reflection import ReflectionEngine
@@ -30,6 +30,7 @@ from lucca.reasoning.scheme.eval import evaluate_rule as _evaluate_rule
 from lucca.reasoning.scheme.parser import parse_rule as _parse_rule
 from lucca.reasoning.skills import SkillManager
 from lucca.reasoning.stats import rule_of_three_ucl as _rule_of_three_ucl
+from lucca.sandbox.screenshot_tool import capture_screenshot as _capture_screenshot
 from lucca.sandbox.system_tools import get_system_metrics as _get_system_metrics
 
 if TYPE_CHECKING:
@@ -53,7 +54,6 @@ class StudioFacade:
         master_key: bytes | None = None,
     ) -> None:
         cfg = get_config()
-        from lucca.core.config import resolve_or_create_master_key
         self.master_key = (
             master_key
             if master_key is not None
@@ -195,7 +195,8 @@ class StudioFacade:
                         "importance": float(r["importance"]),
                         "forgotten_at": r["forgotten_at"],
                         "provenance": r["provenance"] or "USER_EXPLICIT",
-                        "confidence": float(r["confidence"]) if r["confidence"] is not None else 1.0,
+                        "confidence": float(
+                            r["confidence"]) if r["confidence"] is not None else 1.0,
                     }
                 )
             return result
@@ -203,7 +204,9 @@ class StudioFacade:
             conn.close()
 
     def forget_memory(self, memory_id: int, user_confirmed: bool = True) -> None:
-        """Soft-deletes a memory through MemoryStore.forget with user confirmation (WO-19f / Trap 2)."""
+        """
+        Soft-deletes a memory through MemoryStore.forget with user confirmation (WO-19f / Trap 2).
+        """
         if self.store is None:
             raise RuntimeError("MemoryStore is not initialized")
         self.store.forget([memory_id], user_confirmed=user_confirmed)
@@ -220,11 +223,13 @@ class StudioFacade:
         return len(memory_ids)
 
     def factory_reset_memories(self, user_confirmed: bool = True) -> int:
-        """Permanently eradicates all memories, KG, decisions, rules, and provenance via hard purge. Returns total count pruned."""
+        """
+        Permanently eradicates all memories, KG, decisions, rules, and provenance via hard purge.
+        Returns total count pruned.
+        """
         if not user_confirmed:
             raise ValueError("Factory reset requires user confirmation")
         if self.store is None:
-            from lucca.core.config import get_config, resolve_or_create_master_key
             key = self.master_key or resolve_or_create_master_key(get_config())
             self.store = MemoryStore(db=self.db, master_key=key)
         deleted_counts = self.store.hard_purge_all(user_confirmed=True)
@@ -501,6 +506,5 @@ class StudioFacade:
         quality: int = 75,
     ) -> tuple[str, int, int]:
         """Captures primary display/active screen via sandbox screenshot tool."""
-        from lucca.sandbox.screenshot_tool import capture_screenshot as _capture_screenshot
 
         return _capture_screenshot(max_width=max_width, quality=quality)

@@ -267,7 +267,9 @@ class OutputSupervisorSession[ChunkT]:
         )
 
     def set_turn_context(self, user_context: str | Sequence[dict[str, str]] | None) -> None:
-        """Sets the user / conversation context for the current turn (v3.0 context-aware supervision)."""
+        """
+        Sets the user / conversation context for the current turn (v3.0 context-aware supervision).
+        """
         self.turn_user_context = user_context
 
     def register_allowed_urls(self, urls: Sequence[str]) -> None:

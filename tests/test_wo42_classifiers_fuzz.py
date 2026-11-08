@@ -11,8 +11,10 @@ Verifies 5 formal invariants across >= 500 generated Hypothesis examples:
 from __future__ import annotations
 
 import string
+
 import pytest
-from hypothesis import given, settings, HealthCheck, strategies as st
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from lucca.core.coherence import evaluate_turn_coherence
 from lucca.core.proof_policy import Hazard, classify_hazard, is_cross_reference_command
@@ -282,7 +284,7 @@ def test_fuzz_invariant_4_asr_noise_and_known_apps_boundary(
             st.sampled_from(LOW_HAZARD_SENTENCES + GREETING_PREFIXES),
             min_size=10,
             max_size=45,
-        ).map(lambda xs: " ".join(xs)),
+        ).map(" ".join),
         # Explicit consonant-smash / symbol gibberish strings
         st.text(
             alphabet="bcdfghjklmnpqrstvwxzBCDFGHJKLMNPQRSTVWXZ0123456789!@#$%^&*()",

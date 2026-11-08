@@ -21,6 +21,9 @@ from lucca.core.schemas import (
     Say,
     ToolCall,
 )
+from lucca.reasoning.relational.realize_real import during_real, point_in_interval
+from lucca.reasoning.relational.sorts import Interval1D
+from lucca.reasoning.scheme import math_primitives, skills, universal_primitives
 from lucca.reasoning.scheme.parser import (
     Keyword,
     RuleDefinition,
@@ -176,8 +179,8 @@ class SchemeEvaluator:
 
 def _prim_point_in_interval(args: list[SchemeValue]) -> SchemeValue:
     """(point-in-interval? x [start end]) or (point-in-interval? x start end)."""
-    from lucca.reasoning.relational.realize_real import point_in_interval
-    from lucca.reasoning.relational.sorts import Interval1D
+
+
 
     if len(args) == 2 and isinstance(args[1], list) and len(args[1]) >= 2:
         pt = float(args[0])  # type: ignore[arg-type]
@@ -192,10 +195,11 @@ def _prim_point_in_interval(args: list[SchemeValue]) -> SchemeValue:
 
 def _prim_during_real(args: list[SchemeValue]) -> SchemeValue:
     """(during-real? [a0 a1] [b0 b1])."""
-    from lucca.reasoning.relational.realize_real import during_real
-    from lucca.reasoning.relational.sorts import Interval1D
 
-    if len(args) == 2 and isinstance(args[0], list) and isinstance(args[1], list) and len(args[0]) >= 2 and len(args[1]) >= 2:
+
+
+    if len(args) == 2 and isinstance(args[0], list) and isinstance(args[1],
+        list) and len(args[0]) >= 2 and len(args[1]) >= 2:
         iv_a = Interval1D(start=float(args[0][0]), end=float(args[0][1]), kind="continuous")  # type: ignore[arg-type]
         iv_b = Interval1D(start=float(args[1][0]), end=float(args[1][1]), kind="continuous")  # type: ignore[arg-type]
         return during_real(iv_a, iv_b)
@@ -205,7 +209,7 @@ def _prim_during_real(args: list[SchemeValue]) -> SchemeValue:
 def build_env(
     state: RuleState | None = None,
 ) -> dict[str, Callable[[list[SchemeValue]], SchemeValue]]:
-    from lucca.reasoning.scheme import math_primitives, skills, universal_primitives
+
 
     env: dict[str, Callable[[list[SchemeValue]], SchemeValue]] = dict(PURE_PRIMITIVES)
     for k, fn in universal_primitives.UNIVERSAL_PRIMITIVES.items():

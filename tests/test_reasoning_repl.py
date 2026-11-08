@@ -4,8 +4,6 @@ v1.44.0 General Reasoning Core
 """
 
 from pathlib import Path
-import tempfile
-import pytest
 
 from lucca.memory.episodic_cache import EpisodicSolutionCache
 from lucca.reasoning.repl_loop import ReasoningREPL, TaskRegistry

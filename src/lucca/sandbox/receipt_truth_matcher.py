@@ -96,7 +96,8 @@ class TruthInReceiptMatcher:
           a timestamp are given the benefit of the doubt (staleness is the
           caller's contract when timestamps are absent).
         """
-        # If grammar channel is active or structured tags are present, delegate to ActionClaimGrammarSupervisor
+        # If grammar channel is active or structured tags are present, delegate to
+        # ActionClaimGrammarSupervisor
         if (
             self.enable_grammar_channel
             or STRUCTURED_ACTION_TAG_REGEX.search(clause)
@@ -172,7 +173,8 @@ class TruthInReceiptMatcher:
         # Disambiguate explanatory gerund subjects from active physical claims
         if is_present_match:
             prefix = clause[: m.start()].lower()
-            if re.search(r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+as|than)\s*$", prefix):
+            if re.search(r"\b(?:by|for|while|worth|when|if|after|before|without|to|such\s+a"
+                r"s|than)\s*$", prefix):
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
                 return GateResult(
                     False,
@@ -278,7 +280,8 @@ class TruthInReceiptMatcher:
 
         # Verify all claimed objects have corresponding ToolReceipts
         tool_map_legacy: dict[str, tuple[str, ...]] = {
-            "save": ("note_write", "write_file", "memory_commit", "inbox_handoff", "schedule_event"),
+            "save": ("note_write", "write_file", "memory_commit", "inbox_handoff",
+                "schedule_event"),
             "write": ("note_write", "write_file", "memory_commit"),
             "create": ("note_write", "write_file", "memory_commit", "schedule_event"),
             "run": ("run_python", "calc_math"),
@@ -297,7 +300,8 @@ class TruthInReceiptMatcher:
             matched = False
             for r in eligible_receipts:
                 r_action = str(r.get("action", "")).lower()
-                r_target = str(r.get("target", r.get("path", ""))).lower().replace("'", "").replace('"', "")
+                r_target = str(r.get("target", r.get("path", ""))).lower().replace("'",
+                    "").replace('"', "")
                 action_ok = (
                     (stem in r_action)
                     or (action_verb in r_action)

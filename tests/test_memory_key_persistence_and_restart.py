@@ -8,13 +8,10 @@ Verifies that:
    and retrieval succeeds for uncorrupted memories rather than crashing.
 """
 
-import hashlib
 import time
 from pathlib import Path
 
-import pytest
-
-from lucca.core.config import LuccaConfig, resolve_or_create_master_key
+from lucca.core.config import resolve_or_create_master_key
 from lucca.core.schemas import Provenance, RetrievalQuery, UnsignedPayload
 from lucca.memory.db import DatabaseManager
 from lucca.memory.retrieval import HybridRetriever
@@ -25,7 +22,7 @@ from lucca.memory.store import MemoryStore
 def test_key_persistence_on_disk(tmp_path: Path):
     """Key is persisted to data/keys/master.key and reloaded identically across restarts."""
     key_dir = tmp_path / "data" / "keys"
-    
+
     # 1. First resolution: file doesn't exist -> generates and saves
     key1 = resolve_or_create_master_key(key_dir=key_dir)
     assert len(key1) == 32

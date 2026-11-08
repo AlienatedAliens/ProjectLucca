@@ -5,7 +5,6 @@ Spec 04 §3, Spec 11 §4, Gates: G-V1357-LATENCY, G-V1357-VERIFIER-NEG.
 
 import time
 import unicodedata
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np

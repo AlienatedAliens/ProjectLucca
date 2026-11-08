@@ -36,7 +36,6 @@ from lucca.reasoning.stats import rule_of_three_ucl
 from lucca.sandbox.egress import EgressVerifier
 from lucca.tools import lint as tools_lint
 
-
 logger = logging.getLogger(__name__)
 
 

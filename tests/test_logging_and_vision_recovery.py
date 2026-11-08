@@ -7,16 +7,13 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-import sys
 
-import numpy as np
 import pytest
 
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.logging_setup import setup_process_logging
 from lucca.core.schemas import TurnTrace as SchemaTurnTrace
 from lucca.core.trace import TurnTrace
-from lucca.senses.ring_buffer import PLAY_RING_NAME, SharedAudioRing
 from lucca.senses.tts import TTSWorker
 
 

@@ -11,9 +11,6 @@ import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
-
 from pydantic import JsonValue
 from PyQt6.QtCore import QPoint, QRectF, Qt, QThread, QTimer, pyqtSignal
 from PyQt6.QtGui import (
@@ -47,7 +44,7 @@ from lucca.ui.theme import (
     CT_SILVER_BORDER,
 )
 
-
+logger = logging.getLogger(__name__)
 class TelemetryWorker(QThread):
     """Off-thread hardware telemetry sampler preventing GUI hitching."""
 

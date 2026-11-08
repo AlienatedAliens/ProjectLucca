@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from PyQt6.QtCore import QPoint, Qt
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
@@ -105,9 +105,9 @@ def test_memory_tab_batch_delete(memory_tab: MemoryTab, facade: StudioFacade) ->
     # Clear any previous state
     facade.factory_reset_memories(user_confirmed=True)
 
-    m1 = facade.add_memory_fact("Alpha", importance=0.8)
-    m2 = facade.add_memory_fact("Beta", importance=0.8)
-    m3 = facade.add_memory_fact("Gamma", importance=0.8)
+    facade.add_memory_fact("Alpha", importance=0.8)
+    facade.add_memory_fact("Beta", importance=0.8)
+    facade.add_memory_fact("Gamma", importance=0.8)
 
     memory_tab._refresh_memories()
     assert memory_tab.table_mem.rowCount() == 3
@@ -150,7 +150,7 @@ def test_memory_tab_factory_reset(memory_tab: MemoryTab, facade: StudioFacade) -
 
 def test_memory_tab_delete_key_event(memory_tab: MemoryTab, facade: StudioFacade) -> None:
     facade.factory_reset_memories(user_confirmed=True)
-    m = facade.add_memory_fact("Fact for delete key test", importance=0.8)
+    facade.add_memory_fact("Fact for delete key test", importance=0.8)
     memory_tab._refresh_memories()
     assert memory_tab.table_mem.rowCount() == 1
 
@@ -172,8 +172,8 @@ def test_memory_tab_delete_key_event(memory_tab: MemoryTab, facade: StudioFacade
 
 def test_memory_tab_live_refresh_preserves_selection(memory_tab: MemoryTab, facade: StudioFacade) -> None:
     facade.factory_reset_memories(user_confirmed=True)
-    m1 = facade.add_memory_fact("Keep selected 1", importance=0.8)
-    m2 = facade.add_memory_fact("Keep selected 2", importance=0.8)
+    facade.add_memory_fact("Keep selected 1", importance=0.8)
+    facade.add_memory_fact("Keep selected 2", importance=0.8)
     memory_tab._refresh_memories()
 
     # User selects a row

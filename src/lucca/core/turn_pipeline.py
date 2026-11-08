@@ -319,7 +319,11 @@ class SubTurnScratchpadBuffer:
             head = content[: self.head_chars]
             tail = content[-self.tail_chars :] if self.tail_chars > 0 else ""
             bounded_output = (
-                f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters omitted to preserve synthesis budget ...]\n\n{tail}"
+
+                    f"{head}\n\n[... Truncated in scratchpad buffer: {omitted} characters "
+                    "omitted to "
+                    f"preserve synthesis budget ...]\n\n{tail}"
+
             )
             self.truncated_count += 1
             logger.info(
@@ -376,23 +380,33 @@ def detect_operational_ambiguity(text: str) -> tuple[bool, str | None]:
             return False, None
 
     # 1. Financial interest without specifying simple vs compound
-    has_interest = bool(re.search(r"\b(interest|rate of interest|earns interest|accrues interest|loan)\b", lower))
-    has_explicit_convention = bool(re.search(r"\b(simple interest|compound(ed)?|compounding|apr|apy)\b", lower))
+    has_interest = bool(re.search(r"\b(interest|rate of interest|earns interest|accrues "
+        r"interest|loan)\b", lower))
+    has_explicit_convention = bool(re.search(r"\b(simple "
+        r"interest|compound(ed)?|compounding|apr|apy)\b", lower))
     if has_interest and not has_explicit_convention:
         return True, "Interest calculation without explicit simple vs compound convention specified"
 
     # 2. Multi-tier fee/tip/tax where base is ambiguous (subtotal vs grand total)
-    has_fee = bool(re.search(r"\b(fee|service fee|delivery fee|convenience fee|vendor fee|tax|tip)\b", lower))
-    has_multiple_costs = bool(re.search(r"\b(delivery|shipping|travel|expenses|freight|tip|subtotal)\b", lower))
+    has_fee = bool(re.search(r"\b(fee|service fee|delivery fee|convenience fee|vendor "
+        r"fee|tax|tip)\b", lower))
+    has_multiple_costs = bool(re.search(r"\b(delivery|shipping|travel|expenses|freight|tip|subtota"
+        r"l)\b", lower))
     if has_fee and has_multiple_costs and "%" in text:
-        if not re.search(r"\b(applied (strictly )?to|on (the )?(subtotal|groceries|merchandise|work) only)\b", lower):
+        if not re.search(r"\b(applied (strictly )?to|on (the "
+            r")?(subtotal|groceries|merchandise|work) only)\b", lower):
             return True, "Percentage fee application ambiguous across subtotal vs grand total"
 
     # 3. Discrete physical entity packing/rounding without explicit rounding direction
-    has_discrete_packing = bool(re.search(r"\b(how many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b", lower))
-    has_explicit_rounding = bool(re.search(r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at least|exact(ly)?)\b", lower))
+    has_discrete_packing = bool(re.search(r"\b(how "
+        r"many\s+(pallets?|boxes|crates|containers|buses|vans|trips|hurdles))\b", lower))
+    has_explicit_rounding = bool(re.search(r"\b(round(ed)? (up|down|to nearest)|ceiling|floor|at "
+        r"least|exact(ly)?)\b", lower))
     if has_discrete_packing and not has_explicit_rounding:
-        return True, "Discrete physical unit allocation without explicit floor/ceil rounding direction"
+        return True, (
+            "Discrete physical unit allocation without explicit floor/ceil rounding "
+            "direction"
+        )
 
     return False, None
 
@@ -420,7 +434,8 @@ class TurnPipeline:
     _DIRECT_VISION_PATTERNS: tuple[re.Pattern[str], ...] = (
         # Explicit media nouns
         re.compile(
-            r"\b(in|on|from) (the |this |that )?(image|screenshot|picture|photo|capture|frame|screen|display)\b",
+            r"\b(in|on|from) (the |this |that "
+            r")?(image|screenshot|picture|photo|capture|frame|screen|display)\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -437,7 +452,8 @@ class TurnPipeline:
             re.IGNORECASE,
         ),
         re.compile(
-            r"\bwhat (do you|can you|did you|are you|are you able to) (see|spot|notice|observe|look at|looking at)\b",
+            r"\bwhat (do you|can you|did you|are you|are you able to) "
+            r"(see|spot|notice|observe|look at|looking at)\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -475,7 +491,8 @@ class TurnPipeline:
         re.compile(r"\b(where is (it|that|the)|where are (they|the))\b", re.IGNORECASE),
         re.compile(r"\bwhich (one|part|side|half)\b", re.IGNORECASE),
         re.compile(
-            r"\b(on the (left|right|top|bottom|side|edge)|in the (middle|center|background|foreground|corner))\b",
+            r"\b(on the (left|right|top|bottom|side|edge)|in the "
+            r"(middle|center|background|foreground|corner))\b",
             re.IGNORECASE,
         ),
         re.compile(
@@ -492,7 +509,9 @@ class TurnPipeline:
     _VISION_QUERY_PATTERNS = _DIRECT_VISION_PATTERNS
 
     def _is_vision_query(self, text: str, has_active_image: bool = False) -> bool:
-        """Returns True if the query requires visual inspection (or follow-up if image is active)."""
+        """
+        Returns True if the query requires visual inspection (or follow-up if image is active).
+        """
         if not text:
             return False
         for pat in self._DIRECT_VISION_PATTERNS:
@@ -824,7 +843,8 @@ class TurnPipeline:
             try:
                 return grammar_path.read_text(encoding="utf-8")
             except Exception as exc:  # noqa: BLE001
-                logger.debug("action_claim_grammar_load_failed", path=str(grammar_path), error=str(exc))
+                logger.debug("action_claim_grammar_load_fa"
+                    "iled", path=str(grammar_path), error=str(exc))
         return None
 
     # ------------------------------------------------------------------------
@@ -860,7 +880,10 @@ class TurnPipeline:
                 )
                 epistemic_ctx = cascade_res.synthesized_context or None
 
-        if yielded_context and yielded_context.get("reason") not in ("define: no term", "no term", ""):
+        if (
+            yielded_context and yielded_context.get("reason") not in ("define: no term", "no term",
+                "")
+        ):
             yield_str = f"[Cognitive Bus Yield: {yielded_context['reason']}]"
             epistemic_ctx = f"{epistemic_ctx}\n{yield_str}" if epistemic_ctx else yield_str
 
@@ -896,11 +919,13 @@ class TurnPipeline:
                 goal_ctx = active_goals.get_goal_context_prompt(limit=3)
                 if goal_ctx:
                     goal_block = f"[Shared Active Goals]\n{goal_ctx}"
-                    epistemic_ctx = f"{epistemic_ctx}\n\n{goal_block}" if epistemic_ctx else goal_block
+                    epistemic_ctx = f"{epistemic_ctx}\n\n{
+                        goal_block}" if epistemic_ctx else goal_block
             except Exception as exc:  # noqa: BLE001
                 logger.debug("active_goals_context_error", error=str(exc))
 
-        # WO-36 Milestone 36.3: Waking Continuity Note on Session Gap >= 30 min (AffectSignal.LONG_GAP)
+        # WO-36 Milestone 36.3: Waking Continuity Note on Session Gap >= 30 min
+        # (AffectSignal.LONG_GAP)
         last_turn_ts = getattr(self.orch, "last_turn_timestamp", None)
         now_ts = time.time()
         if isinstance(last_turn_ts, (int, float)) and (now_ts - float(last_turn_ts)) >= 1800.0:
@@ -919,13 +944,18 @@ class TurnPipeline:
                 try:
                     with db_mgr.read_cursor() as cur:
                         cur.execute(
-                            "SELECT event_type, topic FROM learning_events WHERE created_at > ? ORDER BY created_at DESC LIMIT 3",
+                            (
+                                "SELECT event_type, topic FROM learning_events WHERE created_at "
+                                "> ? "
+                                "ORDER BY created_at DESC LIMIT 3"
+                            ),
                             (last_turn_ts,),
                         )
                         l_rows = cur.fetchall()
                         if l_rows:
                             items_str = ", ".join(f"{r[0]}:{r[1]}" for r in l_rows)
-                            overnight_details.append(f"idle/dream learning events ({len(l_rows)}): {items_str}")
+                            overnight_details.append(f"idle/dream learning events ({len(l_rows)}): "
+                                f"{items_str}")
                         cur.execute(
                             "SELECT COUNT(*) FROM review_queue WHERE status = 'PENDING'"
                         )
@@ -935,12 +965,17 @@ class TurnPipeline:
                 except Exception as db_err:  # noqa: BLE001
                     logger.debug("waking_continuity_db_query_failed", error=str(db_err))
 
-            extra_suffix = f" Overnight summary: {'; '.join(overnight_details)}." if overnight_details else ""
+            extra_suffix = (
+                " Overnight summary: "
+                f"{'; '.join(overnight_details)}."
+            ) if overnight_details else ""
             continuity_note = (
                 f"[Waking Continuity Note: {gap_minutes} minutes elapsed since last turn. "
-                f"Resuming collaborative workspace; state and active goals preserved.{extra_suffix}]"
+                "Resuming collaborative workspace; state and active goals "
+                f"preserved.{extra_suffix}]"
             )
-            epistemic_ctx = f"{epistemic_ctx}\n\n{continuity_note}" if epistemic_ctx else continuity_note
+            epistemic_ctx = f"{epistemic_ctx}\n\n{
+                continuity_note}" if epistemic_ctx else continuity_note
         self.orch.last_turn_timestamp = now_ts
 
         # D-DUAL-01 & D-REAS-10: Deliberation lane floor-hold cue & shared workspace hint
@@ -974,14 +1009,17 @@ class TurnPipeline:
                 dom_hint = (
                     "[Neurosymbolic Domain Directive (container_world): For object relocation or "
                     "Theory-of-Mind tracking, invoke `run_python` using `ContainerWorld` (`world = "
-                    "ContainerWorld(); world.set_room_occupants(...); world.move(...); world.tell(...)`) "
+                    "ContainerWorld(); world.set_room_occupants(...); world.move(...); "
+                    "world.tell(...)`) "
                     "to compute exact locations and agent beliefs.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
             elif route_decision.reasoning_domain in ("combinatorial_smt", "z3_smt"):
                 dom_hint = (
-                    "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra puzzles, "
-                    "invoke `run_python` with `import z3` to formalize constraints and solve via `z3.Solver()`.]"
+                    "[Neurosymbolic Domain Directive (z3_smt): For constraint logic or Zebra "
+                    "puzzles, "
+                    "invoke `run_python` with `import z3` to formalize constraints and solve via "
+                    "`z3.Solver()`.]"
                 )
                 epistemic_ctx = f"{epistemic_ctx}\n{dom_hint}" if epistemic_ctx else dom_hint
             elif route_decision.reasoning_domain == "soft_logic":
@@ -1014,7 +1052,8 @@ class TurnPipeline:
                     "State your operational assumption explicitly on line 1 before providing "
                     "calculations or numerical conclusions (e.g. 'Assumption: ...').]"
                 )
-                epistemic_ctx = f"{epistemic_ctx}\n\n{disambig_hint}" if epistemic_ctx else disambig_hint
+                epistemic_ctx = f"{epistemic_ctx}\n\n{
+                    disambig_hint}" if epistemic_ctx else disambig_hint
 
         return epistemic_ctx
 

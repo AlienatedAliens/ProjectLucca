@@ -12,11 +12,9 @@ live battery (tests/test_rag_live_hw.py):
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 import uuid
-from collections.abc import Coroutine
 from pathlib import Path
 from typing import Final
 

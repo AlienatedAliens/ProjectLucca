@@ -47,7 +47,9 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
         if isinstance(node, ast.If):
             t_copy = copy.deepcopy(base_tree)
             for target in ast.walk(t_copy):
-                if isinstance(target, ast.If) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None):
+                if isinstance(target, ast.If) and getattr(target, "lineno", None) == getattr(node,
+                    "lineno", None) and getattr(target, "col_offset", None) == getattr(node,
+                        "col_offset", None):
                     if isinstance(target.test, ast.UnaryOp) and isinstance(target.test.op, ast.Not):
                         target.test = target.test.operand
                     else:
@@ -60,7 +62,9 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
         if isinstance(node, ast.Subscript):
             t_copy = copy.deepcopy(base_tree)
             for target in ast.walk(t_copy):
-                if isinstance(target, ast.Subscript) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None):
+                if isinstance(target, ast.Subscript) and getattr(target, "lineno",
+                    None) == getattr(node, "lineno", None) and getattr(target, "col_offset",
+                        None) == getattr(node, "col_offset", None):
                     sl = target.slice
                     if isinstance(sl, ast.UnaryOp) and isinstance(sl.op, ast.Invert):
                         target.slice = sl.operand
@@ -73,12 +77,16 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
             for side in ("left", "right"):
                 t_copy = copy.deepcopy(base_tree)
                 for target in ast.walk(t_copy):
-                    if isinstance(target, ast.BinOp) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None):
+                    if isinstance(target, ast.BinOp) and getattr(target, "lineno",
+                        None) == getattr(node, "lineno", None) and getattr(target, "col_offset",
+                            None) == getattr(node, "col_offset", None):
                         target_child = getattr(target, side)
-                        if isinstance(target_child, ast.UnaryOp) and isinstance(target_child.op, ast.Invert):
+                        if isinstance(target_child, ast.UnaryOp) and isinstance(target_child.op,
+                            ast.Invert):
                             setattr(target, side, target_child.operand)
                         else:
-                            setattr(target, side, ast.UnaryOp(op=ast.Invert(), operand=copy.deepcopy(target_child)))
+                            setattr(target, side, ast.UnaryOp(op=ast.Invert(),
+                                operand=copy.deepcopy(target_child)))
                         add_tree(t_copy)
                         break
 
@@ -87,17 +95,22 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
         if isinstance(node, ast.Call) and len(node.args) == 2:
             t_copy = copy.deepcopy(base_tree)
             for target in ast.walk(t_copy):
-                if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None) and len(target.args) == 2:
+                if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node,
+                    "lineno", None) and getattr(target, "col_offset", None) == getattr(node,
+                        "col_offset", None) and len(target.args) == 2:
                     target.args = [target.args[1], target.args[0]]
                     add_tree(t_copy)
                     break
 
     # 4. Mutate spatial offsets (+1 <-> -1)
     for node in ast.walk(base_tree):
-        if isinstance(node, ast.BinOp) and isinstance(node.right, ast.Constant) and node.right.value == 1:
+        if isinstance(node, ast.BinOp) and isinstance(node.right,
+            ast.Constant) and node.right.value == 1:
             t_copy = copy.deepcopy(base_tree)
             for target in ast.walk(t_copy):
-                if isinstance(target, ast.BinOp) and getattr(target, "lineno", None) == getattr(node, "lineno", None) and getattr(target, "col_offset", None) == getattr(node, "col_offset", None):
+                if isinstance(target, ast.BinOp) and getattr(target, "lineno",
+                    None) == getattr(node, "lineno", None) and getattr(target, "col_offset",
+                        None) == getattr(node, "col_offset", None):
                     if isinstance(target.op, ast.Add):
                         target.op = ast.Sub()
                         add_tree(t_copy)
@@ -106,7 +119,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
                         add_tree(t_copy)
                     break
 
-    # 5. Mutate connectivity (4 <-> 8), component sort keys (area <-> bbox, reverse), and spatial directional calls
+    # 5. Mutate connectivity (4 <-> 8), component sort keys (area <-> bbox, reverse), and spatial
+    # directional calls
     _DIRECTIONAL_SWAPS: dict[str, str] = {
         "above": "below",
         "below": "above",
@@ -117,7 +131,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
     }
     for node in ast.walk(base_tree):
         if isinstance(node, ast.Call):
-            # Directional function name swap (above <-> below, left_of <-> right_of, flip_h <-> flip_v)
+            # Directional function name swap (above <-> below, left_of <-> right_of, flip_h <->
+            # flip_v)
             if isinstance(node.func, ast.Name) and node.func.id in _DIRECTIONAL_SWAPS:
                 t_copy = copy.deepcopy(base_tree)
                 for target in ast.walk(t_copy):
@@ -131,7 +146,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
                         add_tree(t_copy)
                         break
 
-            # Positional connectivity in connected_components(arr, 4) <-> connected_components(arr, 8)
+            # Positional connectivity in connected_components(arr, 4) <-> connected_components(arr,
+            # 8)
             if (
                 isinstance(node.func, ast.Name)
                 and node.func.id == "connected_components"
@@ -156,16 +172,20 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
                 if kw.arg == "connectivity" and isinstance(kw.value, ast.Constant):
                     t_copy = copy.deepcopy(base_tree)
                     for target in ast.walk(t_copy):
-                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno",
+                            None) == getattr(node, "lineno", None):
                             for tkw in target.keywords:
-                                if tkw.arg == "connectivity" and isinstance(tkw.value, ast.Constant):
+                                if tkw.arg == "connectivity" and isinstance(tkw.value,
+                                    ast.Constant):
                                     tkw.value.value = 8 if tkw.value.value == 4 else 4
                                     add_tree(t_copy)
                                     break
-                elif kw.arg == "reverse" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, bool):
+                elif kw.arg == "reverse" and isinstance(kw.value,
+                    ast.Constant) and isinstance(kw.value.value, bool):
                     t_copy = copy.deepcopy(base_tree)
                     for target in ast.walk(t_copy):
-                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno",
+                            None) == getattr(node, "lineno", None):
                             for tkw in target.keywords:
                                 if tkw.arg == "reverse" and isinstance(tkw.value, ast.Constant):
                                     tkw.value.value = not bool(tkw.value.value)
@@ -174,7 +194,8 @@ def generate_ast_mutants(source_code: str, max_mutants: int = 30) -> list[str]:
                 elif kw.arg == "key" and isinstance(kw.value, (ast.Attribute, ast.Lambda)):
                     t_copy = copy.deepcopy(base_tree)
                     for target in ast.walk(t_copy):
-                        if isinstance(target, ast.Call) and getattr(target, "lineno", None) == getattr(node, "lineno", None):
+                        if isinstance(target, ast.Call) and getattr(target, "lineno",
+                            None) == getattr(node, "lineno", None):
                             for tkw in target.keywords:
                                 if tkw.arg == "key":
                                     for sub in ast.walk(tkw.value):

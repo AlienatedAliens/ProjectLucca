@@ -1,5 +1,6 @@
 """
-Project Lucca — Compound Autonomous Research Tool (Scrapling-Powered Concurrent Multi-Source Dossier)
+Project Lucca — Compound Autonomous Research Tool (Scrapling-Powered Concurrent Multi-Source
+Dossier)
 Spec 09 §5, Spec 10 §4, Work Order #42 (WO-42 Phase 4 Milestone 4.2)
 Orchestrates multi-query web search, source ranking, followable URL resolution,
 and concurrent deep content extraction (with prompt-injection DOM sanitization and
@@ -8,12 +9,12 @@ tiered TLS/headless rendering fallback) to provide grounded factual dossiers.
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 import re
+from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING
 
-from pydantic import JsonValue
 import structlog
+from pydantic import JsonValue
 
 from lucca.sandbox.search_tool import classify_link_followability, search_web
 from lucca.sandbox.web_tool import fetch_url

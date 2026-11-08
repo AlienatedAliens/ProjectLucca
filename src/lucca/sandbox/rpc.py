@@ -37,12 +37,17 @@ logger = structlog.get_logger(__name__)
 
 
 def _inject_shared_workspace_prelude(code: str) -> str:
-    """Loads canonical ContainerWorld module from single-source container_world.py when explicitly requested."""
-    if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase", "BeliefTracker")):
+    """
+    Loads canonical ContainerWorld module from single-source container_world.py when explicitly
+    requested.
+    """
+    if any(k in code for k in ("ContainerWorld", "container_world", "World", "KnowledgeBase",
+        "BeliefTracker")):
         if "class ContainerWorld" not in code:
             cw_path = Path(__file__).with_name("container_world.py")
             if cw_path.is_file():
-                cw_src = cw_path.read_text(encoding="utf-8").replace("from __future__ import annotations", "")
+                cw_src = cw_path.read_text(encoding="utf-8").replace("from __future__ import "
+                    "annotations", "")
                 clean_code = code.replace("from __future__ import annotations", "")
                 shim = (
                     "from __future__ import annotations\n"
@@ -54,7 +59,8 @@ def _inject_shared_workspace_prelude(code: str) -> str:
                     "_cw_mod.KnowledgeBase = KnowledgeBase\n"
                     "_cw_mod.BeliefTracker = BeliefTracker\n"
                     "_cw_mod.Agent = Agent\n"
-                    '_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", "BeliefTracker", "Agent"]\n'
+                    '_cw_mod.__all__ = ["ContainerWorld", "World", "KnowledgeBase", '
+                        '"BeliefTracker", "Agent"]\n'
                     '_sys.modules["container_world"] = _cw_mod\n'
                 )
                 return shim + "\n" + clean_code
@@ -285,12 +291,14 @@ class PersistentDockerWorker:
                 except Exception as read_err:
                     logger.error("persistent_worker_read_exception", error=str(read_err))
                     self._kill_proc()
-                    raise SandboxProtocolError(f"Worker stdout read error: {read_err}") from read_err
+                    raise SandboxProtocolError(
+                        f"Worker stdout read error: {read_err}") from read_err
 
                 if not raw_line or not raw_line.strip():
                     logger.error("persistent_worker_empty_eof", call_id=call_id)
                     self._kill_proc()
-                    raise SandboxProtocolError("Persistent worker returned empty line / unexpected EOF")
+                    raise SandboxProtocolError("Persistent worker returned empty line / "
+                        "unexpected EOF")
 
                 stripped = raw_line.strip()
                 try:
@@ -307,7 +315,8 @@ class PersistentDockerWorker:
 
             if res_dict is None:
                 self._kill_proc()
-                raise SandboxTimeout(f"Persistent worker did not produce valid JSON response within {timeout_s}s")
+                raise SandboxTimeout(
+                    f"Persistent worker did not produce valid JSON response within {timeout_s}s")
 
             # Call-ID correlation & anti-desync guard
             returned_call_id = str(res_dict.get("call_id", ""))
@@ -411,7 +420,10 @@ class DockerRPCTransport:
     _synced_containers: set[str] = set()
 
     def _sync_container_runtime(self, force: bool = False) -> None:
-        """Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the container."""
+        """
+        Syncs latest host reasoning and container_world modules into /tmp/lucca_runtime inside the
+        container.
+        """
         if not force and self.container_name in DockerRPCTransport._synced_containers:
             return
         try:
@@ -423,7 +435,8 @@ class DockerRPCTransport:
             wsl_src = win_to_wsl_path(src_lucca)
             sync_cmd = (
                 f"tar -C '{wsl_src}/..' -cf - lucca "
-                f"| docker exec -i {self.container_name} sh -c 'mkdir -p /tmp/lucca_runtime && tar -C /tmp/lucca_runtime -xf -'"
+                f"| docker exec -i {self.container_name} sh -c 'mkdir -p /tmp/lucca_runtime && tar "
+                "-C /tmp/lucca_runtime -xf -'"
             )
             res = subprocess.run(  # noqa: S603
                 ["wsl", "-d", self.wsl_distro, "--", "sh", "-c", sync_cmd],  # noqa: S607
@@ -535,7 +548,10 @@ class DockerRPCTransport:
             content=content,
             content_truncated=bool(res_dict.get("content_truncated", False)),
             elapsed_ms=elapsed_ms,
-            stderr=str(res_dict.get("stderr") or ("" if ok else (structured.get("stderr") if isinstance(structured, dict) else content) or "execution_failed")),
+            stderr=str(
+                res_dict.get(
+                    "stderr") or ("" if ok else (structured.get("stderr") if isinstance(structured,
+                        dict) else content) or "execution_failed")),
         )
 
     def _execute_single_shot(
@@ -587,7 +603,7 @@ class DockerRPCTransport:
             try:
                 # Find the valid JSON response line (handling multi-line stdout or warnings)
                 res_dict = None
-                lines = [l.strip() for l in stdout.strip().splitlines() if l.strip()]
+                lines = [ln.strip() for ln in stdout.strip().splitlines() if ln.strip()]
                 for line in reversed(lines):
                     try:
                         parsed = json.loads(line)

@@ -185,7 +185,8 @@ def apply_pitch_shift(
 
     grain_len = min(1024, max(64, (n_samples // 4) * 2))
     hop = grain_len // 2
-    window = (0.5 * (1.0 - np.cos(2.0 * np.pi * np.arange(grain_len, dtype=np.float64) / grain_len))).astype(
+    phase = 2.0 * np.pi * np.arange(grain_len, dtype=np.float64) / grain_len
+    window = (0.5 * (1.0 - np.cos(phase))).astype(
         np.float32
     )
 

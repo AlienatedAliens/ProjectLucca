@@ -3,7 +3,6 @@ Project Lucca — Integration & Wiring Tests for Router and Rules Pipeline
 Spec 05 §4, §6, §8, §9, Spec 06 §1, §2, §4 (F-ARCH-001)
 """
 
-import asyncio
 import os
 import time
 from pathlib import Path

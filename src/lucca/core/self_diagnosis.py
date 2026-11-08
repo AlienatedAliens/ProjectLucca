@@ -16,14 +16,14 @@ from pydantic import BaseModel, Field, JsonValue
 from lucca.core import env_check
 from lucca.core.config import get_config
 from lucca.core.schemas import VerifierLabel
+from lucca.memory.db import DatabaseManager
 from lucca.memory.latent_probe import (
     BelnapLatentInvestigator,
     BelnapValue,
     has_structural_proposition_conflict,
 )
-from lucca.ports import SemanticVerifierPort
-from lucca.memory.db import DatabaseManager
 from lucca.memory.retrieval import search_decision_records
+from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
 
@@ -204,7 +204,8 @@ class DiagnosisEngine:
                                 matched_symptoms.append(symptom)
                                 continue
                             elif v_res.label == VerifierLabel.CONTRADICTION:
-                                # Contradictory observations (e.g. "temperature is normal" vs "overheating")
+                                # Contradictory observations (e.g. "temperature is normal" vs
+                                # "overheating")
                                 continue
                         if v_res.degraded or v_res.label == VerifierLabel.UNCERTAIN:
                             lex_conflict = has_structural_proposition_conflict(obs_joined, symptom)

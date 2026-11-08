@@ -1,5 +1,6 @@
 """
-Project Lucca — Code Preflight & Case-Based Reasoning Synthesis Service (WO-43 Phase 2, Sub-Step 2.5)
+Project Lucca — Code Preflight & Case-Based Reasoning Synthesis Service (WO-43 Phase 2, Sub-Step
+2.5)
 WO-26 Phase 4 & WO-39 Milestone 2.2
 
 Encapsulates Tier 3 code synthesis with Case-Based Reasoning (4 Rs: Retrieve, Reuse,
@@ -65,7 +66,10 @@ class CodePreflightService:
         resolved_code: str = "",
         surprise_score: float = 0.85,
     ) -> None:
-        """Records a failed or repaired code synthesis episode into impasse_backlog for offline consolidation."""
+        """
+        Records a failed or repaired code synthesis episode into impasse_backlog for offline
+        consolidation.
+        """
         orch = self._orch
         if orch.db is None or not hasattr(orch.db, "write_transaction"):
             return
@@ -77,7 +81,8 @@ class CodePreflightService:
                 cur.execute(
                     """
                     INSERT INTO impasse_backlog (
-                        id, query, code, error_trace, resolved_code, surprise_score, created_at, processed
+                        id, query, code, error_trace, resolved_code, surprise_score, created_at,
+                        processed
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, 0)
                     """,
                     (
@@ -102,7 +107,8 @@ class CodePreflightService:
         max_repair_rounds: int = 1,
         enable_preflight: bool = True,
     ) -> tuple[str, PreflightResult]:
-        """WO-26 Phase 4 & WO-39 Milestone 2.2: Tier 3 Code Synthesis with Case-Based Reasoning (4 Rs)
+        """
+        WO-26 Phase 4 & WO-39 Milestone 2.2: Tier 3 Code Synthesis with Case-Based Reasoning (4 Rs)
         and Autonomous Docker Pre-Flight Verification Loop.
         """
         orch = self._orch
@@ -147,7 +153,8 @@ class CodePreflightService:
 
         if code_candidate is None:
             instruction = (
-                "Complete the following Python coding task. Put all Python code inside a ```python ... ``` block.\n\n"
+                "Complete the following Python coding task. Put all Python code inside a ```python "
+                "... ``` block.\n\n"
                 f"{prompt}"
             )
             if used_precedent is not None:
@@ -225,11 +232,14 @@ class CodePreflightService:
         )
 
         repair_prompt = (
-            "The following Python code failed preflight verification against specification docstrings and test assertions in Docker:\n"
+            "The following Python code failed preflight verification against specification "
+            "docstrings and test assertions in Docker:\n"
             f"```python\n{code_candidate}\n```\n\n"
             f"Preflight Error Details:\n{preflight_res.error_msg}\n\n"
-            "Please fix the bug (check boundary conditions, empty sequences, zero/negative inputs, trailing punctuation, or rounding logic). "
-            "Provide only the corrected complete Python implementation inside a ```python ... ``` block."
+            "Please fix the bug (check boundary conditions, empty sequences, zero/negative inputs, "
+            "trailing punctuation, or rounding logic). "
+            "Provide only the corrected complete Python implementation inside a ```python ... ``` "
+            "block."
         )
 
         repair_parts: list[str] = []
@@ -325,7 +335,10 @@ class CodePreflightService:
             full_response = f"Here is the verified implementation:\n\n```python\n{code}\n```"
         else:
             spoken_summary = "I've generated the function, though an assertion warning was noted."
-            full_response = f"```python\n{code}\n```\n\n*Note: Preflight check reported:* `{preflight_res.error_msg}`"
+            full_response = (
+                f"```python\n{code}\n```\n\n*Note: Preflight check reported:* "
+                f"`{preflight_res.error_msg}`"
+            )
 
         orch._publish_caption(full_response, source="assistant", is_final=True)
         orch._speak_text(trace, spoken_summary)

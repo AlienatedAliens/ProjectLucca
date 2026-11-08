@@ -13,24 +13,23 @@ Zero-Any typing invariant strictly enforced per D-AUD-01.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass
-from enum import Enum
 import itertools
 import re
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Final, cast
 
-from pydantic import BaseModel, Field
 import structlog
+from pydantic import BaseModel, Field
 
+import lucca.reasoning.egraph as _egraph
 from lucca.core.schemas import ToolSchema
-from lucca.reasoning.egraph import prune_equivalent_sketches
 from lucca.reasoning.scheme.parser import (
     ALLOWED_OPS,
     STATE_PREDICATES,
     Keyword,
-    SchemeAtom,
     SchemeNode,
     SchemeValue,
     Symbol,
@@ -143,7 +142,7 @@ ARITY_SPEC: Final[dict[str, tuple[int, int | None]]] = {
 }
 
 
-class BoundaryViolationType(str, Enum):
+class BoundaryViolationType(StrEnum):
     """Categorization of boundary contract breaches."""
 
     TOOL_NOT_FOUND = "tool_not_found"
@@ -293,7 +292,8 @@ class BoundaryTopologyParser:
                         BoundaryViolation(
                             violation_type=BoundaryViolationType.UNRESOLVED_HOLE,
                             operator=info[0] if info else "?hole",
-                            detail=f"Unresolved hole '{info[0] if info else '?hole'}' present in concrete program",
+                            detail=f"Unresolved hole '{
+                                info[0] if info else '?hole'}' present in concrete program",
                             node_canonical=to_canonical(curr),
                         )
                     )
@@ -349,7 +349,8 @@ class BoundaryTopologyParser:
                         BoundaryViolation(
                             violation_type=BoundaryViolationType.ARITY_MISMATCH,
                             operator=op,
-                            detail=f"Operator '{op}' expects {min_a}..{max_a} arguments, got {arg_count}",
+                            detail=f"Operator '{
+                                op}' expects {min_a}..{max_a} arguments, got {arg_count}",
                             node_canonical=to_canonical(curr),
                         )
                     )
@@ -400,7 +401,8 @@ class BoundaryTopologyParser:
                 BoundaryViolation(
                     violation_type=BoundaryViolationType.ARGUMENT_TYPE_MISMATCH,
                     operator="tool",
-                    detail=f"Tool name must be symbol or string, got {type(tool_name_node).__name__}",
+                    detail=f"Tool name must be symbol or string, got {
+                        type(tool_name_node).__name__}",
                     node_canonical=to_canonical(node),
                 )
             )
@@ -412,7 +414,8 @@ class BoundaryTopologyParser:
                 BoundaryViolation(
                     violation_type=BoundaryViolationType.SANDBOX_BOUNDARY_BREACH,
                     operator="tool",
-                    detail=f"Direct shell/system tool '{t_name}' is strictly forbidden by sandbox boundary policy",
+                    detail=f"Direct shell/system tool '{
+                        t_name}' is strictly forbidden by sandbox boundary policy",
                     node_canonical=to_canonical(node),
                 )
             )
@@ -445,7 +448,8 @@ class BoundaryTopologyParser:
                         BoundaryViolation(
                             violation_type=BoundaryViolationType.PREDICATE_SIGNATURE_INVALID,
                             operator=op,
-                            detail=f"hour-between? arguments must be hours within [0, 24], got {a1}, {a2}",
+                            detail=f"hour-between? arguments must be hours within [0, 24], got {
+                                a1}, {a2}",
                             node_canonical=to_canonical(node),
                         )
                     )
@@ -465,7 +469,8 @@ class BoundaryTopologyParser:
                         BoundaryViolation(
                             violation_type=BoundaryViolationType.ARGUMENT_TYPE_MISMATCH,
                             operator=op,
-                            detail=f"Arithmetic operator '{op}' received non-numeric literal '{a}' at position {idx}",
+                            detail=f"Arithmetic operator '{
+                                op}' received non-numeric literal '{a}' at position {idx}",
                             node_canonical=to_canonical(node),
                         )
                     )
@@ -476,7 +481,8 @@ class BoundaryTopologyParser:
                         BoundaryViolation(
                             violation_type=BoundaryViolationType.ARGUMENT_TYPE_MISMATCH,
                             operator=op,
-                            detail=f"Geometric operator '{op}' requires numeric coordinates, got literal '{a}' at position {idx}",
+                            detail=f"Geometric operator '{op}' requires numeric coordinates, got "
+                                f"literal '{a}' at position {idx}",
                             node_canonical=to_canonical(node),
                         )
                     )
@@ -589,7 +595,8 @@ def enumerate_hole_bindings(
         elif "int" in t:
             domain_per_hole.append([0, 1, 2, 3])
         elif "key" in t:
-            domain_per_hole.append([Keyword(":height"), Keyword(":width"), Keyword(":area"), Keyword(":min-r"), Keyword(":min-c")])
+            domain_per_hole.append([Keyword(":height"), Keyword(":width"), Keyword(":area"),
+                Keyword(":min-r"), Keyword(":min-c")])
         else:
             domain_per_hole.append(["h", "v", 4, 8, 0, 1, True, False])
 
@@ -607,7 +614,7 @@ def enumerate_hole_bindings(
 
     if use_egraph_pruning and len(candidate_list) > 1:
         ast_nodes = [item[1] for item in candidate_list]
-        deduped_asts = prune_equivalent_sketches(ast_nodes)
+        deduped_asts = _egraph.prune_equivalent_sketches(ast_nodes)
         deduped_set = {to_canonical(d) for d in deduped_asts}
         pruned_candidates = [
             item for item in candidate_list if to_canonical(item[1]) in deduped_set

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import time
 from unittest.mock import patch
+
 import pytest
 
 from lucca.core.exceptions import SandboxPathError
 from lucca.sandbox.research_tool import research_topic
 from lucca.sandbox.web_tool import (
     extract_readable_text,
-    fetch_url,
     is_bot_challenge_or_empty_spa,
     sanitize_html_against_prompt_injection,
     validate_url_ssrf,

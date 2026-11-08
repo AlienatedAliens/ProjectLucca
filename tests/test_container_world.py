@@ -2,7 +2,6 @@
 Project Lucca — Unit Tests for ContainerWorld Spatial & Theory-of-Mind Tracker
 """
 
-import pytest
 
 from lucca.sandbox.container_world import ContainerWorld, extract_events_from_json_text
 

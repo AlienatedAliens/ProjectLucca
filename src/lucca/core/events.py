@@ -136,7 +136,7 @@ def is_valid_event_name(name: str) -> bool:
         EventName(name)
         return True
     except ValueError:
-        prefix = name.split(".")[0] if "." in name else name
+        prefix = name.split(".", maxsplit=1)[0] if "." in name else name
         return prefix in VALID_EVENT_PREFIXES
 
 
