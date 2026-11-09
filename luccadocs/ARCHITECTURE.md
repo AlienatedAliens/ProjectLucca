@@ -132,7 +132,7 @@ mindmap
       Cryptographic Associative Memory
         Vector embedding search
         BM25 full-text keyword search
-        HMAC and Ed25519 tamper prevention
+        HKDF HMAC-SHA256 symmetric tamper detection (Ed25519 is not used)
       Isolated Sandboxed Actions
         Docker and WSL2 container boundary
         Whitelisted app launching
@@ -628,7 +628,7 @@ To rigorously evaluate high-order multi-domain cognition, tool discipline, and e
 | **D-AUD-06** | Alternative Text Brains | Evaluation of Mistral NeMo 12B against dGPU budgets. | **Superseded by D-BRAIN-05** |
 | **D-AUD-07** | Untrusted Tool Content | `TOOL_CONTENT_UNTRUSTED` SQL constraint and provenance tagging. | **Enforced** |
 | **D-AUD-08** | Backup Retention Policy | 14 daily UTC + 8 weekly Sunday backups via `VACUUM INTO`. | **Enforced** |
-| **D-AUD-09** | Cryptographic Provenance | `ProvenanceGate` with signed HMAC/Ed25519 envelopes. | **Enforced** |
+| **D-AUD-09** | Cryptographic Provenance | `ProvenanceGate` with HKDF HMAC-SHA256 symmetric integrity envelopes (`src/lucca/memory/signers.py`; Ed25519 is not used). | **Enforced** |
 | **D-AUD-10** | Application Whitelist | `config/tool_whitelist.toml` enforced; shells forbidden. | **Enforced** |
 | **D-AUD-11** | Decision Telemetry | $\ge 600$ records data volume gate counts first label per decision. | **Enforced (Unit Tested; 0 Production Rows)** |
 | **D-AUD-12** | Rule Quarantine Invariant | Runtime failure instantly demotes active rule back to quarantine. | **Enforced** |
@@ -772,7 +772,7 @@ flowchart TD
     subgraph MEMORY["Subsystem 05: Cryptographic Memory & Epistemology"]
         CAS_EVAL --> MEM_COMMIT["Memory Commit Service"]
         MEM_COMMIT --> BILATTICE["Belnap FOUR Paraconsistent Bilattice"]
-        BILATTICE --> PROV["Cryptographic Provenance Envelope (HMAC/Ed25519)"]
+        BILATTICE --> PROV["Provenance Envelope (HKDF HMAC-SHA256; Ed25519 is not used)"]
         PROV --> SQLITE["SQLite WAL + sqlite-vec (NPU) + FTS5 BM25"]
     end
 
@@ -847,7 +847,7 @@ stateDiagram-v2
 
     SubstrateCascade --> EvidentialBilattice: Evidence Mapping
     EvidentialBilattice --> ProvenanceEnvelope: Signed Verification
-    ProvenanceEnvelope --> SQLiteStore: Cryptographic Storage (Ed25519)
+    ProvenanceEnvelope --> SQLiteStore: Symmetric Integrity Storage (HKDF HMAC-SHA256; Ed25519 is not used)
     SQLiteStore --> [*]: Commit Completed
 ```
 

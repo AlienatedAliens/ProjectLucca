@@ -77,7 +77,7 @@
 - **Status:** Ratified & Enforced.
 
 ### D-AUD-09 — Cryptographic Provenance for Admin Edits
-- **Decision:** Manual memory additions, updates, and deletions via the UI or admin CLI must pass through `ProvenanceGate` with HMAC/Ed25519 signatures. Arbitrary `signature="manual"` bypasses are prohibited.
+- **Decision:** Manual memory additions, updates, and deletions via the UI or admin CLI must pass through `ProvenanceGate` with HKDF HMAC-SHA256 symmetric integrity envelopes (`src/lucca/memory/signers.py`; Ed25519 is not used). Arbitrary `signature="manual"` bypasses are prohibited.
 - **Status:** Ratified & Enforced.
 
 ### D-AUD-10 — Application Launcher Whitelist
