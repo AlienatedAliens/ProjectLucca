@@ -1,0 +1,18 @@
+{
+  "task_id": "R-00",
+  "recorded_at_utc": "2026-11-09T09:56:07Z",
+  "head_commit_before_wo45": "82b1da8",
+  "frozen_measured_artifacts": {
+    "logs/test_reports/web_evidentiary_burden_360_report.json": "d335733fe566336e43fd5b38ba7d4d1edc0200a70a8c6affe3092a19278403ad",
+    "logs/test_reports/web_evidentiary_burden_360_REPORT.md": "e90b4ceccb5faf1876457a9b5667bdf8d06e7518a6a11ce184955f38a8f8c9be",
+    "logs/test_reports/web_evidentiary_burden_360_prereg_lock.json": "aeabb67c05ca8fb63bd933656e9bc017e0033fef58eea4a6434ce2b8dabd81eb",
+    "data/benchmarks/web_evidentiary_burden_360.jsonl": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13"
+  },
+  "baseline_files": {
+    "logs/test_reports/web_evidentiary_burden_360_report.json": "d335733fe566336e43fd5b38ba7d4d1edc0200a70a8c6affe3092a19278403ad",
+    "logs/test_reports/web_evidentiary_burden_360_REPORT.md": "e90b4ceccb5faf1876457a9b5667bdf8d06e7518a6a11ce184955f38a8f8c9be",
+    "logs/test_reports/web_evidentiary_burden_360_prereg_lock.json": "aeabb67c05ca8fb63bd933656e9bc017e0033fef58eea4a6434ce2b8dabd81eb",
+    "data/benchmarks/web_evidentiary_burden_360.jsonl": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+    "scripts/run_web_evidentiary_burden_benchmark.py": "e5131fb19c6dcd279709591cfb87d9c3018f2096c5c0d3b973f1070f3181c8c5"
+  }
+}
