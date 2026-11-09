@@ -15,7 +15,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 WO45_DIR = REPO_ROOT / "logs/test_reports/wo45"
 
 
