@@ -122,6 +122,22 @@ def query_gpu_vram_mb() -> float:
         return -1.0
 
 
+def query_llama_server_build() -> str:
+    try:
+        res = subprocess.run(
+            [str(LLAMA_EXE), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10.0,
+            check=False,
+        )
+        out = (res.stdout + "\n" + res.stderr).strip()
+        lines = [ln.strip() for ln in out.splitlines() if ln.strip() and not ln.strip().startswith("ggml_cuda")]
+        return " | ".join(lines[-2:]) if lines else "unknown"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
 def stop_existing_llama_server() -> None:
     subprocess.run(
         ["taskkill", "/F", "/IM", "llama-server.exe"],
@@ -217,9 +233,12 @@ def run_live_4model_matrix(
         "and why it falls below the required threshold."
     )
 
+    llama_build_str = query_llama_server_build()
     for model_label, model_path, tier_label in MODEL_MATRIX:
         stop_existing_llama_server()
         is_moe = model_label == "26B-A4B"
+        # Deliberate single-turn benchmark profile: ctx=8192 (each single-turn RAG prompt is <1,024 tokens;
+        # production multi-turn companion sessions use ctx=65536).
         llm_cfg = LLMSettings(
             mode="transcript",
             host="127.0.0.1",
@@ -404,6 +423,8 @@ def run_live_4model_matrix(
                 "provenance": "fresh",
                 "tier_label": tier_label,
                 "ctx_size": llm_cfg.ctx,
+                "ctx_profile": "deliberate_benchmark_profile_ctx_8192",
+                "llama_server_build": llama_build_str,
                 "launch_cmd": cmd,
                 "started_at_utc": started_at_utc,
                 "completed_at_utc": completed_at_utc,
@@ -411,6 +432,12 @@ def run_live_4model_matrix(
                 "vram_mb": vram_mb,
                 "n_prompts": n_m,
                 "mean_turn_latency_s": round(statistics.mean(latencies_s), 2),
+                "arm_a_mean_turn_latency_s": round(
+                    statistics.mean(v[1] for v in arm_a_replies.values()), 2
+                ),
+                "arm_b_mean_turn_latency_s": round(
+                    statistics.mean(v[1] for v in arm_b_replies.values()), 2
+                ),
                 "arm_a_legacy_pass": f"{arm_a_pass}/{n_m}",
                 "arm_a_legacy_pct": round(arm_a_pass / n_m * 100.0, 2),
                 "arm_a_wilson_95_ci": list(ci_a),
