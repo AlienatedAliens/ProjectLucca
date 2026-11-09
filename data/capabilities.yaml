@@ -274,6 +274,8 @@ capabilities:
       - src/lucca/sandbox/search_tool.py
       - src/lucca/sandbox/web_tool.py
       - src/lucca/sandbox/research_tool.py
+      - src/lucca/core/proof_policy.py
+      - logs/test_reports/web_evidentiary_burden_360_report.json
     failure_modes:
       - upstream search rate limits or network offline
     competitor_refs: []

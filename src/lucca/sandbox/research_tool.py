@@ -92,7 +92,11 @@ def _fetch_single_candidate_source(
         "title": title,
         "url": url,
         "snippet": snippet,
-        "content_preview": final_text[:500],
+        "content_preview": (
+            f"{snippet} {final_text[:1200]}".strip()
+            if snippet not in final_text[:500]
+            else final_text[:1200]
+        ),
         "fetch_status": fetch_meta.get("status_code", 200 if final_text else 0),
         "rendered": bool(fetch_meta.get("rendered", False)),
     }

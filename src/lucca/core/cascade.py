@@ -602,6 +602,15 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
                 f"[Status: CONSISTENT ({belnap_status.value}) — Grounded Evidence Verified]"
             )
 
+        for item in evidence:
+            if item.trust_tier == TrustTier.TIER_4_WEB and "burden_guidance" in item.metadata:
+                guidance_str = str(item.metadata.get("burden_guidance", "")).strip()
+                if guidance_str and (
+                    not bool(item.metadata.get("meets_casual_burden", True))
+                    or bool(item.metadata.get("disputed", False))
+                ):
+                    narration_contracts.append(f"Epistemic Burden Contract: {guidance_str}")
+
         if superseded_annotations:
             for note in superseded_annotations:
                 lines.append(f"[Resolution: {note}]")
@@ -634,7 +643,7 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
                 std_label = standard_for_confidence(conf_val).value
                 polarity_tag = f"[inferred, confidence {conf_val:.2f} — {std_label}]"
             else:
-                polarity_tag = (
+                base_pol = (
                     "[asserts]"
                     if (item.told_true and not item.told_false)
                     else "[refutes]"
@@ -643,6 +652,11 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
                     if (item.told_true and item.told_false)
                     else "[neither]"
                 )
+                if item.trust_tier == TrustTier.TIER_4_WEB and "burden_tag" in item.metadata:
+                    b_tag = str(item.metadata["burden_tag"])
+                    polarity_tag = f"{base_pol} [{b_tag}]"
+                else:
+                    polarity_tag = base_pol
             lines.append(f"- ({item.source}) {polarity_tag} {item.content}")
 
         # Append non-grounding recollections under explicit quoting frame (D-MEM-04)

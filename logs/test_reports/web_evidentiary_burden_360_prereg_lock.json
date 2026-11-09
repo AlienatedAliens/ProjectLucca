@@ -1,0 +1,17 @@
+{
+  "prereg_id": "PREREG-WEB-BURDEN-360-4MODEL",
+  "locked_at_utc": "2026-11-09T01:51:54Z",
+  "sha256": {
+    "src/lucca/core/proof_policy.py": "af188c46b86bbcfa8f95dbabfe107d66479e0683f20525e4f191277d891757fa",
+    "src/lucca/core/corroboration.py": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+    "src/lucca/core/walton_schemes/evaluators.py": "5d1014ce8c13c828d0a34f634ba4217e0a175ac3616170eaf19c95b06c94cd5a",
+    "src/lucca/core/cascade.py": "75fc71930cb86792c17d71e1e476b3a38425c7e876a5bafac1465cd7c6ac9db0",
+    "src/lucca/core/cascade_substrates.py": "0cbe073f49d71190f62686e19631047dae8af11fac115e2c69f62521dfbb4e4f",
+    "models/proof_policy_hazard_ov/config.json": "4dfb4f482675e6b2031e5dd3cfff40ea88d14faa34d9a57db78db49a27406535",
+    "models/proof_policy_hazard_ov/openvino_model.bin": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+    "models/proof_policy_hazard_ov/openvino_model.xml": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "models/proof_policy_hazard_ov/tokenizer.json": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92",
+    "models/proof_policy_hazard_ov/tokenizer_config.json": "39c0cba94755e3f9b34b8df671d4f16b5f7192f21af1f7b9bc453321051f06da"
+  },
+  "dataset_360_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13"
+}

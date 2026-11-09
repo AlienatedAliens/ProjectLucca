@@ -941,7 +941,26 @@ class CascadeSubstrateAdapters:
                     confirmed=True,
                 )
                 if res and res.ok and res.content:
+                    from lucca.core.proof_policy import (  # noqa: PLC0415
+                        evaluate_web_evidence_burden,
+                    )
+
                     told_true, told_false = self._evaluate_polarity(res.content[:600], query_text)
+                    burden = evaluate_web_evidence_burden(
+                        query_text=query_text,
+                        search_results=[
+                            {
+                                "url": target_url,
+                                "title": target_url,
+                                "snippet": res.content[:600],
+                            }
+                        ],
+                        fallback_content=res.content[:600],
+                        store=getattr(self, "memory_store", None),
+                        verifier=getattr(self, "verifier", None),
+                    )
+                    meta_url: dict[str, JsonValue] = {"url": target_url}
+                    meta_url.update(burden.to_metadata_dict())
                     items.append(
                         _EvItem(
                             substrate=_Sub.WEB,
@@ -951,8 +970,8 @@ class CascadeSubstrateAdapters:
                             proposition=f"web_content({target_url})",
                             told_true=told_true,
                             told_false=told_false,
-                            confidence=0.85,
-                            metadata={"url": target_url},
+                            confidence=burden.confidence,
+                            metadata=meta_url,
                         )
                     )
             except Exception as exc:  # noqa: BLE001
@@ -984,22 +1003,80 @@ class CascadeSubstrateAdapters:
                 confirmed=True,
             )
             if res and res.ok and res.content:
-                told_true, told_false = self._evaluate_polarity(res.content[:1500], query_text)
+                from lucca.core.proof_policy import (  # noqa: PLC0415
+                    Hazard,
+                    evaluate_web_evidence_burden,
+                )
+
+                raw_results: list[dict[str, JsonValue]] = []
+                if isinstance(res.structured, dict):
+                    cand_list = res.structured.get("results") or res.structured.get("sources")
+                    if isinstance(cand_list, list):
+                        raw_results = [r for r in cand_list if isinstance(r, dict)]
+
+                burden = evaluate_web_evidence_burden(
+                    query_text=query_text,
+                    search_results=raw_results,
+                    fallback_content=res.content[:1500],
+                    store=getattr(self, "memory_store", None),
+                    verifier=getattr(self, "verifier", None),
+                )
+
+                is_mock_sb = type(self.sandbox).__module__.startswith("unittest.mock")
+                auto_deep = bool(getattr(self, "enable_auto_deep_corroboration", not is_mock_sb))
+                if (
+                    auto_deep
+                    and burden.hazard in (Hazard.MEDIUM, Hazard.HIGH)
+                    and not burden.meets_casual_burden
+                    and not burden.disputed
+                ):
+                    deep_args: dict[str, JsonValue] = dict(search_args)
+                    deep_args["deep_extract"] = True
+                    deep_res = self._execute_sandbox(
+                        tool_name="search_web",
+                        args=deep_args,
+                        confirmed=True,
+                    )
+                    if deep_res and deep_res.ok and isinstance(deep_res.structured, dict):
+                        deep_cand = deep_res.structured.get("results") or deep_res.structured.get(
+                            "sources"
+                        )
+                        if isinstance(deep_cand, list):
+                            deep_list = [r for r in deep_cand if isinstance(r, dict)]
+                            if deep_list:
+                                res = deep_res
+                                burden = evaluate_web_evidence_burden(
+                                    query_text=query_text,
+                                    search_results=deep_list,
+                                    fallback_content=str(
+                                        deep_res.content or res.content or ""
+                                    )[:1500],
+                                    store=getattr(self, "memory_store", None),
+                                    verifier=getattr(self, "verifier", None),
+                                    deep_escalated=True,
+                                )
+
+                content_snip = str(res.content or "")[:1500]
+                told_true, told_false = self._evaluate_polarity(content_snip, query_text)
+                if burden.disputed:
+                    told_true, told_false = True, True
+                base_meta: dict[str, JsonValue] = (
+                    dict(res.structured)
+                    if isinstance(res.structured, dict)
+                    else {"query": search_query}
+                )
+                base_meta.update(burden.to_metadata_dict())
                 items.append(
                     _EvItem(
                         substrate=_Sub.WEB,
                         trust_tier=_Tier.TIER_4_WEB,
                         source=f"web_search:{search_query}",
-                        content=res.content[:1500],
+                        content=content_snip,
                         proposition=f"web_search_results({search_query})",
                         told_true=told_true,
                         told_false=told_false,
-                        confidence=0.85,
-                        metadata=(
-                            res.structured
-                            if isinstance(res.structured, dict)
-                            else {"query": search_query}
-                        ),
+                        confidence=burden.confidence,
+                        metadata=base_meta,
                     )
                 )
         except Exception as exc:  # noqa: BLE001

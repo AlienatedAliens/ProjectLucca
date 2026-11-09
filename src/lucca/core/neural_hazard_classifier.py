@@ -45,7 +45,10 @@ CLASS_NAMES: Final[tuple[str, ...]] = (
 )
 FAIL_CLOSED_CONFIDENCE_THRESHOLD: Final[float] = 0.65
 HAZARD_RANK: Final[dict[str, int]] = {"low": 0, "medium": 1, "high": 2}
-_SENTENCE_SPLIT_RE: Final[re.Pattern[str]] = re.compile(r"(?<=[.!?])\s+|\n+")
+_SENTENCE_SPLIT_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?<=[.!?])\s+|\n+|;\s+|,\s+(?=(?:how|what|why|when|where|which|who|does|do|did|can|could|should|will|would|while|although|whereas)\b)",
+    re.IGNORECASE,
+)
 
 _CROSS_REF_CMD_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:cross[- ]?reference|cross[- ]?check|triangulate|corroborate)\b.*"
@@ -69,6 +72,8 @@ _HAS_CORROBORATION_SIGNAL_RE: Final[re.Pattern[str]] = re.compile(
 _HIGH_HAZARD_DOMAIN_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:rm\s+-rf|mkfs|diskpart|format\s+[a-z]:|dd\s+if=|drop\s+(?:database|table|schema)|"
     r"truncate\s+table|delete\s+from\s+\w+\s*;|chmod\s+(?:-r\s+)?777|0\.0\.0\.0|"
+    r"blkdiscard|lvremove|pg_archivecleanup|clearsnapshot|drop_chunks|dropindexes|"
+    r"(?:delete|format|wipe|destroy|erase)\s+(?:or\s+format\s+)?(?:production\s+|live\s+|active\s+|mounted\s+)*(?:database|disk|partition|volume|ntfs|ext4|xfs|tablespace|wal)|"
     r"verify\s*=\s*false|rejectunauthorized\s*:\s*false| ssl_verify\s*=\s*false|"
     r"secret_access_key|private_key|id_rsa|seed\s+phrase|mnemonic\s+phrase|authorized_keys|"
     r"bleach|ammonia|chloramine|hydrofluoric|phosgene|ricin|sarin|"

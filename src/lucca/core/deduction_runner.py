@@ -1067,6 +1067,15 @@ class DeductionAndPlanningRunner:
                 continue
             if not getattr(r, "ok", True):
                 continue
+            rcpt_args = getattr(r, "args", {}) or {}
+            rcpt_conf = getattr(r, "confidence", None)
+            if rcpt_conf is None and isinstance(rcpt_args, dict):
+                rcpt_conf = rcpt_args.get("confidence")
+            if isinstance(rcpt_conf, (int, float)) and float(rcpt_conf) < 0.50:
+                continue
+            rcpt_out = str(getattr(r, "output", "") or "")
+            if "— speculation" in rcpt_out:
+                continue
             domain = orch._extract_receipt_domain(r)
             if not domain or not orch._is_domain_whitelisted(domain):
                 continue

@@ -894,6 +894,34 @@ class ToolDispatcher:
             confirmed=True,
             human_confirmed=human_confirmed,
         )
+        if (
+            res.ok
+            and name in ("search_web", "research", "research_topic")
+            and isinstance(res.structured, dict)
+        ):
+            cand_res = res.structured.get("results") or res.structured.get("sources")
+            if isinstance(cand_res, list):
+                from lucca.core.proof_policy import evaluate_web_evidence_burden  # noqa: PLC0415
+
+                res_dicts = [r for r in cand_res if isinstance(r, dict)]
+                q_str = str(orch.current_turn_transcript or args.get("query", "")).strip()
+                burden = evaluate_web_evidence_burden(
+                    query_text=q_str,
+                    search_results=res_dicts,
+                    fallback_content=str(res.content or "")[:1500],
+                    store=getattr(orch, "memory_store", None),
+                    verifier=getattr(orch, "verifier", None),
+                    deep_escalated=(
+                        name in ("research", "research_topic") or bool(args.get("deep_extract"))
+                    ),
+                )
+                res.structured["epistemic_burden"] = burden.to_metadata_dict()
+                if res.content:
+                    res.content = (
+                        f"{res.content}\n\n"
+                        f"[Evidentiary Burden & Walton Corroboration: {burden.summary_tag}]\n"
+                        f"[{burden.guidance}]"
+                    )
         affect_tracker = getattr(orch, "affect_tracker", None)
         if not res.ok:
             orch.current_turn_tool_ok = False
