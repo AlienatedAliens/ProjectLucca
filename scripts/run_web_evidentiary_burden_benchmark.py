@@ -37,7 +37,9 @@ if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from lucca.brain.llm_client import LLMClient  # noqa: E402
+from lucca.brain.server_ctl import build_launch_command  # noqa: E402
 from lucca.core.cascade import BelnapValue, EpistemicSearchCascade  # noqa: E402
+from lucca.core.config import LLMSettings  # noqa: E402
 from lucca.core.proof_policy import (  # noqa: E402
     Hazard,
     evaluate_web_evidence_burden,
@@ -53,16 +55,17 @@ from lucca.core.schemas import (  # noqa: E402
 from lucca.sandbox.research_tool import research_topic  # noqa: E402
 from lucca.sandbox.search_tool import search_web  # noqa: E402
 
-LLAMA_EXE = Path(r"C:\ProjectLucca\app\llama-server\llama-server.exe")
-MODELS_DIR = Path(r"C:\ProjectLucca\models\llm")
+LUCCA_HOME = Path(r"C:\ProjectLucca")
+LLAMA_EXE = LUCCA_HOME / "app" / "llama-server" / "llama-server.exe"
+MODELS_DIR = LUCCA_HOME / "models" / "llm"
 SERVER_PORT = 8089
 SERVER_URL = f"http://127.0.0.1:{SERVER_PORT}"
 
-MODEL_MATRIX: list[tuple[str, Path, Literal["12B", "E4B", "E2B"]]] = [
+MODEL_MATRIX: list[tuple[str, Path, Literal["26B-A4B", "12B", "E4B", "E2B"]]] = [
     ("E2B", MODELS_DIR / "Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf", "E2B"),
     ("E4B", MODELS_DIR / "gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf", "E4B"),
     ("12B", MODELS_DIR / "gemma-4-12b-heretic-Q6_K.gguf", "12B"),
-    ("26B-A4B", MODELS_DIR / "gemma-4-26B-A4B-it-heretic.Q6_K.gguf", "12B"),
+    ("26B-A4B", MODELS_DIR / "gemma-4-26B-A4B-it-heretic.Q6_K.gguf", "26B-A4B"),
 ]
 
 _HEDGE_OR_CONFLICT_RE = re.compile(
@@ -197,85 +200,47 @@ def run_live_4model_matrix(
     pooled_c_losses = 0
     pooled_total = 0
 
-    prev_report_path = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_360_report.json"
-    prev_live: dict[str, object] = {}
-    if prev_report_path.exists():
-        try:
-            prev_live = json.loads(prev_report_path.read_text(encoding="utf-8")).get(
-                "live_4model_matrix", {}
-            )
-        except Exception:  # noqa: BLE001
-            prev_live = {}
+    from datetime import UTC, datetime  # noqa: PLC0415
 
-    import os  # noqa: PLC0415
+    sys_a = (
+        "You are Lucca, an autonomous local assistant. The web search has already "
+        "been executed; do NOT emit tool calls or JSON. Answer the user's question "
+        "concisely in 1-2 sentences of plain prose using the retrieved web context."
+    )
+    sys_b = (
+        "You are Lucca, an autonomous local assistant. The web search has already "
+        "been executed; do NOT emit tool calls or JSON. Answer the user's question "
+        "concisely in 1-2 sentences of plain prose using the retrieved web context. "
+        "If an [Epistemic Burden Contract] is present, you MUST explicitly state "
+        "the legal standard of proof (e.g. 'balance of probabilities', "
+        "'clear and convincing', 'speculation') or the cross-source dispute/conflict "
+        "and why it falls below the required threshold."
+    )
 
-    reuse_set = {
-        m.strip()
-        for m in os.environ.get("LUCCA_BENCH_REUSE_MODELS", "").split(",")
-        if m.strip()
-    }
-
-    for model_label, model_path, _tier in MODEL_MATRIX:
-        if (
-            model_label in reuse_set
-            and isinstance(prev_live.get("by_model"), dict)
-            and model_label in prev_live["by_model"]  # type: ignore[operator]
-        ):
-            m_prev = prev_live["by_model"][model_label]  # type: ignore[index]
-            per_model_summary[model_label] = m_prev
-            prev_turns = [
-                t
-                for t in prev_live.get("turn_records", [])  # type: ignore[union-attr]
-                if isinstance(t, dict) and t.get("model") == model_label
-            ]
-            all_turn_records.extend(prev_turns)
-            a_p = int(str(m_prev["arm_a_legacy_pass"]).split("/")[0])
-            b_p = int(str(m_prev["arm_b_2d_burden_pass"]).split("/")[0])
-            bw, cl = (
-                int(x)
-                for x in str(m_prev["discordant_b_wins_vs_c_losses"]).split(":")
-            )
-            pooled_arm_a_pass += a_p
-            pooled_arm_b_pass += b_p
-            pooled_b_wins += bw
-            pooled_c_losses += cl
-            pooled_total += int(m_prev["n_prompts"])
-            print(f"[Live 4-Model Matrix] Reusing cached {model_label} summary.", flush=True)
-            continue
-
+    for model_label, model_path, tier_label in MODEL_MATRIX:
         stop_existing_llama_server()
-        ctx_size = "8192" if model_label in ("12B", "26B-A4B") else "8192"
-        cmd = [
-            str(LLAMA_EXE),
-            "--model",
-            str(model_path),
-            "--n-gpu-layers",
-            "99",
-            "-ub",
-            "2048",
-            "--ctx-size",
-            ctx_size,
-            "--cache-type-k",
-            "q8_0",
-            "--cache-type-v",
-            "q8_0",
-            "--cache-ram",
-            "4096",
-            "--spec-type",
-            "ngram-mod",
-            "--parallel",
-            "1",
-            "--flash-attn",
-            "on",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            str(SERVER_PORT),
-            "--no-webui",
-            "--jinja",
-        ]
-        if model_label == "26B-A4B":
-            cmd.extend(["--cpu-moe", "--load-mode", "none", "--moe-cache-mib", "7680"])
+        is_moe = model_label == "26B-A4B"
+        llm_cfg = LLMSettings(
+            mode="transcript",
+            host="127.0.0.1",
+            port=SERVER_PORT,
+            ctx=8192,
+            kv_type="q8_0",
+            kv_type_k="q8_0",
+            kv_type_v="q8_0",
+            ngl=99,
+            spec_type="ngram-mod",
+            cpu_moe=is_moe,
+            moe_expert_cache_mib=7680 if is_moe else None,
+            ubatch=2048,
+            cache_ram_mib=4096,
+            model=str(model_path),
+            mmproj=None,
+            chat_template_file=None,
+            chat_template=None,
+        )
+        cmd = build_launch_command(llm_cfg, LUCCA_HOME)
+        started_at_utc = datetime.now(UTC).isoformat()
 
         print(f"\n[Live 4-Model Matrix] Launching {model_label} ({model_path.name})...", flush=True)
         proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -296,7 +261,8 @@ def run_live_4model_matrix(
             c_losses = 0
             latencies_s: list[float] = []
 
-            for idx, item in enumerate(slice_36, 1):
+            prepared_items: list[dict[str, object]] = []
+            for item in slice_36:
                 pid = str(item["probe_id"])
                 query = str(item["query"])
                 stratum = str(item["stratum"])
@@ -304,7 +270,6 @@ def run_live_4model_matrix(
                 s_results = item["search_results"]
                 assert isinstance(s_results, list)
 
-                # Build Arm B context via actual EpistemicSearchCascade + evaluate_web_evidence_burden
                 fake_sb = MagicMock()
                 fake_sb.execute.return_value = ToolResult(
                     call_id=f"call-{pid}",
@@ -321,7 +286,6 @@ def run_live_4model_matrix(
                 _belnap_b, ctx_arm_b, _ = cascade.synthesize(query, ev_items)
                 burden = evaluate_web_evidence_burden(query_text=query, search_results=s_results)
 
-                # Build Arm A context (Legacy Static-0.85 synthesis without burden contract)
                 snippets_joined = " | ".join(
                     f"{r.get('title', '')}: {r.get('snippet', '')}"
                     for r in s_results
@@ -332,26 +296,49 @@ def run_live_4model_matrix(
                     "- **[Tier 4: Untrusted Web Search]** (src: `web_search`, conf: 0.85) "
                     f"[asserts]: {snippets_joined}"
                 )
-
-                sys_a = (
-                    "You are Lucca, an autonomous local assistant. The web search has already "
-                    "been executed; do NOT emit tool calls or JSON. Answer the user's question "
-                    "concisely in 1-2 sentences of plain prose using the retrieved web context."
-                )
-                sys_b = (
-                    "You are Lucca, an autonomous local assistant. The web search has already "
-                    "been executed; do NOT emit tool calls or JSON. Answer the user's question "
-                    "concisely in 1-2 sentences of plain prose using the retrieved web context. "
-                    "If an [Epistemic Burden Contract] is present, you MUST explicitly state "
-                    "the legal standard of proof (e.g. 'balance of probabilities', "
-                    "'clear and convincing', 'speculation') or the cross-source dispute/conflict "
-                    "and why it falls below the required threshold."
+                prepared_items.append(
+                    {
+                        "pid": pid,
+                        "query": query,
+                        "stratum": stratum,
+                        "topology": topology,
+                        "ctx_arm_a": ctx_arm_a,
+                        "ctx_arm_b": ctx_arm_b,
+                        "burden": burden,
+                    }
                 )
 
-                t0 = time.perf_counter()
-                reply_a = call_live_llm(client, sys_a, f"{ctx_arm_a}\n\nQuestion: {query}")
-                reply_b = call_live_llm(client, sys_b, f"{ctx_arm_b}\n\nQuestion: {query}")
-                el_s = round((time.perf_counter() - t0) / 2.0, 2)
+            # Batch all Arm A turns first so the sys_a prompt prefix cache stays warm
+            arm_a_replies: dict[str, tuple[str, float]] = {}
+            for prep in prepared_items:
+                pid_str = str(prep["pid"])
+                t0_a = time.perf_counter()
+                rep_a = call_live_llm(
+                    client, sys_a, f"{prep['ctx_arm_a']}\n\nQuestion: {prep['query']}"
+                )
+                el_a = time.perf_counter() - t0_a
+                arm_a_replies[pid_str] = (rep_a, el_a)
+
+            # Batch all Arm B turns second so the sys_b prompt prefix cache stays warm
+            arm_b_replies: dict[str, tuple[str, float]] = {}
+            for prep in prepared_items:
+                pid_str = str(prep["pid"])
+                t0_b = time.perf_counter()
+                rep_b = call_live_llm(
+                    client, sys_b, f"{prep['ctx_arm_b']}\n\nQuestion: {prep['query']}"
+                )
+                el_b = time.perf_counter() - t0_b
+                arm_b_replies[pid_str] = (rep_b, el_b)
+
+            for idx, prep in enumerate(prepared_items, 1):
+                pid = str(prep["pid"])
+                query = str(prep["query"])
+                stratum = str(prep["stratum"])
+                topology = str(prep["topology"])
+                burden = prep["burden"]  # type: ignore[assignment]
+                reply_a, el_a = arm_a_replies[pid]
+                reply_b, el_b = arm_b_replies[pid]
+                el_s = round((el_a + el_b) / 2.0, 2)
                 latencies_s.append(el_s)
 
                 requires_hedge_or_conflict = (not burden.meets_casual_burden) or burden.disputed
@@ -412,7 +399,14 @@ def run_live_4model_matrix(
             ci_b = wilson_ci(arm_b_pass, n_m)
             chi2_m, p_m = exact_mcnemar_p(b_wins, c_losses)
 
+            completed_at_utc = datetime.now(UTC).isoformat()
             per_model_summary[model_label] = {
+                "provenance": "fresh",
+                "tier_label": tier_label,
+                "ctx_size": llm_cfg.ctx,
+                "launch_cmd": cmd,
+                "started_at_utc": started_at_utc,
+                "completed_at_utc": completed_at_utc,
                 "gguf_file": model_path.name,
                 "vram_mb": vram_mb,
                 "n_prompts": n_m,
@@ -525,8 +519,8 @@ def run_live_web_sample_slice() -> list[dict[str, object]]:
 
 def main() -> None:
     bench_360_path = REPO_ROOT / "data/benchmarks/web_evidentiary_burden_360.jsonl"
-    report_360_json = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_360_report.json"
-    report_360_md = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_360_REPORT.md"
+    report_360_json = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_360_v2_report.json"
+    report_360_md = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_360_v2_REPORT.md"
     report_60_json = REPO_ROOT / "logs/test_reports/web_evidentiary_burden_60_report.json"
 
     assert bench_360_path.exists(), f"Missing {bench_360_path}"
@@ -780,9 +774,6 @@ def main() -> None:
     report_360_json.parent.mkdir(parents=True, exist_ok=True)
     report_360_json.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
-    # Also update web_evidentiary_burden_60_report.json so any existing links stay valid
-    report_60_json.write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
-
     md_lines = [
         "# Pre-Registered 2D Hazard-Scaled Web Evidentiary Burden & Live 4-Model GGUF Benchmark (`N = 360` Stratified + `288` Live 4-Model Turns)",
         "",
@@ -853,9 +844,6 @@ def main() -> None:
     )
 
     report_360_md.write_text("\n".join(md_lines) + "\n", encoding="utf-8")
-    (REPO_ROOT / "logs/test_reports/web_evidentiary_burden_60_REPORT.md").write_text(
-        "\n".join(md_lines) + "\n", encoding="utf-8"
-    )
     print(
         f"\nCompleted PREREG-WEB-BURDEN-360-4MODEL:\n"
         f"  - N=360 Stratified Holdout: {all_exact_correct}/{n_total} ({all_exact_correct / n_total * 100.0:.2f}%), 95% CI [{ci_low:.2f}%, {ci_high:.2f}%]\n"
