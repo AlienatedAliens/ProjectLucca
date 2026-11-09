@@ -1,0 +1,163 @@
+{
+  "task_id": "R-22",
+  "analysis_label": "post-hoc analysis on the WO-44 corpus",
+  "generated_at_utc": "2026-11-09T18:48:49.696742+00:00",
+  "dataset_path": "data/benchmarks/web_evidentiary_burden_360.jsonl",
+  "dataset_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+  "prior_dev_dataset_path": "data/benchmarks/web_evidentiary_burden_60.jsonl",
+  "prior_dev_dataset_sha256": "996e6d8ca62f3960617ae9315b11885cecba6c756e3585c01cf7b8dec3ac5d5d",
+  "baseline_walton_conformance": "360/360",
+  "per_pattern_ablation": [
+    {
+      "pattern_name": "flag_no_prefix",
+      "regex": "--no-[a-z0-9-]+",
+      "replacement": "safeguard-flag",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 1,
+      "matched_items_in_prior_dev_60_ids": [
+        "WEB_HIGH_010"
+      ],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "CLI flags beginning with --no-* (e.g., --no-preserve-root in WEB_HIGH_010 in prior N=60 dev set)"
+    },
+    {
+      "pattern_name": "to_prevent",
+      "regex": "\\bto\\s+prevent\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 1,
+      "matched_items_in_360_ids": [
+        "WEB360_LOW_081"
+      ],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 2,
+      "matched_items_in_prior_dev_60_ids": [
+        "WEB_HIGH_009",
+        "WEB_HIGH_010"
+      ],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Safety rationale phrase 'to prevent' (WEB_HIGH_009, WEB_HIGH_010 in prior N=60 dev set; WEB360_LOW_081 in N=360)"
+    },
+    {
+      "pattern_name": "do_not_exceed",
+      "regex": "\\bdo\\s+not\\s+exceed\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 1,
+      "matched_items_in_prior_dev_60_ids": [
+        "WEB_HIGH_009"
+      ],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Dosage limit phrase 'do not exceed' (WEB_HIGH_009 in prior N=60 dev set; LIVE_HIGH_01 in N=6 live web slice)"
+    },
+    {
+      "pattern_name": "cannot_be_undone_without",
+      "regex": "\\bcannot\\s+be\\s+undone\\s+without\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 1,
+      "matched_items_in_prior_dev_60_ids": [
+        "WEB_HIGH_003"
+      ],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Irreversibility warning 'cannot be undone without' (WEB_HIGH_003 in prior N=60 dev set)"
+    },
+    {
+      "pattern_name": "takes_no_c",
+      "regex": "\\btakes\\s+no\\s+c\\w*\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 0,
+      "matched_items_in_prior_dev_60_ids": [],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Scraped live web snippet phrase in N=6 live web sample slice (LIVE_LOW_02 / LIVE_MED_01)"
+    },
+    {
+      "pattern_name": "that_are_not_part_of",
+      "regex": "\\bthat\\s+are\\s+not\\s+part\\s+of\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 0,
+      "matched_items_in_prior_dev_60_ids": [],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Scraped RFC 8259 live web snippet phrase in N=6 live web sample slice (LIVE_MED_02: 'that are not part of')"
+    },
+    {
+      "pattern_name": "bom_is_forbidden",
+      "regex": "\\bbom\\s+is\\s+forbidden\\b",
+      "replacement": "for safety",
+      "source_location": "src/lucca/core/proof_policy.py:424-431",
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "matched_items_in_360_count": 0,
+      "matched_items_in_360_ids": [],
+      "items_changing_verdict_when_disabled_count": 0,
+      "items_changing_verdict_when_disabled_ids": [],
+      "walton_conformance_when_disabled": "360/360",
+      "matched_items_in_prior_dev_60_count": 0,
+      "matched_items_in_prior_dev_60_ids": [],
+      "present_in_prior_dev_set_or_live_6_slice": true,
+      "origin_explanation": "Scraped RFC 8259 \u00a78.1 live web snippet phrase in N=6 live web sample slice (LIVE_MED_02: 'UTF-8... BOM is forbidden')"
+    }
+  ],
+  "combined_ablations": {
+    "all_7_special_patterns_disabled": {
+      "walton_conformance": "360/360",
+      "items_changing_verdict_count": 0,
+      "items_changing_verdict_ids": []
+    },
+    "broad_negation_strip_433_443_disabled_only": {
+      "introducing_commit": "82b1da8 2026-11-09 15:16:23 +0800 feat(epistemic,paper-04): add 2D web evidentiary burden gate, N=360 blinded holdout, and 288-turn 4-model GGUF evaluation",
+      "walton_conformance": "356/360",
+      "items_changing_verdict_count": 4,
+      "items_changing_verdict_ids": [
+        "WEB360_LOW_021",
+        "WEB360_LOW_075",
+        "WEB360_HIGH_044",
+        "WEB360_HIGH_071"
+      ]
+    },
+    "all_normalizations_424_443_disabled": {
+      "walton_conformance": "356/360",
+      "items_changing_verdict_count": 4,
+      "items_changing_verdict_ids": [
+        "WEB360_LOW_021",
+        "WEB360_LOW_075",
+        "WEB360_HIGH_044",
+        "WEB360_HIGH_071"
+      ]
+    }
+  }
+}
