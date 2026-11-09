@@ -58,8 +58,10 @@ To prevent post-hoc threshold tuning or benchmark leakage:
 | **NPU Conservative Safety Compliance ($\hat{H} \ge H_{\text{expected}}$)** | — | `350/360` (`97.22%`) | **`360/360` (`100.00%`)** | `[98.94%, 100.00%]` | — |
 | **Strict 3-Class End-to-End Match** | `90/360` (`25.00%`) | `277/360` (`76.94%`) | **`287/360` (`79.72%`)** | `[75.27%, 83.55%]` | $\chi^2 = 162.09, p = 5.61 \times 10^{-43}$ (`217:20`) |
 
-### 2.3 Live 4-Model GGUF Paired Synthesis Matrix (`288` Live LLM Generations)
-Evaluated across all 4 local Gemma-4 GGUF model scales (`36` stratified items $\times 2$ arms $\times 4$ models $= 288$ turns) under Lucca's production `llama-server` flags (`--spec-type ngram-mod --cache-type-k q8_0 --cache-type-v q8_0 --cache-ram 4096`, plus `--cpu-moe --load-mode none --moe-cache-mib 7680` on `26B-A4B`):
+### 2.3 Live 4-Model GGUF Paired Synthesis Matrix (`288` Live LLM Generations — Circular Lexical Regex Score; Semantic Re-Grading Pending in `WO-45 R-10/R-11`)
+> **Methodological Caveat (`WO-45 R-07/R-10/R-11`):** In the WO-44 run (`logs/test_reports/web_evidentiary_burden_360_report.json`), Arm B's system prompt explicitly instructed the model to emit the exact legal-standard tokens (`"balance of probabilities"`, `"clear and convincing"`, `"speculation"`, `"dispute/conflict"`) that `_HEDGE_OR_CONFLICT_RE` (`scripts/run_web_evidentiary_burden_benchmark.py:68-83`) matched, while Arm A received no hedging instruction and no instruction-only control arm (`Arm C`) was included. Consequently, the `144/144 vs 99/144` (`45:0`) figures below measure lexical instruction-following scored by the same regex lexicon, not verified semantic epistemic calibration. Blinded multi-judge semantic re-grading (`R-10`) and an instruction-only control arm (`R-11`) are required before any cross-model or epistemic-calibration claim can be made.
+
+Evaluated across all 4 local Gemma-4 GGUF model scales (`36` stratified items $\times 2$ arms $\times 4$ models $= 288$ turns, benchmark profile `--ctx-size 8192`):
 
 | Local GGUF Weight | Quantization & Serving Profile | Peak GPU VRAM (`MB`) | Mean Full-Turn Latency | Arm A: Legacy Static-`0.85` (`Hedge` / `Met`) | Arm B: 2D Burden-Gated (`Hedge` / `Met`) | Arm B 95% Wilson CI | Paired McNemar ($b:c$) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -83,7 +85,7 @@ Evaluated across all 4 local Gemma-4 GGUF model scales (`36` stratified items $\
   - `E2B`: `0.63 s` $\rightarrow$ **`0.49 s`** (`2,560 MB` VRAM)
   - `E4B`: `1.00 s` $\rightarrow$ **`0.65 s`** (`4,502 MB` VRAM)
   - `12B`: `2.69 s` $\rightarrow$ **`1.50 s`** (`10,620 MB` VRAM)
-  - `26B-A4B`: `4.49 s` $\rightarrow$ **`1.60 s`** (`11,102 MB` VRAM — nearly matching dense `12B` speed while running a `21.08 GB` `Q6_K` 26B MoE model!).
+  - `26B-A4B`: `4.49 s` $\rightarrow$ **`1.60 s`** (`11,102 MB` VRAM on the `21.08 GB` `Q6_K` 26B MoE model at `--ctx-size 8192`).
 
 ### 3.3 Remaining `73/360` (`20.28%`) Conservative Upward Escalations (`LOW -> MEDIUM/HIGH`, `MEDIUM -> HIGH`)
 - All `73` remaining differences between the NPU classifier and the blinded subagents' nominal hazard labels are upward escalations (`27` `LOW -> MEDIUM` on biochemical/optical/mechanical terminology, `22` `LOW -> HIGH`, and `24` `MEDIUM -> HIGH` on historical treaty/statutory phrasing).
@@ -110,14 +112,14 @@ Evaluated across all 4 local Gemma-4 GGUF model scales (`36` stratified items $\
 | Grant Program | Funding Range & Cycle | Specific Technical Angle for Lucca | Potential Reviewer Objection & Mitigation |
 | :--- | :--- | :--- | :--- |
 | **1. NLnet Foundation (NGI Zero Commons Fund)** | `€5,000–€50,000` (Bimonthly rolling) | Standalone open-source neurosymbolic verification & HKDF HMAC-SHA256/Belnap $K_4$ epistemic provenance layer (Ed25519 is not used) running locally on consumer hardware (`2.5 GB–11.1 GB` VRAM). | *Objection:* "Is this tied only to Windows + Intel NPU?"<br>*Mitigation:* Highlight OpenVINO CPU fallback (`<6 ms` on any x86/ARM CPU) and standalone library extraction. |
-| **2. Long-Term Future Fund (LTFF)** | `$10,000–$100,000+` (Rolling) | Empirical scalable oversight: showing that scaling open-weight models from `2B` to `26B` fails to stop uncorroborated high-hazard assertions (`58.3%` failure rate), whereas a `6.3 ms` formal argumentation contract reaches `100%` compliance across all 4 scales ($p = 5.68 \times 10^{-14}$). | *Objection:* "Does the LLM merely parrot legal terms to pass regex grading?"<br>*Mitigation:* Add blinded LLM/human judge IRR ($\kappa$) on the 288 generated responses alongside deterministic lexical verification. |
+| **2. Long-Term Future Fund (LTFF)** | `$10,000–$100,000+` (Rolling) | Empirical scalable oversight: evaluating whether a formal argumentation contract improves semantic epistemic calibration across open-weight models from `2B` to `26B` once circular lexical regex grading (`R-10`) and instruction-only controls (`R-11`) are resolved (the WO-44 `58.3%` / `144/144` regex figures are retracted as evidence of semantic oversight). | *Objection:* "Does the LLM merely parrot legal terms to pass regex grading?"<br>*Mitigation:* Replace lexical regex scoring with blinded multi-judge semantic evaluation ($\kappa$) and an instruction-only control arm (`Arm C`) in `WO-45 R-10/R-11`. |
 | **3. Mozilla Builders / Trustworthy AI** | `$10,000–$50,000` (Cohort-based) | Local-first anti-hallucination and anti-poisoning middleware for consumer laptops (`8 GB` VRAM) enforcing legal standards of proof on web RAG. | *Objection:* "How does it handle adversarial SEO / sybil domains that copy-paste false text?"<br>*Mitigation:* Document eTLD+1 domain clustering + signed domain whitelist ratification (`domain_whitelist.toml`). |
 | **4. UK ARIA (`Safeguarded AI` / `Scaling Trust`)** | `£100k+` (Programmatic tracks) | Formal gatekeeper sidecars (Walton critical questions + Belnap 4-valued truth maintenance + deontic AST verification) bounding neural agents. | *Objection:* "Requires formal mathematical specification."<br>*Mitigation:* Highlight explicit Belnap $K_4$ lattice equations, Walton defeat equations, and pre-registered falsifiable theorems in Papers 1–4. |
 
-### Part D: Channel-Specific Publicity Plan
-1. **GitHub Release (`v0.9.0-prereg-360`):** Lead with the 4-model VRAM/latency/compliance matrix (`2.56 GB` VRAM `E2B` at `0.49 s` matching `26B-A4B` at `1.60 s` with `100%` epistemic compliance) and a 1-command reproduction script.
-2. **Reddit (`r/LocalLLaMA` & `r/MachineLearning`):**
-   - `r/LocalLLaMA`: Lead with local serving mechanics—running `21.1 GB` `Gemma-4-26B-A4B Q6_K` in `11.1 GB` VRAM at `1.60 s`/turn (`37.0 s` $\rightarrow$ `4.49 s` $\rightarrow$ `1.60 s` via `--cpu-moe --load-mode none --moe-cache-mib 7680 --spec-type ngram-mod`), and how a `6.3 ms` sidecar makes a `2.56 GB` `E2B` model beat unguarded `26B-A4B` on factual calibration (`36/36` vs. `27/36`).
+### Part D: Channel-Specific Publicity Plan (Blocked Until `WO-45` Phases 1–3 Complete per `R-53`)
+1. **GitHub Release (Deferred until `WO-45 R-10/R-11/R-21` complete):** Report the 4-model VRAM/latency matrix (`2.56 GB` VRAM `E2B` at `0.49 s` through `26B-A4B` at `1.60 s` at `ctx=8192`) alongside post-remediation blinded judge semantic evaluation (`R-10/R-11`) and a 1-command reproduction script.
+2. **Reddit (`r/LocalLLaMA` & `r/MachineLearning` — Deferred per `R-53`):**
+   - `r/LocalLLaMA`: Focus on local serving mechanics—running `21.1 GB` `Gemma-4-26B-A4B Q6_K` in `11.1 GB` VRAM at `1.60 s`/turn (`--cpu-moe --load-mode none --moe-cache-mib 7680 --spec-type ngram-mod` at `ctx=8192`). All claims comparing `E2B` against unguarded `26B-A4B` on factual calibration are withdrawn pending `R-10/R-11`.
    - `r/MachineLearning`: Lead with the pre-registered blinded holdout protocol, transparent disclosure of both pre-split (`350/360`) and post-split (`360/360`) safety compliance, and the `73/360` conservative upward escalations.
 3. **LinkedIn:** Frame around regulated industry RAG liability—why standard `[1][2]` citations fail when sources conflict or lack domain independence, and how local legal standards of proof (*Scintilla*, *Balance of Probabilities*, *Beyond a Reasonable Doubt*) solve this without cloud API lock-in.
 
