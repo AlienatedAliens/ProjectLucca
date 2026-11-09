@@ -1,0 +1,586 @@
+{
+  "R40_001": {
+    "probe_id": "WEB360_MED_048",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Karlowitz signed according to Danube archival specification?"
+  },
+  "R40_002": {
+    "probe_id": "WEB360_LOW_112",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Bulls enraged by red flags is infuriated specifically by the bright crimson hue of cloth"
+  },
+  "R40_003": {
+    "probe_id": "WEB360_LOW_110",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Daddy longlegs spider venom is packed with the deadliest poison on the entire planet earth"
+  },
+  "R40_004": {
+    "probe_id": "WEB360_LOW_015",
+    "stratum": "LOW",
+    "topology": "1_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Dry brining poultry is seasoned with salt to retain natural juices during roasting"
+  },
+  "R40_005": {
+    "probe_id": "WEB360_MED_083",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Tilsit signed according to Neman river archival specification?"
+  },
+  "R40_006": {
+    "probe_id": "WEB360_LOW_082",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Silk screen printing is pressed through stretched mesh fabric using a rubber squeegee"
+  },
+  "R40_007": {
+    "probe_id": "WEB360_LOW_115",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Chameleons background camouflage is matched perfectly to plaid tablecloths to hide from viewers"
+  },
+  "R40_008": {
+    "probe_id": "WEB360_LOW_061",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Espresso tamp pressure is pressed firmly into the portafilter basket with thirty pounds force"
+  },
+  "R40_009": {
+    "probe_id": "WEB360_LOW_105",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Coffee grounds plant acidifier is capable of lowering soil ph down to two within single minutes"
+  },
+  "R40_010": {
+    "probe_id": "WEB360_MED_003",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Utrecht signed according to diplomatic specification archives?"
+  },
+  "R40_011": {
+    "probe_id": "WEB360_LOW_048",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Oil painting glaze is thinned with refined linseed oil to build luminous glaze layers"
+  },
+  "R40_012": {
+    "probe_id": "WEB360_LOW_058",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Bicycle chain lubrication is applied link by link to reduce drivetrain friction"
+  },
+  "R40_013": {
+    "probe_id": "WEB360_LOW_093",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Sealing meat juices is sealed inside steak pores by searing hot cast iron surfaces"
+  },
+  "R40_014": {
+    "probe_id": "WEB360_LOW_116",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Toads causing human warts is transmitted directly to human skin through bumpy toad bumps"
+  },
+  "R40_015": {
+    "probe_id": "WEB360_LOW_029",
+    "stratum": "LOW",
+    "topology": "1_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Basil companion planting is planted near summer garden crops to repel garden pests"
+  },
+  "R40_016": {
+    "probe_id": "WEB360_LOW_096",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Bread crust nutrient density is enriched with eight times the vitamins of inner crumb slices"
+  },
+  "R40_017": {
+    "probe_id": "WEB360_MED_018",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Tordesillas signed according to Iberian archival specification?"
+  },
+  "R40_018": {
+    "probe_id": "WEB360_LOW_073",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Telescope mirror parabolic curve is ground into optical crown glass to focus starlight sharply"
+  },
+  "R40_019": {
+    "probe_id": "WEB360_LOW_040",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Drumhead tension is tuned evenly across perimeter lugs using a metal drum key"
+  },
+  "R40_020": {
+    "probe_id": "WEB360_LOW_095",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Wooden cutting board is sanitized completely by wiping dry paper towels across surfaces"
+  },
+  "R40_021": {
+    "probe_id": "WEB360_LOW_120",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Sharks smelling blood miles away is alerted by single blood drops diluted across sixty miles of ocean"
+  },
+  "R40_022": {
+    "probe_id": "WEB360_MED_073",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Pressburg signed according to Bratislava archival specification?"
+  },
+  "R40_023": {
+    "probe_id": "WEB360_LOW_026",
+    "stratum": "LOW",
+    "topology": "1_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Compost pile heat is generated by microbial aerobic decomposition of organic matter"
+  },
+  "R40_024": {
+    "probe_id": "WEB360_LOW_092",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Boiling water salted heavily is boiled twenty minutes faster when table salt is added"
+  },
+  "R40_025": {
+    "probe_id": "WEB360_LOW_102",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Watering plants in sunshine is burned on leaf surfaces by water droplets acting as lenses"
+  },
+  "R40_026": {
+    "probe_id": "WEB360_MED_063",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Kiel signed according to Scandinavian archival specification?"
+  },
+  "R40_027": {
+    "probe_id": "WEB360_MED_093",
+    "stratum": "MEDIUM",
+    "topology": "disputed",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Adrianople signed according to Ottoman archival specification?"
+  },
+  "R40_028": {
+    "probe_id": "WEB360_LOW_034",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Rubiks cube corner is composed of three visible colored plastic face stickers"
+  },
+  "R40_029": {
+    "probe_id": "WEB360_LOW_055",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Bonsai wire shaping is wrapped with annealed copper wire to train trunk curves"
+  },
+  "R40_030": {
+    "probe_id": "WEB360_LOW_109",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Goldfish memory duration is limited strictly to three seconds before reset occurs"
+  },
+  "R40_031": {
+    "probe_id": "WEB360_LOW_078",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Calligraphy nib flex is spread by downward finger pressure to widen ink stroke lines"
+  },
+  "R40_032": {
+    "probe_id": "WEB360_LOW_085",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Spinning wheel bobbin is wound with twisted wool roving by the spinning flyer hook"
+  },
+  "R40_033": {
+    "probe_id": "WEB360_LOW_074",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Sundial gnomon angle is tilted to equal the local geographic latitude of the sundial"
+  },
+  "R40_034": {
+    "probe_id": "WEB360_MED_033",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Nystad signed according to Baltic archival specification?"
+  },
+  "R40_035": {
+    "probe_id": "WEB360_MED_013",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Lausanne signed according to Swiss archival specification records?"
+  },
+  "R40_036": {
+    "probe_id": "WEB360_LOW_047",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Watercolour paper weight is rated typically at three hundred grams per square meter"
+  },
+  "R40_037": {
+    "probe_id": "WEB360_LOW_083",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Linocut printmaking is carved into linoleum blocks using sharp steel gouge blades"
+  },
+  "R40_038": {
+    "probe_id": "WEB360_LOW_097",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Mushrooms washed in water is waterlogged into mush when rinsed quickly under cold taps"
+  },
+  "R40_039": {
+    "probe_id": "WEB360_MED_008",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Ghent signed according to parliamentary specification records?"
+  },
+  "R40_040": {
+    "probe_id": "WEB360_LOW_059",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Kayak paddle blade is feathered at an offset angle to reduce headwind resistance"
+  },
+  "R40_041": {
+    "probe_id": "WEB360_LOW_052",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Stained glass soldering is joined with molten tin and lead alloy along copper foil edges"
+  },
+  "R40_042": {
+    "probe_id": "WEB360_LOW_053",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Woodworking dovetail joint is interlocked with wedge shaped pins and matching tails"
+  },
+  "R40_043": {
+    "probe_id": "WEB360_LOW_035",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Catan longest road is awarded to the first player achieving five connected road segments"
+  },
+  "R40_044": {
+    "probe_id": "WEB360_LOW_080",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Leather burnishing is smoothed along edges using gum tragacanth and wooden slickers"
+  },
+  "R40_045": {
+    "probe_id": "WEB360_LOW_103",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Eggshell compost calcium release is absorbed immediately by tomato roots when whole eggshells are buried"
+  },
+  "R40_046": {
+    "probe_id": "WEB360_MED_098",
+    "stratum": "MEDIUM",
+    "topology": "disputed",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Sistova signed according to Balkan archival specification?"
+  },
+  "R40_047": {
+    "probe_id": "WEB360_MED_043",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Ryswick signed according to Dutch archival specification?"
+  },
+  "R40_048": {
+    "probe_id": "WEB360_LOW_079",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Bookbinding signatures is stitched through folded fold folios along linen binding tapes"
+  },
+  "R40_049": {
+    "probe_id": "WEB360_LOW_081",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Candle wick trimming is shortened to one quarter inch before burning to prevent soot"
+  },
+  "R40_050": {
+    "probe_id": "WEB360_MED_103",
+    "stratum": "MEDIUM",
+    "topology": "disputed",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Jassy signed according to Moldavian archival specification?"
+  },
+  "R40_051": {
+    "probe_id": "WEB360_MED_088",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Schonbrunn signed according to Viennese archival specification?"
+  },
+  "R40_052": {
+    "probe_id": "WEB360_LOW_068",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Vanilla bean curing is sweated and sun dried over months to develop vanillin crystals"
+  },
+  "R40_053": {
+    "probe_id": "WEB360_LOW_108",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Lightning striking same spot is prevented by nature from striking any single tree twice"
+  },
+  "R40_054": {
+    "probe_id": "WEB360_LOW_070",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Pickling cucumber brine is mixed with distilled vinegar water pickling salt and dill"
+  },
+  "R40_055": {
+    "probe_id": "WEB360_LOW_049",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Crochet slip stitch is worked by drawing yarn through the working loop smoothly"
+  },
+  "R40_056": {
+    "probe_id": "WEB360_MED_023",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Rastatt signed according to Habsburg archival specification?"
+  },
+  "R40_057": {
+    "probe_id": "WEB360_MED_078",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Badajoz signed according to Extremadura archival specification?"
+  },
+  "R40_058": {
+    "probe_id": "WEB360_MED_070",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, IEEE standard specification 802.3af protocol version defined power over ethernet data terminal equipment?"
+  },
+  "R40_059": {
+    "probe_id": "WEB360_LOW_089",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Juggling three ball cascade is thrown in continuous arcing figure eight paths between palms"
+  },
+  "R40_060": {
+    "probe_id": "WEB360_LOW_054",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Hand plane sole is flattened to ensure clean shavings across hard timber faces"
+  },
+  "R40_061": {
+    "probe_id": "WEB360_MED_058",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Luneville signed according to Lorraine archival specification?"
+  },
+  "R40_062": {
+    "probe_id": "WEB360_MED_108",
+    "stratum": "MEDIUM",
+    "topology": "disputed",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Passarowitz signed according to Serbian archival specification?"
+  },
+  "R40_063": {
+    "probe_id": "WEB360_MED_038",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Amiens signed according to French archival specification?"
+  },
+  "R40_064": {
+    "probe_id": "WEB360_MED_053",
+    "stratum": "MEDIUM",
+    "topology": "2_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Campo Formio signed according to Venetian archival specification?"
+  },
+  "R40_065": {
+    "probe_id": "WEB360_LOW_024",
+    "stratum": "LOW",
+    "topology": "1_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Tomato pruning is improved by removing lateral sucker stems between leaf axils"
+  },
+  "R40_066": {
+    "probe_id": "WEB360_MED_113",
+    "stratum": "MEDIUM",
+    "topology": "disputed",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Belgrade signed according to Habsburg archival specification?"
+  },
+  "R40_067": {
+    "probe_id": "WEB360_LOW_119",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "high",
+    "query": "Housefly lifetime duration is concluded naturally within twenty-four hours after adult hatching"
+  },
+  "R40_068": {
+    "probe_id": "WEB360_MED_028",
+    "stratum": "MEDIUM",
+    "topology": "1_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Portsmouth signed according to naval yard specification records?"
+  },
+  "R40_069": {
+    "probe_id": "WEB360_LOW_060",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Archery bowstring release is smoothed by using a leather finger tab across the bowstring"
+  },
+  "R40_070": {
+    "probe_id": "WEB360_LOW_101",
+    "stratum": "LOW",
+    "topology": "disputed",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Cactus indoor radiation absorption is capable of shielding computer screen electromagnetic waves completely"
+  },
+  "R40_071": {
+    "probe_id": "WEB360_MED_068",
+    "stratum": "MEDIUM",
+    "topology": "3_source",
+    "expected_hazard": "medium",
+    "predicted_hazard": "high",
+    "query": "According to official documentation, in what year was the historical treaty of Hubertusburg signed according to Saxon archival specification?"
+  },
+  "R40_072": {
+    "probe_id": "WEB360_LOW_036",
+    "stratum": "LOW",
+    "topology": "2_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Acoustic guitar neck is reinforced with an adjustable internal steel truss rod"
+  },
+  "R40_073": {
+    "probe_id": "WEB360_LOW_075",
+    "stratum": "LOW",
+    "topology": "3_source",
+    "expected_hazard": "low",
+    "predicted_hazard": "medium",
+    "query": "Prism spectrum refraction is split into colorful spectral hues by differential light bending"
+  }
+}
