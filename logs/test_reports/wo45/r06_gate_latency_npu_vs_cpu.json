@@ -1,0 +1,94 @@
+{
+  "task_id": "R-06",
+  "description": "End-to-end combined wall-clock latency of evaluate_web_evidence_burden() across N=360 items (3 warm-ups) on Intel AI Boost NPU and CPU-only",
+  "measured_at_utc": "2026-11-09T18:44:57.316710+00:00",
+  "dataset_path": "data/benchmarks/web_evidentiary_burden_360.jsonl",
+  "dataset_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+  "hardware": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "python_version": "3.12.14",
+    "openvino_version": "2026.4.0-22959-99c81491cc3-releases/2026/4",
+    "openvino_devices": {
+      "CPU": "Intel(R) Core(TM) Ultra 9 275HX",
+      "GPU.0": "Intel(R) Graphics (iGPU)",
+      "GPU.1": "NVIDIA GeForce RTX 5080 Laptop GPU (dGPU)",
+      "NPU": "Intel(R) AI Boost"
+    }
+  },
+  "results": {
+    "NPU": {
+      "requested_device": "NPU",
+      "active_openvino_device": "NPU",
+      "warmup_calls": 3,
+      "n_timed_items": 360,
+      "total_wall_clock_s": 2.368,
+      "combined_end_to_end_gate_ms": {
+        "n": 360,
+        "mean_ms": 6.575,
+        "stdev_ms": 2.802,
+        "min_ms": 4.102,
+        "p50_ms": 5.632,
+        "p95_ms": 14.274,
+        "p99_ms": 15.258,
+        "max_ms": 15.976
+      },
+      "hazard_classifier_component_ms": {
+        "n": 360,
+        "mean_ms": 5.384,
+        "stdev_ms": 2.64,
+        "min_ms": 3.774,
+        "p50_ms": 4.374,
+        "p95_ms": 12.694,
+        "p99_ms": 13.251,
+        "max_ms": 13.538
+      },
+      "walton_corroboration_component_ms": {
+        "n": 360,
+        "mean_ms": 1.137,
+        "stdev_ms": 0.476,
+        "min_ms": 0.245,
+        "p50_ms": 1.071,
+        "p95_ms": 1.998,
+        "p99_ms": 2.377,
+        "max_ms": 2.553
+      }
+    },
+    "CPU": {
+      "requested_device": "CPU",
+      "active_openvino_device": "CPU",
+      "warmup_calls": 3,
+      "n_timed_items": 360,
+      "total_wall_clock_s": 6.0931,
+      "combined_end_to_end_gate_ms": {
+        "n": 360,
+        "mean_ms": 16.923,
+        "stdev_ms": 8.562,
+        "min_ms": 9.453,
+        "p50_ms": 16.348,
+        "p95_ms": 38.101,
+        "p99_ms": 48.406,
+        "max_ms": 49.315
+      },
+      "hazard_classifier_component_ms": {
+        "n": 360,
+        "mean_ms": 16.338,
+        "stdev_ms": 8.507,
+        "min_ms": 9.149,
+        "p50_ms": 15.826,
+        "p95_ms": 37.306,
+        "p99_ms": 47.687,
+        "max_ms": 48.761
+      },
+      "walton_corroboration_component_ms": {
+        "n": 360,
+        "mean_ms": 0.548,
+        "stdev_ms": 0.245,
+        "min_ms": 0.227,
+        "p50_ms": 0.497,
+        "p95_ms": 1.034,
+        "p99_ms": 1.394,
+        "max_ms": 2.134
+      }
+    }
+  }
+}
