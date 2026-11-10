@@ -12,7 +12,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
    - `LLM_NARRATION` is strictly rejected by the `ProvenanceGate`; there is no signer for it (`ADR-006`).
 
 2. **Strict Hardware Budget Discipline:**
-   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain per `src/lucca/core/config.py:LLMSettings`; MoE 4B active params, `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, 64K context `ctx=65536`, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` native vision). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. Dedicated compute mode frees dGPU from desktop DWM allocations.
+   - **dGPU**: NVIDIA GeForce RTX 5080 Laptop GPU (16 GB GDDR7, Blackwell `sm_120`, dedicated compute engine `Disp.A: Off`). Native Windows `llama-server.exe` running `gemma-4-26B-A4B-it-heretic.Q6_K.gguf` (Tier 0 canonical brain per `src/lucca/core/config.py:LLMSettings`; MoE 4B active params, `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, 64K context `ctx=32768`, `--spec-type ngram-mod`, Q8_0 KV cache, Flash Attention, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` native vision). `enable_thinking=false` mandatory for companion tiers; thinking reserved for explicit deep reasoning. Dedicated compute mode frees dGPU from desktop DWM allocations.
    - **iGPU**: Intel(R) Graphics (Arrow Lake-HX Xe-LPG) driving Windows desktop display and UI, completely offloading display tasks from the RTX 5080.
    - **Intel NPU**: Intel(R) AI Boost NPU (`PCI\VEN_8086&DEV_AD1D`) accessed natively on Windows 11 via OpenVINO (`device="NPU"`, `0.0 MB` RTX 5080 VRAM). Workloads:
      1. `models/action_claim_verifier_ov` (`[1, 128]`, [`src/lucca/sandbox/neural_claim_verifier.py`](./src/lucca/sandbox/neural_claim_verifier.py)): 5-class clause-level speech-act action-claim verifier (`WO-41`/`WO-42`).
@@ -89,7 +89,7 @@ Lucca is an autonomous, local-first, sandboxed desktop companion with real-time 
 
 ## 4. Key Settled Facts Every Agent Must Know
 - **Multi-Scale LLM Substrate**: Served via `llama-server.exe` across 4 validated tiers:
-  - **Gemma 4 26B A4B Tier 0** (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`): MoE (4B active params), `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, 64K context (`ctx=65536`), `--spec-type ngram-mod`, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` (`src/lucca/core/config.py:LLMSettings`). Canonical brain for `FULL_LOOP` and deliberation-lane reasoning.
+  - **Gemma 4 26B A4B Tier 0** (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`): MoE (4B active params), `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, 64K context (`ctx=32768`), `--spec-type ngram-mod`, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` (`src/lucca/core/config.py:LLMSettings`). Canonical brain for `FULL_LOOP` and deliberation-lane reasoning.
   - **Gemma 4 12B Unified** (`gemma-4-12b-heretic-Q6_K.gguf`): 9,972 MiB VRAM (61.2%), TTFT 286.9 ms, 37.18 tok/s. Companion escalation tier.
   - **Gemma 4 E4B Sovereign Core** (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`): 4,382 MiB VRAM (26.9%), TTFT 86.1 ms, 80.76–103.0 tok/s. Default desktop core.
   - **Gemma 4 E2B Ultra-Edge** (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`): 2,260 MiB VRAM (13.9%), TTFT 73.2 ms, 126.1–169.1 tok/s. Low-power companion.

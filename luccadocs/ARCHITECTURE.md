@@ -251,7 +251,7 @@ When narrating completed tool actions, narration prompts inject strict grounding
 
 ### 3.6 Multi-Scale Neural Substrate: Gemma 4 (26B-A4B, 12B, E4B, E2B) (D-BRAIN-05, D-ROUT-02)
 Native Windows `llama-server.exe`, `--jinja`, GGUF-embedded chat template, `enable_thinking=false` for companion tiers, `q8_0` KV cache, and Flash Attention across four validated tiers:
-- **Tier 0 (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`)**: MoE (4B active params), `ctx=65536`, `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, `--spec-type ngram-mod`, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` (`src/lucca/core/config.py:LLMSettings`). Default deliberation core.
+- **Tier 0 (`gemma-4-26B-A4B-it-heretic.Q6_K.gguf`)**: MoE (4B active params), `ctx=32768`, `ngl=99`, `--cpu-moe`, `--moe-cache-mib 7680`, `ubatch=2048`, `--spec-type ngram-mod`, `--mmproj mmproj-gemma-4-26B-A4B-it-BF16.gguf` (`src/lucca/core/config.py:LLMSettings`). Default deliberation core.
 - **Tier 1 (`gemma-4-12b-heretic-Q6_K.gguf`)**: Dense 12B, 9,972 MiB VRAM (61.2%), 37.18 tok/s.
 - **Tier 2 (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`)**: Dense 4.5B, 4,382 MiB VRAM (26.9%), 80.76–103.0 tok/s.
 - **Tier 3 (`Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf`)**: Dense 2.0B, 2,260 MiB VRAM (13.9%), 126.1–169.1 tok/s.
