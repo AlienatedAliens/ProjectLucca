@@ -1,0 +1,24 @@
+{
+  "r10v2_primary_unredacted": {
+    "key_file": "r10v2_blinded_288_key.json",
+    "pool_file": "r10v2_blinded_288_replies.jsonl",
+    "pool_sha256": "cf6fc3e334c3b14936ee64263f210d84c828354f3fd6935775cc2d60b71910d9",
+    "frozen_report_sha256": "d335733fe566336e43fd5b38ba7d4d1edc0200a70a8c6affe3092a19278403ad",
+    "total_blind_ids_verified": 288,
+    "unique_model_probe_arm_triples": 288,
+    "exact_byte_matches_to_frozen_report": 288,
+    "replies_differing_from_v2_report": 102,
+    "status": "PASS (100% mapped to frozen R-00 report d335733f...)"
+  },
+  "r10v2_secondary_redacted": {
+    "key_file": "r10v2_redacted_288_key.json",
+    "pool_file": "r10v2_redacted_288_replies.jsonl",
+    "pool_sha256": "feb4ab43b53b871111cea40398402165ecd666b4d885b016471546336fb97bf4",
+    "frozen_report_sha256": "d335733fe566336e43fd5b38ba7d4d1edc0200a70a8c6affe3092a19278403ad",
+    "total_blind_ids_verified": 288,
+    "unique_model_probe_arm_triples": 288,
+    "exact_byte_matches_to_frozen_report": 288,
+    "replies_differing_from_v2_report": 102,
+    "status": "PASS (100% mapped to frozen R-00 report d335733f...)"
+  }
+}
