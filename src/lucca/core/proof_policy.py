@@ -420,15 +420,7 @@ def evaluate_web_evidence_burden(
     )
     receipts: list[ToolReceipt] = []
     for idx, (dom, url, text) in enumerate(raw_items, 1):
-        aligned_sent = _select_query_aligned_sentence(text, q_tok_set | set(obj_tokens))
-        norm_sent = re.sub(r"--no-[a-z0-9-]+", "safeguard-flag", aligned_sent, flags=re.IGNORECASE)
-        norm_sent = re.sub(
-            r"\b(?:to\s+prevent|do\s+not\s+exceed|cannot\s+be\s+undone\s+without|"
-            r"takes\s+no\s+c\w*|that\s+are\s+not\s+part\s+of|bom\s+is\s+forbidden)\b",
-            "for safety",
-            norm_sent,
-            flags=re.IGNORECASE,
-        )
+        norm_sent = _select_query_aligned_sentence(text, q_tok_set | set(obj_tokens))
         is_genuine_dispute = idx > 1 and bool(auth_dispute_re.search(norm_sent))
         if not is_genuine_dispute and store is None:
             norm_sent = re.sub(
