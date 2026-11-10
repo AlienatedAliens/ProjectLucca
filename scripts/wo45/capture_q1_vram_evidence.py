@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-WO-45 REVIEW_G3 Query Q-1 (R-05): Capture raw timestamped `nvidia-smi` output
-before and after loading each of the 4 GGUF models (`E2B`, `E4B`, `12B`, `26B-A4B`)
-via `build_launch_command(llm_cfg, LUCCA_HOME)` at both `ctx=8192` (WO-44 benchmark profile)
-and `ctx=32768` (32K KV cache).
+WO-45 REVIEW_G3 Query Q-1 (R-05) & REVIEW_G3_v2 Addendum A-2/A-3:
+Capture raw timestamped `nvidia-smi` output before and after loading each of the 4 GGUF
+models (`E2B`, `E4B`, `12B`, `26B-A4B`) via `build_launch_command(llm_cfg, LUCCA_HOME)`
+at `ctx=8192` (WO-44 benchmark profile), `ctx=32768` (32K production setting), and
+`ctx=65536` (64K reference).
 """
 
 from __future__ import annotations
@@ -144,6 +145,7 @@ def main() -> None:
 
     models_8k = measure_ctx_profile(8192)
     models_32k = measure_ctx_profile(32768)
+    models_64k = measure_ctx_profile(65536)
 
     stop_server()
     post_all_idle = query_nvidia_smi_raw()
@@ -154,12 +156,15 @@ def main() -> None:
             "On this hybrid-GPU Windows 11 laptop (Intel Core Ultra 9 275HX iGPU + discrete NVIDIA GeForce RTX 5080 Laptop GPU), "
             "all desktop/OS display compositing runs on the Intel iGPU, so the discrete RTX 5080 sits at 0 MiB used when idle. "
             "When llama-server loads a GGUF checkpoint with fixed flags, it is the sole CUDA compute process on the RTX 5080 "
-            "and deterministically allocates the exact same MiB buffer on every load. Both ctx=8192 (the WO-44 single-turn benchmark profile) "
-            "and ctx=32768 (32K KV cache) are captured below."
+            "and deterministically allocates the exact same MiB buffer on every load. Profiles captured: ctx=8192 (WO-44 benchmark profile), "
+            "ctx=32768 (32K production setting), and ctx=65536 (64K reference). "
+            "Note on small 8K->32K VRAM delta (+172 to +350 MiB): explanation, not measured — attributed to Gemma 4's hybrid "
+            "local sliding-window + global GQA attention and q8_0 KV quantization in llama.cpp rather than direct per-layer buffer profiling."
         ),
         "baseline_idle_no_model": baseline_idle,
         "models": models_8k,
         "models_ctx_32768": models_32k,
+        "models_ctx_65536": models_64k,
         "post_all_idle_no_model": post_all_idle,
     }
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
