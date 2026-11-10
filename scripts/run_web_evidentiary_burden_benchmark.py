@@ -237,13 +237,13 @@ def run_live_4model_matrix(
     for model_label, model_path, tier_label in MODEL_MATRIX:
         stop_existing_llama_server()
         is_moe = model_label == "26B-A4B"
-        # Deliberate single-turn benchmark profile: ctx=8192 (each single-turn RAG prompt is <1,024 tokens;
-        # production multi-turn companion sessions use ctx=65536).
+        # Standard 32K KV cache profile (matches LLMSettings.ctx=32768 and UI slider max;
+        # earlier WO-44 runs used ctx=8192).
         llm_cfg = LLMSettings(
             mode="transcript",
             host="127.0.0.1",
             port=SERVER_PORT,
-            ctx=8192,
+            ctx=32768,
             kv_type="q8_0",
             kv_type_k="q8_0",
             kv_type_v="q8_0",
@@ -423,7 +423,7 @@ def run_live_4model_matrix(
                 "provenance": "fresh",
                 "tier_label": tier_label,
                 "ctx_size": llm_cfg.ctx,
-                "ctx_profile": "deliberate_benchmark_profile_ctx_8192",
+                "ctx_profile": f"standard_profile_ctx_{llm_cfg.ctx}",
                 "llama_server_build": llama_build_str,
                 "launch_cmd": cmd,
                 "started_at_utc": started_at_utc,

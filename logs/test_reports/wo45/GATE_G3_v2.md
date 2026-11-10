@@ -272,19 +272,23 @@ Full report: `logs/test_reports/wo45/r40v2_73_escalation_audit_REPORT.md` and `l
 
 ---
 
-## 7. Query `Q-1 (R-05)` — Raw Timestamped `nvidia-smi` VRAM Evidence
+## 7. Query `Q-1 (R-05)` — Raw Timestamped `nvidia-smi` VRAM Evidence (`ctx=8192` vs `ctx=32768`)
 
-Saved in `logs/test_reports/wo45/q1_vram_nvidia_smi_evidence.json` (`SHA-256: 1b8fd0df248e6041fc1a82733f953a41efae8a3d94c88b18b0f3bd8362744e02`), captured by `scripts/wo45/capture_q1_vram_evidence.py`:
+Saved in `logs/test_reports/wo45/q1_vram_nvidia_smi_evidence.json` (`SHA-256: eca00b0645a269c9a1a00fd36a6dc89c62f6eac3945a81c5c4a85c15754c7745`), captured by `scripts/wo45/capture_q1_vram_evidence.py` at both `ctx=8192` (the WO-44 benchmark profile) and `ctx=32768` (32K KV cache, now aligned across `LLMSettings.ctx=32768`, `llm_tab.py`, and `run_web_evidentiary_burden_benchmark.py`):
 
-| Stage | `nvidia-smi` Query Output (`timestamp, name, memory.used [MiB], memory.total [MiB]`) | Active Compute Apps (`pid, process_name, used_gpu_memory [MiB]`) |
+| Stage / Profile | `nvidia-smi` Query Output (`timestamp, name, memory.used [MiB], memory.total [MiB]`) | Active Compute Apps (`pid, process_name`) |
 |---|---|---|
-| **Baseline Idle (Before Any Model Load)** | `2026/11/10 09:49:15.324, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB` | *(none)* |
-| **Gemma-4-E2B-IT (`--ctx-size 8192`)** | `2026/11/10 09:49:21.749, NVIDIA GeForce RTX 5080 Laptop GPU, 2560 MiB, 16303 MiB` | `32248, C:\Projects\ProjectLucca\bin\llama-b8672\llama-server.exe, 2450 MiB` |
-| **Gemma-4-E4B-IT (`--ctx-size 8192`)** | `2026/11/10 09:49:29.591, NVIDIA GeForce RTX 5080 Laptop GPU, 4502 MiB, 16303 MiB` | `12496, C:\Projects\ProjectLucca\bin\llama-b8672\llama-server.exe, 4392 MiB` |
-| **Gemma-4-12B-IT (`--ctx-size 8192`)** | `2026/11/10 09:49:44.032, NVIDIA GeForce RTX 5080 Laptop GPU, 10620 MiB, 16303 MiB` | `46220, C:\Projects\ProjectLucca\bin\llama-b8672\llama-server.exe, 10510 MiB` |
-| **Gemma-4-26B-A4B-IT (`--ctx-size 8192`)** | `2026/11/10 09:49:58.618, NVIDIA GeForce RTX 5080 Laptop GPU, 11102 MiB, 16303 MiB` | `38380, C:\Projects\ProjectLucca\bin\llama-b8672\llama-server.exe, 10992 MiB` |
+| **Baseline Idle (Before Any Model Load)** | `2026/11/10 12:49:08.102, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB` | *(none)* |
+| **Gemma-4-E2B-IT (`--ctx-size 8192`)** | `2026/11/10 12:49:14.784, NVIDIA GeForce RTX 5080 Laptop GPU, 2560 MiB, 16303 MiB` | `33184, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-E4B-IT (`--ctx-size 8192`)** | `2026/11/10 12:49:22.023, NVIDIA GeForce RTX 5080 Laptop GPU, 4502 MiB, 16303 MiB` | `24396, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-12B-IT (`--ctx-size 8192`)** | `2026/11/10 12:49:33.587, NVIDIA GeForce RTX 5080 Laptop GPU, 10620 MiB, 16303 MiB` | `29072, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-26B-A4B-IT (`--ctx-size 8192`)** | `2026/11/10 12:49:55.108, NVIDIA GeForce RTX 5080 Laptop GPU, 11102 MiB, 16303 MiB` | `19792, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-E2B-IT (`--ctx-size 32768`)** | `2026/11/10 12:50:01.918, NVIDIA GeForce RTX 5080 Laptop GPU, 2732 MiB, 16303 MiB` | `33136, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-E4B-IT (`--ctx-size 32768`)** | `2026/11/10 12:50:09.034, NVIDIA GeForce RTX 5080 Laptop GPU, 4802 MiB, 16303 MiB` | `16536, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-12B-IT (`--ctx-size 32768`)** | `2026/11/10 12:50:19.411, NVIDIA GeForce RTX 5080 Laptop GPU, 10920 MiB, 16303 MiB` | `23980, C:\ProjectLucca\app\llama-server\llama-server.exe` |
+| **Gemma-4-26B-A4B-IT (`--ctx-size 32768`)** | `2026/11/10 12:50:40.913, NVIDIA GeForce RTX 5080 Laptop GPU, 11452 MiB, 16303 MiB` | `15452, C:\ProjectLucca\app\llama-server\llama-server.exe` |
 
-**Why the numbers match to the MiB across runs:** On this Windows 11 hybrid-GPU laptop, desktop display compositing runs on the integrated GPU, so the discrete RTX 5080 Laptop GPU sits at `0 MiB / 16303 MiB` used when idle. With `llama-server.exe` as the sole CUDA process and deterministic GGUF weight + KV-cache (`--ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0`) allocation, total device memory used is reproducibly `2560 / 4502 / 10620 / 11102 MiB`.
+**Why the numbers match to the MiB across runs, and why `32K` adds only `172–350 MiB`:** On this Windows 11 hybrid-GPU laptop, desktop display compositing runs on the integrated GPU, so the discrete RTX 5080 Laptop GPU sits at `0 MiB / 16303 MiB` used when idle. With `llama-server.exe` as the sole CUDA process and deterministic GGUF weight + KV-cache (`--cache-type-k q8_0 --cache-type-v q8_0`) allocation, total device memory used is reproducibly `2560 / 4502 / 10620 / 11102 MiB` at `ctx=8192` and `2732 / 4802 / 10920 / 11452 MiB` at `ctx=32768` (Gemma 4's 5:1 sliding-window local attention + GQA keeps the 4x larger `32K` `q8_0` KV cache to just `+172` to `+350 MiB` of extra VRAM).
 
 ---
 

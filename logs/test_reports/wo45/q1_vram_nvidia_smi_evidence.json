@@ -1,13 +1,14 @@
 {
   "query_id": "Q-1 (R-05)",
-  "explanation": "On this hybrid-GPU Windows 11 laptop (Intel Core Ultra 9 275HX iGPU + discrete NVIDIA GeForce RTX 5080 Laptop GPU), all desktop/OS display compositing runs on the Intel iGPU, so the discrete RTX 5080 sits at 0 MiB used when idle. When llama-server loads a GGUF checkpoint with fixed flags (--ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0), it is the sole CUDA compute process on the RTX 5080 and deterministically allocates the exact same MiB buffer on every load.",
+  "explanation": "On this hybrid-GPU Windows 11 laptop (Intel Core Ultra 9 275HX iGPU + discrete NVIDIA GeForce RTX 5080 Laptop GPU), all desktop/OS display compositing runs on the Intel iGPU, so the discrete RTX 5080 sits at 0 MiB used when idle. When llama-server loads a GGUF checkpoint with fixed flags, it is the sole CUDA compute process on the RTX 5080 and deterministically allocates the exact same MiB buffer on every load. Both ctx=8192 (the WO-44 single-turn benchmark profile) and ctx=32768 (32K KV cache) are captured below.",
   "baseline_idle_no_model": {
-    "captured_at_utc": "2026-11-10T02:05:01.851281+00:00",
-    "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:01.797, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+    "captured_at_utc": "2026-11-10T04:49:08.155635+00:00",
+    "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:08.102, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
     "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
   },
   "models": {
     "E2B": {
+      "ctx_size": 8192,
       "launch_cmd": [
         "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
         "--model",
@@ -38,17 +39,18 @@
         "ngram-mod"
       ],
       "pre_load_idle": {
-        "captured_at_utc": "2026-11-10T02:05:04.843481+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:04.790, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "captured_at_utc": "2026-11-10T04:49:11.127974+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:11.074, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
         "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
       },
       "post_load_ready": {
-        "captured_at_utc": "2026-11-10T02:05:11.121649+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:11.067, NVIDIA GeForce RTX 5080 Laptop GPU, 2560 MiB, 16303 MiB",
-        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n9048, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+        "captured_at_utc": "2026-11-10T04:49:14.838202+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:14.784, NVIDIA GeForce RTX 5080 Laptop GPU, 2560 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n33184, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
       }
     },
     "E4B": {
+      "ctx_size": 8192,
       "launch_cmd": [
         "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
         "--model",
@@ -79,17 +81,18 @@
         "ngram-mod"
       ],
       "pre_load_idle": {
-        "captured_at_utc": "2026-11-10T02:05:13.578244+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:13.524, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "captured_at_utc": "2026-11-10T04:49:17.398816+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:17.345, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
         "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
       },
       "post_load_ready": {
-        "captured_at_utc": "2026-11-10T02:05:18.293137+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:18.240, NVIDIA GeForce RTX 5080 Laptop GPU, 4502 MiB, 16303 MiB",
-        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n28620, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+        "captured_at_utc": "2026-11-10T04:49:22.076815+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:22.023, NVIDIA GeForce RTX 5080 Laptop GPU, 4502 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n24396, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
       }
     },
     "12B": {
+      "ctx_size": 8192,
       "launch_cmd": [
         "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
         "--model",
@@ -120,17 +123,18 @@
         "ngram-mod"
       ],
       "pre_load_idle": {
-        "captured_at_utc": "2026-11-10T02:05:21.995745+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:21.941, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "captured_at_utc": "2026-11-10T04:49:25.882169+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:25.827, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
         "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
       },
       "post_load_ready": {
-        "captured_at_utc": "2026-11-10T02:05:29.734415+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:29.681, NVIDIA GeForce RTX 5080 Laptop GPU, 10620 MiB, 16303 MiB",
-        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n13692, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+        "captured_at_utc": "2026-11-10T04:49:33.639969+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:33.587, NVIDIA GeForce RTX 5080 Laptop GPU, 10620 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n29072, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
       }
     },
     "26B-A4B": {
+      "ctx_size": 8192,
       "launch_cmd": [
         "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
         "--model",
@@ -166,20 +170,195 @@
         "ngram-mod"
       ],
       "pre_load_idle": {
-        "captured_at_utc": "2026-11-10T02:05:33.523755+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:33.469, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "captured_at_utc": "2026-11-10T04:49:37.329546+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:37.276, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
         "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
       },
       "post_load_ready": {
-        "captured_at_utc": "2026-11-10T02:05:51.385329+00:00",
-        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:51.331, NVIDIA GeForce RTX 5080 Laptop GPU, 11102 MiB, 16303 MiB",
-        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n10332, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+        "captured_at_utc": "2026-11-10T04:49:55.163093+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:55.108, NVIDIA GeForce RTX 5080 Laptop GPU, 11102 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n19792, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+      }
+    }
+  },
+  "models_ctx_32768": {
+    "E2B": {
+      "ctx_size": 32768,
+      "launch_cmd": [
+        "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
+        "--model",
+        "C:\\ProjectLucca\\models\\llm\\Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf",
+        "--n-gpu-layers",
+        "99",
+        "--ctx-size",
+        "32768",
+        "--cache-type-k",
+        "q8_0",
+        "--cache-type-v",
+        "q8_0",
+        "--cache-ram",
+        "4096",
+        "--parallel",
+        "1",
+        "--flash-attn",
+        "on",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8089",
+        "--no-webui",
+        "--jinja",
+        "-ub",
+        "2048",
+        "--spec-type",
+        "ngram-mod"
+      ],
+      "pre_load_idle": {
+        "captured_at_utc": "2026-11-10T04:49:59.307012+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:49:59.253, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
+      },
+      "post_load_ready": {
+        "captured_at_utc": "2026-11-10T04:50:01.973933+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:01.918, NVIDIA GeForce RTX 5080 Laptop GPU, 2732 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n33136, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+      }
+    },
+    "E4B": {
+      "ctx_size": 32768,
+      "launch_cmd": [
+        "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
+        "--model",
+        "C:\\ProjectLucca\\models\\llm\\gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf",
+        "--n-gpu-layers",
+        "99",
+        "--ctx-size",
+        "32768",
+        "--cache-type-k",
+        "q8_0",
+        "--cache-type-v",
+        "q8_0",
+        "--cache-ram",
+        "4096",
+        "--parallel",
+        "1",
+        "--flash-attn",
+        "on",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8089",
+        "--no-webui",
+        "--jinja",
+        "-ub",
+        "2048",
+        "--spec-type",
+        "ngram-mod"
+      ],
+      "pre_load_idle": {
+        "captured_at_utc": "2026-11-10T04:50:04.412698+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:04.358, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
+      },
+      "post_load_ready": {
+        "captured_at_utc": "2026-11-10T04:50:09.087055+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:09.034, NVIDIA GeForce RTX 5080 Laptop GPU, 4802 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n16536, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+      }
+    },
+    "12B": {
+      "ctx_size": 32768,
+      "launch_cmd": [
+        "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
+        "--model",
+        "C:\\ProjectLucca\\models\\llm\\gemma-4-12b-heretic-Q6_K.gguf",
+        "--n-gpu-layers",
+        "99",
+        "--ctx-size",
+        "32768",
+        "--cache-type-k",
+        "q8_0",
+        "--cache-type-v",
+        "q8_0",
+        "--cache-ram",
+        "4096",
+        "--parallel",
+        "1",
+        "--flash-attn",
+        "on",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8089",
+        "--no-webui",
+        "--jinja",
+        "-ub",
+        "2048",
+        "--spec-type",
+        "ngram-mod"
+      ],
+      "pre_load_idle": {
+        "captured_at_utc": "2026-11-10T04:50:12.729695+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:12.677, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
+      },
+      "post_load_ready": {
+        "captured_at_utc": "2026-11-10T04:50:19.463971+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:19.411, NVIDIA GeForce RTX 5080 Laptop GPU, 10920 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n23980, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
+      }
+    },
+    "26B-A4B": {
+      "ctx_size": 32768,
+      "launch_cmd": [
+        "C:\\ProjectLucca\\app\\llama-server\\llama-server.exe",
+        "--model",
+        "C:\\ProjectLucca\\models\\llm\\gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+        "--n-gpu-layers",
+        "99",
+        "--ctx-size",
+        "32768",
+        "--cache-type-k",
+        "q8_0",
+        "--cache-type-v",
+        "q8_0",
+        "--cache-ram",
+        "4096",
+        "--parallel",
+        "1",
+        "--flash-attn",
+        "on",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8089",
+        "--no-webui",
+        "--jinja",
+        "-ub",
+        "2048",
+        "--cpu-moe",
+        "--load-mode",
+        "none",
+        "--moe-cache-mib",
+        "7680",
+        "--spec-type",
+        "ngram-mod"
+      ],
+      "pre_load_idle": {
+        "captured_at_utc": "2026-11-10T04:50:23.150554+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:23.097, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
+      },
+      "post_load_ready": {
+        "captured_at_utc": "2026-11-10T04:50:40.966059+00:00",
+        "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:40.913, NVIDIA GeForce RTX 5080 Laptop GPU, 11452 MiB, 16303 MiB",
+        "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]\n15452, C:\\ProjectLucca\\app\\llama-server\\llama-server.exe, [N/A]"
       }
     }
   },
   "post_all_idle_no_model": {
-    "captured_at_utc": "2026-11-10T02:05:55.488153+00:00",
-    "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 10:05:55.433, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
+    "captured_at_utc": "2026-11-10T04:50:45.198889+00:00",
+    "query_gpu_csv": "timestamp, name, memory.used [MiB], memory.total [MiB]\n2026/11/10 12:50:45.146, NVIDIA GeForce RTX 5080 Laptop GPU, 0 MiB, 16303 MiB",
     "query_compute_apps_csv": "pid, process_name, used_gpu_memory [MiB]"
   }
 }

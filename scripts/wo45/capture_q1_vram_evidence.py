@@ -2,7 +2,8 @@
 """
 WO-45 REVIEW_G3 Query Q-1 (R-05): Capture raw timestamped `nvidia-smi` output
 before and after loading each of the 4 GGUF models (`E2B`, `E4B`, `12B`, `26B-A4B`)
-via `build_launch_command(llm_cfg, LUCCA_HOME)` at `ctx=8192`.
+via `build_launch_command(llm_cfg, LUCCA_HOME)` at both `ctx=8192` (WO-44 benchmark profile)
+and `ctx=32768` (32K KV cache).
 """
 
 from __future__ import annotations
@@ -85,13 +86,7 @@ def wait_for_server(timeout_s: float = 120.0) -> bool:
     return False
 
 
-def main() -> None:
-    stop_server()
-    baseline_idle = query_nvidia_smi_raw()
-    print("=== Baseline Idle (no model loaded) ===")
-    print(baseline_idle["query_gpu_csv"])
-    print(baseline_idle["query_compute_apps_csv"])
-
+def measure_ctx_profile(ctx_size: int) -> dict[str, dict[str, object]]:
     per_model: dict[str, dict[str, object]] = {}
     for model_label, model_path in MODEL_MATRIX:
         stop_server()
@@ -101,7 +96,7 @@ def main() -> None:
             mode="transcript",
             host="127.0.0.1",
             port=SERVER_PORT,
-            ctx=8192,
+            ctx=ctx_size,
             kv_type="q8_0",
             kv_type_k="q8_0",
             kv_type_v="q8_0",
@@ -120,12 +115,13 @@ def main() -> None:
         proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
             if not wait_for_server():
-                raise RuntimeError(f"Failed to start {model_label}")
+                raise RuntimeError(f"Failed to start {model_label} at ctx={ctx_size}")
             loaded_snap = query_nvidia_smi_raw()
-            print(f"\n=== {model_label} Loaded ===")
+            print(f"\n=== {model_label} Loaded (ctx={ctx_size}) ===")
             print(loaded_snap["query_gpu_csv"])
             print(loaded_snap["query_compute_apps_csv"])
             per_model[model_label] = {
+                "ctx_size": ctx_size,
                 "launch_cmd": cmd,
                 "pre_load_idle": pre_load,
                 "post_load_ready": loaded_snap,
@@ -136,6 +132,18 @@ def main() -> None:
                 proc.wait(timeout=10.0)
             except Exception:  # noqa: BLE001
                 stop_server()
+    return per_model
+
+
+def main() -> None:
+    stop_server()
+    baseline_idle = query_nvidia_smi_raw()
+    print("=== Baseline Idle (no model loaded) ===")
+    print(baseline_idle["query_gpu_csv"])
+    print(baseline_idle["query_compute_apps_csv"])
+
+    models_8k = measure_ctx_profile(8192)
+    models_32k = measure_ctx_profile(32768)
 
     stop_server()
     post_all_idle = query_nvidia_smi_raw()
@@ -145,11 +153,13 @@ def main() -> None:
         "explanation": (
             "On this hybrid-GPU Windows 11 laptop (Intel Core Ultra 9 275HX iGPU + discrete NVIDIA GeForce RTX 5080 Laptop GPU), "
             "all desktop/OS display compositing runs on the Intel iGPU, so the discrete RTX 5080 sits at 0 MiB used when idle. "
-            "When llama-server loads a GGUF checkpoint with fixed flags (--ctx-size 8192 --cache-type-k q8_0 --cache-type-v q8_0), "
-            "it is the sole CUDA compute process on the RTX 5080 and deterministically allocates the exact same MiB buffer on every load."
+            "When llama-server loads a GGUF checkpoint with fixed flags, it is the sole CUDA compute process on the RTX 5080 "
+            "and deterministically allocates the exact same MiB buffer on every load. Both ctx=8192 (the WO-44 single-turn benchmark profile) "
+            "and ctx=32768 (32K KV cache) are captured below."
         ),
         "baseline_idle_no_model": baseline_idle,
-        "models": per_model,
+        "models": models_8k,
+        "models_ctx_32768": models_32k,
         "post_all_idle_no_model": post_all_idle,
     }
     out_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
