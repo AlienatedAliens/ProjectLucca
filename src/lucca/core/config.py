@@ -47,7 +47,7 @@ class LLMSettings(BaseModel):
     mode: Literal["audio", "transcript", "vision"] = "vision"
     host: str = "127.0.0.1"
     port: int = 8080
-    ctx: int = 32768
+    ctx: int = 65536
     kv_type: str = "q8_0"
     kv_type_k: str = "q8_0"
     kv_type_v: str = "q8_0"
