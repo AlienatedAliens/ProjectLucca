@@ -1,0 +1,240 @@
+{
+  "verified_at_utc": "2026-11-11T21:04:44.537993+00:00",
+  "lock_path": "logs/test_reports/wo45/live_v3_prereg_lock.json",
+  "lock_sha256": "438e70041eb9de50b8e0fc63276c04e8ece004f091275a29ebbc3ff76523c5a0",
+  "all_hashes_matched": true,
+  "repo_file_checks": [
+    {
+      "path": "src/lucca/core/neural_hazard_classifier.py",
+      "expected_sha256": "a37decbef8bca8f82d7a177e234ba815378d42e7f6461ff666774a580dada5e6",
+      "actual_sha256": "a37decbef8bca8f82d7a177e234ba815378d42e7f6461ff666774a580dada5e6",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/core/proof_policy.py",
+      "expected_sha256": "aa497b9d91312f1c574f1c926a1f770bebb3f189fa04688cd82cd15aa1665ef2",
+      "actual_sha256": "aa497b9d91312f1c574f1c926a1f770bebb3f189fa04688cd82cd15aa1665ef2",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/core/corroboration.py",
+      "expected_sha256": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+      "actual_sha256": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/core/walton_schemes/evaluators.py",
+      "expected_sha256": "5d1014ce8c13c828d0a34f634ba4217e0a175ac3616170eaf19c95b06c94cd5a",
+      "actual_sha256": "5d1014ce8c13c828d0a34f634ba4217e0a175ac3616170eaf19c95b06c94cd5a",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/core/cascade.py",
+      "expected_sha256": "75fc71930cb86792c17d71e1e476b3a38425c7e876a5bafac1465cd7c6ac9db0",
+      "actual_sha256": "75fc71930cb86792c17d71e1e476b3a38425c7e876a5bafac1465cd7c6ac9db0",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/core/cascade_substrates.py",
+      "expected_sha256": "0cbe073f49d71190f62686e19631047dae8af11fac115e2c69f62521dfbb4e4f",
+      "actual_sha256": "0cbe073f49d71190f62686e19631047dae8af11fac115e2c69f62521dfbb4e4f",
+      "matched": true
+    },
+    {
+      "path": "src/lucca/sandbox/research_tool.py",
+      "expected_sha256": "601dd30efbd6049272f7e6c10940fe4c24711c68a84e4f7faa0c3701d2b64e82",
+      "actual_sha256": "601dd30efbd6049272f7e6c10940fe4c24711c68a84e4f7faa0c3701d2b64e82",
+      "matched": true
+    },
+    {
+      "path": "models/proof_policy_hazard_ov/openvino_model.xml",
+      "expected_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+      "actual_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+      "matched": true
+    },
+    {
+      "path": "models/proof_policy_hazard_ov/openvino_model.bin",
+      "expected_sha256": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+      "actual_sha256": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+      "matched": true
+    },
+    {
+      "path": "models/proof_policy_hazard_v2_ov/openvino_model.xml",
+      "expected_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+      "actual_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+      "matched": true
+    },
+    {
+      "path": "models/proof_policy_hazard_v2_ov/openvino_model.bin",
+      "expected_sha256": "4a3f7e8e0560e78c9216935424ff6fd2466fd1a6cf2b3a0d11eff5753d795df5",
+      "actual_sha256": "4a3f7e8e0560e78c9216935424ff6fd2466fd1a6cf2b3a0d11eff5753d795df5",
+      "matched": true
+    },
+    {
+      "path": "data/benchmarks/web_evidentiary_burden_360.jsonl",
+      "expected_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+      "actual_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/prompts/g4v3_judge_prompt.md",
+      "expected_sha256": "3102fbafc02e81c7a6ff43e440226bb2eadd0a39e8923e8e46c843a50c6c4655",
+      "actual_sha256": "3102fbafc02e81c7a6ff43e440226bb2eadd0a39e8923e8e46c843a50c6c4655",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/g4v3_prompt_neutrality_check.json",
+      "expected_sha256": "9e55f5d1531edcecfbcbd406f2756c603a00539ba1900d928dbd2b68b8a47c1f",
+      "actual_sha256": "9e55f5d1531edcecfbcbd406f2756c603a00539ba1900d928dbd2b68b8a47c1f",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/g4v3_judge_qualification_set.jsonl",
+      "expected_sha256": "eff5af197f8281c762d75dc15dfab7e99a3f10e854a65799554a2a5ef55a41da",
+      "actual_sha256": "eff5af197f8281c762d75dc15dfab7e99a3f10e854a65799554a2a5ef55a41da",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/g4v3_judge_qualification_report.json",
+      "expected_sha256": "d3c6500eaa6b1a7404f7134ae65437b41814686aeed51f47b1e0c53f8f321740",
+      "actual_sha256": "d3c6500eaa6b1a7404f7134ae65437b41814686aeed51f47b1e0c53f8f321740",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/g4v3_normalizer_verification.json",
+      "expected_sha256": "8cf44c74076af68196f6bc8923a8e41ec9466956a3722bb8e1d95f8da73ada10",
+      "actual_sha256": "8cf44c74076af68196f6bc8923a8e41ec9466956a3722bb8e1d95f8da73ada10",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/r42_hazard_retrain_report.json",
+      "expected_sha256": "21555d5c3c15bd02556b150e5cf9d2796d341c8a3971af5d9f9ce4249fbaa579",
+      "actual_sha256": "21555d5c3c15bd02556b150e5cf9d2796d341c8a3971af5d9f9ce4249fbaa579",
+      "matched": true
+    },
+    {
+      "path": "logs/test_reports/wo45/live_v3_selected_items.json",
+      "expected_sha256": "768380104eba8e2867ce01e08e83aec99a4517a9e97790f989905db715134732",
+      "actual_sha256": "768380104eba8e2867ce01e08e83aec99a4517a9e97790f989905db715134732",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/g4_kappa.py",
+      "expected_sha256": "1136e1d8266ce1def57db2e72f2cecf7ee48fed4d9b67cff068f10f2a7999aa7",
+      "actual_sha256": "1136e1d8266ce1def57db2e72f2cecf7ee48fed4d9b67cff068f10f2a7999aa7",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/ots_stamp.py",
+      "expected_sha256": "289640dddcd238bff159cd612c2a6f7d93771c10e2c498f81c4bccb691a785ee",
+      "actual_sha256": "289640dddcd238bff159cd612c2a6f7d93771c10e2c498f81c4bccb691a785ee",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/normalize_g4v3_replies.py",
+      "expected_sha256": "b9d1bb6907d02debfb19c05473a1ca7bbbcc6252d2e83173b2945c69b6f92c13",
+      "actual_sha256": "b9d1bb6907d02debfb19c05473a1ca7bbbcc6252d2e83173b2945c69b6f92c13",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/verify_rm3_normalizer.py",
+      "expected_sha256": "a79ce1257f2e25f98a8caeb19c46d26539b52a6bd86e4120963d5bd6e30f40de",
+      "actual_sha256": "a79ce1257f2e25f98a8caeb19c46d26539b52a6bd86e4120963d5bd6e30f40de",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/score_g4v3_qualification.py",
+      "expected_sha256": "b696ff572031ee9fee46a3a120f3e3902722da7dd1e6374c8ace70b95aa66917",
+      "actual_sha256": "b696ff572031ee9fee46a3a120f3e3902722da7dd1e6374c8ace70b95aa66917",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/run_wo45_v3_judge.py",
+      "expected_sha256": "6e4991b22fe66fba8a4c7c81e648c62ff9a9f6344d0d789b0ac07886744456a7",
+      "actual_sha256": "6e4991b22fe66fba8a4c7c81e648c62ff9a9f6344d0d789b0ac07886744456a7",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/select_wo45_live_v3_items.py",
+      "expected_sha256": "407cbabe7e6bbb8fe742d35bffb435b39cd50462c75d4045636f846df8a738c8",
+      "actual_sha256": "407cbabe7e6bbb8fe742d35bffb435b39cd50462c75d4045636f846df8a738c8",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/train_r42_hazard_v2.py",
+      "expected_sha256": "df03a5217e9483a650438a277e1be772d604a2e7a661f263ec3b8896ecc45a4a",
+      "actual_sha256": "df03a5217e9483a650438a277e1be772d604a2e7a661f263ec3b8896ecc45a4a",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/run_wo45_live_v3.py",
+      "expected_sha256": "b150e1b6eb0cf1e89c797f3e77a2beed7f77f3f37dedd258b89bfbc3a2061d75",
+      "actual_sha256": "b150e1b6eb0cf1e89c797f3e77a2beed7f77f3f37dedd258b89bfbc3a2061d75",
+      "matched": true
+    },
+    {
+      "path": "scripts/wo45/analyze_wo45_live_v3.py",
+      "expected_sha256": "bdd35e1c978df0cb8ac554a8902feb00d11a6584a7ea1c6bcc88468c55cfcb7e",
+      "actual_sha256": "bdd35e1c978df0cb8ac554a8902feb00d11a6584a7ea1c6bcc88468c55cfcb7e",
+      "matched": true
+    }
+  ],
+  "generator_gguf_checks": [
+    {
+      "model_filename": "Gemma4-E2B-Heretic-Sinhala.i1-Q6_K.gguf",
+      "expected_sha256": "6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143",
+      "actual_sha256": "6e30dcc324485590e2023e82a350dd96a8dca58ee5c360902824b86802d0c143",
+      "matched": true
+    },
+    {
+      "model_filename": "gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf",
+      "expected_sha256": "ab52d2db11a2d33573b31dc704121f25e918373224182dbde9d6e02e1c34586e",
+      "actual_sha256": "ab52d2db11a2d33573b31dc704121f25e918373224182dbde9d6e02e1c34586e",
+      "matched": true
+    },
+    {
+      "model_filename": "gemma-4-E4B-it-Q6_K.gguf",
+      "expected_sha256": "fd83f3ef44d22e00ff0f638753dde9a66a83e8ccf79c11024f47d383c489531b",
+      "actual_sha256": "fd83f3ef44d22e00ff0f638753dde9a66a83e8ccf79c11024f47d383c489531b",
+      "matched": true
+    },
+    {
+      "model_filename": "gemma-4-12b-heretic-Q6_K.gguf",
+      "expected_sha256": "ea50ec1e6065576314a09f4f2051e07d5bf61d8d6cce11c09249c155217aeeab",
+      "actual_sha256": "ea50ec1e6065576314a09f4f2051e07d5bf61d8d6cce11c09249c155217aeeab",
+      "matched": true
+    },
+    {
+      "model_filename": "gemma-4-26B-A4B-it-heretic.Q6_K.gguf",
+      "expected_sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
+      "actual_sha256": "4de6a5ba78c78c3ea093d10c19775faf2d553c6039d801c451368bd9a65f7590",
+      "matched": true
+    }
+  ],
+  "judge_gguf_checks": [
+    {
+      "judge_model": "Qwen3.8-27B-Ridge-GGUF",
+      "judge_family": "Alibaba-Qwen",
+      "model_path": "C:\\Users\\seatr\\.ollama\\models\\blobs\\sha256-95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "expected_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "actual_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "matched": true
+    },
+    {
+      "judge_model": "phi-4-Q6_K",
+      "judge_family": "Microsoft-Phi",
+      "model_path": "C:\\ProjectLucca\\models\\llm\\phi-4-Q6_K.gguf",
+      "expected_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320",
+      "actual_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320",
+      "matched": true
+    },
+    {
+      "judge_model": "Mistral-Nemo-Instruct-2407-Q5_K_M",
+      "judge_family": "Mistral",
+      "model_path": "C:\\ProjectLucca\\models\\llm\\Mistral-Nemo-Instruct-2407-Q5_K_M.gguf",
+      "expected_sha256": "f2118506b57d31403cba021b476ceb95600cc278fbc2feeaaf884b6e64fa6ee5",
+      "actual_sha256": "f2118506b57d31403cba021b476ceb95600cc278fbc2feeaaf884b6e64fa6ee5",
+      "matched": true
+    }
+  ]
+}
