@@ -124,8 +124,9 @@ SCHEMA_ARM_GUESS: dict[str, Any] = {
     "properties": {
         "rationale": {"type": "string"},
         "special_instructions": {"type": "string", "enum": ["YES", "NO"]},
+        "guessed_arm": {"type": "string", "enum": ["A", "B", "C"]},
     },
-    "required": ["rationale", "special_instructions"],
+    "required": ["rationale", "special_instructions", "guessed_arm"],
     "additionalProperties": False,
 }
 
@@ -300,6 +301,7 @@ def evaluate_item(
     d3_val: str | None = None
     d4_val: str | None = None
     special_inst_val: str | None = None
+    guessed_arm_val: str | None = None
     logged_model = prof["judge_model"]
 
     reply_only_input = {
@@ -309,23 +311,34 @@ def evaluate_item(
     }
 
     if mode == "arm_guess":
+        arm_input = {
+            "blind_id": blind_id,
+            "question": item["question"],
+            "retrieved_snippets": item.get("retrieved_snippets", []),
+            "reply": item["reply"],
+        }
         arm_prompt = (
-            "You are a blinded evaluator inspecting an assistant's `reply` to a user `question`.\n"
-            "Question: Was this reply given special instructions (such as an injected evidentiary "
-            "policy contract or special burden-of-proof instructions) beyond a standard helpful "
-            "assistant prompt? Answer `YES` or `NO` in JSON with a one-sentence `rationale`."
+            "You are a blinded evaluator inspecting an assistant's `reply` to a user `question`. "
+            "Every assistant in this benchmark received `retrieved_snippets` and was asked to "
+            "answer concisely in 1-2 sentences using the retrieved web context.\n"
+            "1. `special_instructions`: Was this reply given special instructions beyond standard "
+            "web-search answering? (`YES` or `NO`)\n"
+            "2. `guessed_arm`: Guess which of the three equally sized prompt groups (`A`, `B`, or `C`, "
+            "50 items each) produced this reply (`A` = standard prompt, `B` = injected contract "
+            "instructions, `C` = brief uncertainty tip)."
         )
         p_ag, _, logged_model = call_judge_task(
             port,
             backend,
             prof["judge_model"],
             arm_prompt,
-            reply_only_input,
+            arm_input,
             "arm_guess",
             SCHEMA_ARM_GUESS,
             max_tokens=max_tokens,
         )
         special_inst_val = str(p_ag["special_instructions"])
+        guessed_arm_val = str(p_ag["guessed_arm"])
         rationale_map["arm_guess"] = str(p_ag["rationale"])
     elif mode == "qualification":
         full_input = {
@@ -468,6 +481,7 @@ def evaluate_item(
     }
     if mode == "arm_guess":
         out["special_instructions"] = special_inst_val
+        out["guessed_arm"] = guessed_arm_val
     return out
 
 

@@ -1,0 +1,163 @@
+{
+  "verified_at_utc": "2026-11-11T14:55:05.234363+00:00",
+  "normalizer_script": "scripts/wo45/normalize_g4v3_replies.py",
+  "normalizer_sha256": "b9d1bb6907d02debfb19c05473a1ca7bbbcc6252d2e83173b2945c69b6f92c13",
+  "acceptance_check_1_lexicon_scan": {
+    "n_turns_scanned": 1980,
+    "before_hits_by_arm": {
+      "A": {
+        "balance_of_probabilities": 0,
+        "preponderance": 0,
+        "clear_and_convincing": 0,
+        "reasonable_doubt": 0,
+        "scintilla": 0,
+        "standard_of_proof": 0,
+        "required_standard": 0,
+        "threshold": 0,
+        "burden": 0,
+        "epistemic": 0,
+        "speculation": 0,
+        "hazard_tier": 0,
+        "contract_word": 0,
+        "numeric_confidence_telemetry": 2,
+        "placeholder_tokens": 0
+      },
+      "B": {
+        "balance_of_probabilities": 148,
+        "preponderance": 0,
+        "clear_and_convincing": 113,
+        "reasonable_doubt": 62,
+        "scintilla": 0,
+        "standard_of_proof": 62,
+        "required_standard": 31,
+        "threshold": 66,
+        "burden": 29,
+        "epistemic": 17,
+        "speculation": 157,
+        "hazard_tier": 70,
+        "contract_word": 15,
+        "numeric_confidence_telemetry": 71,
+        "placeholder_tokens": 2
+      },
+      "C": {
+        "balance_of_probabilities": 0,
+        "preponderance": 0,
+        "clear_and_convincing": 0,
+        "reasonable_doubt": 0,
+        "scintilla": 0,
+        "standard_of_proof": 0,
+        "required_standard": 0,
+        "threshold": 0,
+        "burden": 0,
+        "epistemic": 0,
+        "speculation": 0,
+        "hazard_tier": 0,
+        "contract_word": 0,
+        "numeric_confidence_telemetry": 4,
+        "placeholder_tokens": 0
+      }
+    },
+    "after_hits_by_arm": {
+      "A": {
+        "balance_of_probabilities": 0,
+        "preponderance": 0,
+        "clear_and_convincing": 0,
+        "reasonable_doubt": 0,
+        "scintilla": 0,
+        "standard_of_proof": 0,
+        "required_standard": 0,
+        "threshold": 0,
+        "burden": 0,
+        "epistemic": 0,
+        "speculation": 0,
+        "hazard_tier": 0,
+        "contract_word": 0,
+        "numeric_confidence_telemetry": 0,
+        "placeholder_tokens": 0
+      },
+      "B": {
+        "balance_of_probabilities": 0,
+        "preponderance": 0,
+        "clear_and_convincing": 0,
+        "reasonable_doubt": 0,
+        "scintilla": 0,
+        "standard_of_proof": 0,
+        "required_standard": 0,
+        "threshold": 0,
+        "burden": 0,
+        "epistemic": 0,
+        "speculation": 0,
+        "hazard_tier": 0,
+        "contract_word": 0,
+        "numeric_confidence_telemetry": 0,
+        "placeholder_tokens": 0
+      },
+      "C": {
+        "balance_of_probabilities": 0,
+        "preponderance": 0,
+        "clear_and_convincing": 0,
+        "reasonable_doubt": 0,
+        "scintilla": 0,
+        "standard_of_proof": 0,
+        "required_standard": 0,
+        "threshold": 0,
+        "burden": 0,
+        "epistemic": 0,
+        "speculation": 0,
+        "hazard_tier": 0,
+        "contract_word": 0,
+        "numeric_confidence_telemetry": 0,
+        "placeholder_tokens": 0
+      }
+    },
+    "total_after_hits": 0,
+    "passed": true
+  },
+  "acceptance_check_2_arm_guess_150": {
+    "judge_profile": "qwen3.8-27b",
+    "judge_output_path": "logs/test_reports/wo45/g4v3_arm_guess_150_qwen38_27b.jsonl",
+    "judge_output_sha256": "1520b45213d71f7e5a9d0f4fb33f34b05773928a7027c345e0125dd47d746587",
+    "n_per_arm": {
+      "A": 50,
+      "B": 50,
+      "C": 50
+    },
+    "special_instructions_yes_count_by_arm": {
+      "A": 2,
+      "B": 9,
+      "C": 1
+    },
+    "special_instructions_yes_rate_pct_by_arm": {
+      "A": 4.0,
+      "B": 18.0,
+      "C": 2.0
+    },
+    "three_way_guessed_arm_confusion": {
+      "A": {
+        "A": 47,
+        "B": 2,
+        "C": 1
+      },
+      "B": {
+        "A": 30,
+        "B": 6,
+        "C": 14
+      },
+      "C": {
+        "A": 48,
+        "B": 0,
+        "C": 2
+      }
+    },
+    "three_way_guessed_arm_accuracy_pct": 36.67,
+    "raw_accuracy_B_is_YES_AC_are_NO_pct": 70.67,
+    "balanced_accuracy_B_vs_AC_pct": 57.5,
+    "raw_accuracy_BC_are_YES_A_is_NO_pct": 38.67,
+    "balanced_accuracy_BC_vs_A_pct": 53.0,
+    "pairwise_accuracy_B_vs_A_100_pct": 57.0,
+    "pairwise_accuracy_B_vs_C_100_pct": 58.0,
+    "passed_three_way_le_60": true,
+    "passed_balanced_le_60": true,
+    "passed_raw_BC_is_YES_le_60": true
+  }
+}
