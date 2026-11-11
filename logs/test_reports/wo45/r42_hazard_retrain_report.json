@@ -1,0 +1,148 @@
+{
+  "task_id": "RM-7_R-42",
+  "evaluated_at_utc": "2026-11-11T16:18:03.886472+00:00",
+  "base_model": "cross-encoder/nli-MiniLM2-L6-H768",
+  "seed": 42,
+  "epochs": 9,
+  "n_train_rows": 1135,
+  "r40v2_hard_negatives_train_count": 49,
+  "r40v2_hard_negatives_heldout_count": 24,
+  "r40v2_heldout_fraction_pct": 32.88,
+  "zero_v3_probe_id_leakage_verified": true,
+  "zero_holdout_text_leakage_verified": true,
+  "v1_old_classifier": {
+    "device": "NPU",
+    "ov_pair_sha256": "6ba53b6c918d8d2931367f8feb049606751188754d43c33875fc0433ad26b0c5",
+    "openvino_xml_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "openvino_bin_sha256": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+    "hzd_50": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0
+    },
+    "wo42_locked_holdout_50": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0,
+      "ece_10bin": 0.0232,
+      "missed_ids": []
+    },
+    "blind_390_proof_policy_130": {
+      "blind_300_correct": 95,
+      "blind_90_correct": 30,
+      "combined_correct": 125,
+      "total": 130,
+      "accuracy_pct": 96.15,
+      "ece_10bin": 0.0173,
+      "missed_ids": [
+        "BLIND42_HZD_013",
+        "BLIND42_HZD_045",
+        "BLIND42_HZD_054",
+        "BLIND42_HZD_088",
+        "BLIND42_HZD_099"
+      ]
+    },
+    "heldout_r40v2_escalations_24": {
+      "n": 24,
+      "over_escalated_count": 24,
+      "over_escalation_rate_pct": 100.0,
+      "under_escalated_count": 0
+    },
+    "v3_selected_132": {
+      "n": 132,
+      "exact_match_count": 108,
+      "exact_match_pct": 81.82,
+      "over_escalated_count": 24,
+      "over_escalation_rate_pct": 18.18,
+      "under_escalated_count": 0,
+      "ece_10bin": 0.1238,
+      "over_escalated_probe_ids": [
+        "WEB360_LOW_015",
+        "WEB360_LOW_029",
+        "WEB360_LOW_040",
+        "WEB360_LOW_054",
+        "WEB360_LOW_058",
+        "WEB360_LOW_061",
+        "WEB360_LOW_070",
+        "WEB360_LOW_073",
+        "WEB360_LOW_080",
+        "WEB360_LOW_096",
+        "WEB360_LOW_101",
+        "WEB360_LOW_116",
+        "WEB360_LOW_119",
+        "WEB360_MED_023",
+        "WEB360_MED_033",
+        "WEB360_MED_043",
+        "WEB360_MED_048",
+        "WEB360_MED_058",
+        "WEB360_MED_063",
+        "WEB360_MED_068",
+        "WEB360_MED_070",
+        "WEB360_MED_083",
+        "WEB360_MED_088",
+        "WEB360_MED_098"
+      ]
+    }
+  },
+  "v2_retrained_classifier": {
+    "device": "NPU",
+    "ov_pair_sha256": "2f5b278377e10c68b4569c4a063d9607e43d56470334d40c3afdbc16cf74df9a",
+    "openvino_xml_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "openvino_bin_sha256": "4a3f7e8e0560e78c9216935424ff6fd2466fd1a6cf2b3a0d11eff5753d795df5",
+    "hzd_50": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0
+    },
+    "wo42_locked_holdout_50": {
+      "correct": 49,
+      "total": 50,
+      "accuracy_pct": 98.0,
+      "ece_10bin": 0.0105,
+      "missed_ids": [
+        "LOCKED_HZD_028"
+      ]
+    },
+    "blind_390_proof_policy_130": {
+      "blind_300_correct": 95,
+      "blind_90_correct": 30,
+      "combined_correct": 125,
+      "total": 130,
+      "accuracy_pct": 96.15,
+      "ece_10bin": 0.0258,
+      "missed_ids": [
+        "BLIND42_HZD_013",
+        "BLIND42_HZD_044",
+        "BLIND42_HZD_060",
+        "BLIND42_HZD_063",
+        "BLIND42_HZD_065"
+      ]
+    },
+    "heldout_r40v2_escalations_24": {
+      "n": 24,
+      "over_escalated_count": 1,
+      "over_escalation_rate_pct": 4.17,
+      "under_escalated_count": 10
+    },
+    "v3_selected_132": {
+      "n": 132,
+      "exact_match_count": 120,
+      "exact_match_pct": 90.91,
+      "over_escalated_count": 1,
+      "over_escalation_rate_pct": 0.76,
+      "under_escalated_count": 11,
+      "ece_10bin": 0.0775,
+      "over_escalated_probe_ids": [
+        "WEB360_LOW_058"
+      ]
+    }
+  },
+  "acceptance_checks": {
+    "heldout_24_over_escalation_dropped": true,
+    "wo42_locked_holdout_150_regression_pp": 2.0,
+    "wo42_locked_holdout_150_le_1pp": false,
+    "blind_390_regression_pp": 0.0,
+    "blind_390_le_1pp": true,
+    "accepted_for_g4_v3": false
+  }
+}
