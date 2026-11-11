@@ -1,0 +1,63 @@
+{
+  "checked_at_utc": "2026-11-11T13:00:17.509352+00:00",
+  "prompt_path": "logs/test_reports/wo45/prompts/g4v3_judge_prompt.md",
+  "prompt_sha256": "3102fbafc02e81c7a6ff43e440226bb2eadd0a39e8923e8e46c843a50c6c4655",
+  "sections_verified": [
+    "D4",
+    "D2",
+    "D3",
+    "D1"
+  ],
+  "banned_pattern_categories": {
+    "arm_terms": [
+      "\\barm\\s*[abcd]\\b",
+      "\\barm_[abcd]\\b",
+      "\\blucca\\b",
+      "\\bwo-?4[0-9]\\b",
+      "\\bweb360\\b",
+      "\\[standard\\]"
+    ],
+    "policy_and_legal_terms": [
+      "balance of probabilities",
+      "clear and convincing",
+      "beyond (?:a )?reasonable doubt",
+      "\\bscintilla\\b",
+      "standard of proof",
+      "\\bburden\\b",
+      "\\bthreshold\\b",
+      "\\bepistemic\\b",
+      "\\bspeculation\\b",
+      "\\bcorroborat\\w*\\b",
+      "\\bwalton\\b",
+      "\\bbelnap\\b",
+      "policy_table",
+      "disputed_flag",
+      "\\bcq[123]\\b",
+      "hazard[\\s_-]*(?:tier|level|class)"
+    ],
+    "model_and_vendor_terms": [
+      "\\bgemma\\b",
+      "\\bheretic\\b",
+      "\\bgemini\\b",
+      "\\bclaude\\b",
+      "\\bmistral\\b",
+      "\\bqwen\\b",
+      "\\bphi[- ]?4\\b",
+      "\\bnemotron\\b",
+      "\\bgoogle\\b",
+      "\\balibaba\\b",
+      "\\bmicrosoft\\b",
+      "\\bnvidia\\b",
+      "\\bnpu\\b",
+      "\\bopenvino\\b",
+      "llama-server"
+    ]
+  },
+  "hits_by_category": {
+    "arm_terms": [],
+    "policy_and_legal_terms": [],
+    "model_and_vendor_terms": []
+  },
+  "total_hits": 0,
+  "passed": true
+}
