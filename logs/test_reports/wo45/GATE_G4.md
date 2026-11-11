@@ -1,8 +1,21 @@
 # WO-45 Gate G4 Completion & Reviewer Sign-Off Packet (`R-11..R-17`, `R-23`, `R-41`, `A-1..A-4`, `G4-1..G4-6`)
 
 - **Date (UTC):** `2026-11-11`
-- **Status:** **READY FOR REVIEWER (`Zoo`) GATE G4 AUDIT — EXECUTION STOPPED BEFORE GATE G5 (`R-21`)**
-- **Governing Sign-Off & Plan:** `logs/test_reports/wo45/REVIEW_G3_v2.md` (`cc805f4` review + Addendum `A-1..A-4` + `K-1..K-6` + `G4-1..G4-6`) and `plans/2026-11-09_wo45_wo44_review_remediation.md`.
+- **Status:** **HISTORICAL G4 v2 RECORD (PROCESS ACCEPTED IN [`REVIEW_G4.md`](./REVIEW_G4.md); MEASUREMENT REMEDIATION `G4 v3` IN PROGRESS BEFORE `G5`)**
+- **Governing Sign-Off & Plan:** `logs/test_reports/wo45/REVIEW_G3_v2.md`, `logs/test_reports/wo45/REVIEW_G4.md` (`RM-0..RM-10`), and `plans/2026-11-09_wo45_wo44_review_remediation.md`.
+
+> [!WARNING]
+> **Known measurement defects (fixed in v3 — [`REVIEW_G4.md`](./REVIEW_G4.md)):**
+> - **F-1:** All-turn D4 $\kappa = 0.77$ (`1,980` turns) includes `1,485` non-disputed `N/A`s; on the `495` disputed turns D4 is scored on, `J1–J2` binary $\kappa = 0.064$ (raw `327/495`).
+> - **F-2:** `Mistral-Nemo` marks D4 `YES` on `486/495` disputed turns (`A: 157, B: 165, C: 164`) and D2 `CORRECT` on `1,965/1,980`, grading snippet conflict rather than the reply.
+> - **F-3:** Arm B remains identifiable in `388/660` replies after redaction (`[STANDARD]` occurs `496` times only in Arm B; `threshold`, `standard of proof`, and `burden` are unredacted; `7/165` disputed B replies are marker-free).
+> - **F-4:** Judge 1 self-reports `gemini-2.5-pro` (`claude-3-7-sonnet` on one shard vs. `flash` in the lock), is not machine-logged, and shares the Google vendor family with all 5 Gemma generators while driving the effect.
+> - **F-5:** `B vs C` bundles three changes simultaneously: contract context, a `MUST` disclosure instruction, and legal vocabulary (unbundled via `Arm D` in v3).
+> - **F-6:** Only `live_v2_prereg_lock.json` had an external OpenTimestamps proof; pools, judge outputs, and analysis were first pushed together at `00:31Z`.
+> - **F-7:** The `R-41` `3/15` figure comes from `3` post-hoc selected items with a turn-level CI; the underlying NPU over-escalation (`R-40 v2`: `73/73` true over-escalations) is retrained in `R-42` (`RM-7`) before v3.
+> - **F-8:** Judge 3 was sharded (`8×208`) and shard 7 re-run without either procedure pre-specified in the lock.
+>
+> *Interim summary (`REVIEW_G4.md`):* A pre-registered v2 run (165 disputed turns/arm) found more conflict disclosure under the burden contract than under a generic instruction (163 vs 121). Inter-judge agreement on the disputed turns was low ($\kappa = 0.06$) because one judge was non-discriminating. A corrected re-run (v3) is in progress.
 
 ---
 
@@ -49,16 +62,18 @@ Per `REVIEW_G3_v2.md:52-53, 69`, the 3 judge families, their raw artifact hashes
    - Redacted output: `logs/test_reports/wo45/g4_redacted_judge3_qwen_adjudication.jsonl` (`1,648` rows on all `J1 != J2` items, `SHA-256: b11748e35274d0940e8230f785706a43047b88fd253c4fcefcbd1f28c3e17834`).
    - **Machine-Logged Provenance:** Served via isolated local `llama-server` (`temperature=0.0`, `seed=42`, `enable_thinking=false`, grammar-constrained `json_schema`) through the unmodified locked `scripts/wo45/run_wo45_local_llm_judge.py` (unredacted pool executed across 8 deterministic 208-item shards to avoid a 4-slot KV truncation on `G4_1574` without modifying `run_wo45_local_llm_judge.py`).
 
-### Inter-Rater Reliability Across All Judge Pairs (`G4-2`)
+### Inter-Rater Reliability Across All Judge Pairs (`G4-2` — Historical All-Turn Context Only; Not Endpoint Reliability)
 
-| Pool | Judge Pair (`n`) | `D1` (3-Class / Binary $\kappa$, Raw %) | `D2` (3-Class / Binary $\kappa$, Raw %) | `D3` (3-Class / Binary $\kappa$, Raw %) | `D4` (3-Class / Binary $\kappa$, Raw %) |
+> **Defect F-1 note:** The `D4` $\kappa$ values in the table below are computed across all `1,980` (`1,659` / `1,648`) turns, where `1,485` non-disputed `N/A` agreements inflate $\kappa$; **they do not measure D4 endpoint reliability**. On the `495` disputed turns that `D4` is actually scored on, `J1 vs J2` binary $\kappa = \mathbf{0.064}$ (raw agreement `327/495 = 66.06%`).
+
+| Pool | Judge Pair (`n`) | `D1` (3-Class / Binary $\kappa$, Raw %) | `D2` (3-Class / Binary $\kappa$, Raw %) | `D3` (3-Class / Binary $\kappa$, Raw %) | `D4` All-Turn Context Only (3-Class / Binary $\kappa$, Raw %) |
 | :--- | :--- | :---: | :---: | :---: | :---: |
-| **Unredacted** | `J1 vs J2` (`1,980`) | `0.0493` / `0.0686` (`84.04%` / `84.44%`) | `0.1355` / `0.1845` (`94.24%` / `94.60%`) | `0.0055` / `0.0317` (`24.29%` / `90.56%`) | **`0.7657` / `0.7394` (`90.86%` / `91.46%`)** |
-| **Unredacted** | `J1 vs J3` (`1,659`) | `0.4671` / `0.4953` (`86.02%` / `87.22%`) | `0.8366` / `0.8345` (`97.83%` / `97.83%`) | `0.4960` / `0.6628` (`86.26%` / `94.03%`) | **`0.7276` / `0.2424` (`94.82%` / `95.72%`)** |
-| **Unredacted** | `J2 vs J3` (`1,659`) | `0.0898` / `0.1280` (`89.51%` / `89.99%`) | `0.1219` / `0.1715` (`93.13%` / `93.55%`) | `-0.0018` / `0.0601` (`1.87%` / `91.56%`) | **`0.6860` / `0.5935` (`93.31%` / `93.97%`)** |
-| **Redacted `[STANDARD]`** | `J1 vs J2` (`1,980`) | `0.0645` / `0.0959` (`86.26%` / `86.82%`) | `0.1169` / `0.1469` (`93.28%` / `93.54%`) | `0.0099` / `0.0738` (`25.25%` / `88.79%`) | **`0.7883` / `0.7589` (`91.67%` / `92.02%`)** |
-| **Redacted `[STANDARD]`** | `J1 vs J3` (`1,648`) | `0.5292` / `0.5228` (`89.62%` / `89.81%`) | `0.7770` / `0.7735` (`96.84%` / `96.84%`) | `0.4010` / `0.5156` (`82.89%` / `90.90%`) | **`0.7447` / `0.1424` (`95.39%` / `95.81%`)** |
-| **Redacted `[STANDARD]`** | `J2 vs J3` (`1,648`) | `0.1013` / `0.1531` (`91.50%` / `92.05%`) | `0.1286` / `0.1656` (`93.51%` / `93.81%`) | `0.0013` / `0.0723` (`2.12%` / `92.48%`) | **`0.6980` / `0.6028` (`94.17%` / `94.60%`)** |
+| **Unredacted** | `J1 vs J2` (`1,980`) | `0.0493` / `0.0686` (`84.04%` / `84.44%`) | `0.1355` / `0.1845` (`94.24%` / `94.60%`) | `0.0055` / `0.0317` (`24.29%` / `90.56%`) | `0.7657` / `0.7394` (`90.86%` / `91.46%`; **disputed-495 binary $\kappa = 0.064$**) |
+| **Unredacted** | `J1 vs J3` (`1,659`) | `0.4671` / `0.4953` (`86.02%` / `87.22%`) | `0.8366` / `0.8345` (`97.83%` / `97.83%`) | `0.4960` / `0.6628` (`86.26%` / `94.03%`) | `0.7276` / `0.2424` (`94.82%` / `95.72%`) |
+| **Unredacted** | `J2 vs J3` (`1,659`) | `0.0898` / `0.1280` (`89.51%` / `89.99%`) | `0.1219` / `0.1715` (`93.13%` / `93.55%`) | `-0.0018` / `0.0601` (`1.87%` / `91.56%`) | `0.6860` / `0.5935` (`93.31%` / `93.97%`) |
+| **Redacted `[STANDARD]`** | `J1 vs J2` (`1,980`) | `0.0645` / `0.0959` (`86.26%` / `86.82%`) | `0.1169` / `0.1469` (`93.28%` / `93.54%`) | `0.0099` / `0.0738` (`25.25%` / `88.79%`) | `0.7883` / `0.7589` (`91.67%` / `92.02%`) |
+| **Redacted `[STANDARD]`** | `J1 vs J3` (`1,648`) | `0.5292` / `0.5228` (`89.62%` / `89.81%`) | `0.7770` / `0.7735` (`96.84%` / `96.84%`) | `0.4010` / `0.5156` (`82.89%` / `90.90%`) | `0.7447` / `0.1424` (`95.39%` / `95.81%`) |
+| **Redacted `[STANDARD]`** | `J2 vs J3` (`1,648`) | `0.1013` / `0.1531` (`91.50%` / `92.05%`) | `0.1286` / `0.1656` (`93.51%` / `93.81%`) | `0.0013` / `0.0723` (`2.12%` / `92.48%`) | `0.6980` / `0.6028` (`94.17%` / `94.60%`) |
 
 *(Note: Low `J1 vs J2` 3-class $\kappa$ on `D3` [`24.29%`] reflects label convention between `"NO"` vs `"N/A"` when hedging is absent; binary `D3 == "YES"` raw agreement is `90.56%` [`1793/1980`].)*
 
@@ -98,11 +113,11 @@ Per `REVIEW_G3_v2.md:52-53, 69`, the 3 judge families, their raw artifact hashes
 2. **`R-16` Burden-Met Over-Hedge (`D3`) & `R-12 / R-41` Upward-Escalated Utility Cost:**
    - **Nominal burden-met (`66` items, `330` turns/arm):** `D3` over-hedging is `3/330 (0.91%, CI [0.31%, 2.64%])` on Arm B vs `8/330 (2.42%, CI [1.23%, 4.71%])` on Arm C ($\Delta = -1.52\text{ pp}$, $p = 0.2596$) and `28/330 (8.48%, CI [5.93%, 11.99%])` on Arm A ($\Delta = -7.58\text{ pp}$, $p = 0.0001$).
    - **Runtime NPU burden-met (`63` items, `315` turns/arm):** Arm B over-hedging is **`0/315 (0.00%, CI [0.00%, 1.20%])`**.
-   - **`R-12 / R-41` Pre-Declared `31`-Item Escalated Subgroup (`155` turns/arm):** Across all `31` escalated items, `D3=YES` is `8/155 (5.16%, CI [2.64%, 9.85%])` on Arm B (`8/155` Arm A, `7/155` Arm C). Critically, all `3/330` Arm B nominal-burden-met over-hedges occur on the `3` nominal-met items falsely over-escalated by the NPU (`WEB360_LOW_024`, `WEB360_LOW_048`, `WEB360_MED_053` = `15` turns), establishing a measured **`R-41` over-hedge utility cost of `3/15 = 20.00%` (`95% Wilson CI [7.05%, 45.19%]`)** whenever NPU over-escalation flips a sufficient-evidence item into a burden-unmet contract.
+   - **`R-12 / R-41` Pre-Declared `31`-Item Escalated Subgroup (`155` turns/arm):** Across all `31` escalated items, `D3=YES` is `8/155 (5.16%, CI [2.64%, 9.85%])` on Arm B (`8/155` Arm A, `7/155` Arm C). All `3/330` Arm B nominal-burden-met over-hedges occur on the `3` nominal-met items falsely over-escalated by the NPU (`WEB360_LOW_024`, `WEB360_LOW_048`, `WEB360_MED_053` = `15` turns), giving a post-hoc turn-level **`R-41` over-hedge count of `3/15 = 20.00%` (`95% Wilson CI [7.05%, 45.19%]`; see Defect F-7)** whenever NPU over-escalation flips a sufficient-evidence item into a burden-unmet contract.
 3. **`R-17` Matched `E4B-stock` (`gemma-4-E4B-it-Q6_K.gguf`) vs `E4B-heretic` (`gemma-4-E4B-it-uncensored-heretic-Q6_K.gguf`) at `ctx=32768`:**
    - **Arm B:** Identical (`33/33 [100.0%]` `D4` conflict disclosure, `132/132 [100.0%]` `D2` correctness, McNemar $p = 1.0$; `D3` nominal-met `1/66` vs `0/66`, $p = 1.0$).
    - **Arm C:** Identical on `D4` (`24/33 [72.73%]` both, $p = 1.0$); `D2` `122/132 (92.42%)` stock vs `128/132 (96.97%)` heretic ($p = 0.1460$); `D3` nominal-met `5/66 (7.58%)` stock vs `1/66 (1.52%)` heretic ($p = 0.1250$).
-   - **Arm A (Unguarded):** `E4B-stock` exhibits substantially higher spontaneous refusal/over-hedging on nominal-met items (`D3`: `18/66 [27.27%]` vs `6/66 [9.09%]`, McNemar `12:0`, $p = 0.00049$) and lower `D2` answer rate (`102/132 [77.27%]` vs `113/132 [85.61%]`, McNemar `3:14`, $p = 0.0074$), while `D4` conflict disclosure on disputed items does not significantly differ (`23/33 [69.70%]` stock vs `19/33 [57.58%]` heretic, McNemar `5:1`, $p = 0.2188$).
+   - **Arm A (Unguarded):** `E4B-stock` exhibits higher spontaneous refusal/over-hedging on nominal-met items (`D3`: `18/66 [27.27%]` vs `6/66 [9.09%]`, McNemar `12:0`, $p = 0.00049$) and lower `D2` answer rate (`102/132 [77.27%]` vs `113/132 [85.61%]`, McNemar `3:14`, $p = 0.0074$), while `D4` conflict disclosure on disputed items does not significantly differ (`23/33 [69.70%]` stock vs `19/33 [57.58%]` heretic, McNemar `5:1`, $p = 0.2188$).
 
 ### 4.4 Serving Provenance, Peak `nvidia-smi` VRAM, & Turn Latency (`ctx=32768`)
 
