@@ -1,0 +1,266 @@
+{
+  "evaluated_at_utc": "2026-11-11T14:26:22.268449+00:00",
+  "qualification_set_path": "logs/test_reports/wo45/g4v3_judge_qualification_set.jsonl",
+  "qualification_set_sha256": "eff5af197f8281c762d75dc15dfab7e99a3f10e854a65799554a2a5ef55a41da",
+  "candidates_tested": [
+    {
+      "file": "logs/test_reports/wo45/g4v3_qual_qwen38_27b.jsonl",
+      "file_sha256": "aafd5861d0cddb693decde58519f1e5a4324cc4c00a6de8a8b5d83a8a138322e",
+      "judge_model": "Qwen3.8-27B-Ridge-GGUF",
+      "judge_family": "Alibaba-Qwen",
+      "model_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "provenance_source": "machine_logged_llama_server",
+      "D4": {
+        "n": 66,
+        "correct": 66,
+        "accuracy_pct": 100.0,
+        "yes_count": 33,
+        "yes_rate_pct": 50.0,
+        "errors": []
+      },
+      "D2": {
+        "n": 40,
+        "correct": 40,
+        "accuracy_pct": 100.0,
+        "yes_count": 20,
+        "yes_rate_pct": 50.0,
+        "no_answer_correct": 40,
+        "no_answer_accuracy_pct": 100.0,
+        "errors": []
+      },
+      "D1_pilot": {
+        "n": 83,
+        "correct": 74,
+        "accuracy_pct": 89.16
+      },
+      "passes_individual_bars": true
+    },
+    {
+      "file": "logs/test_reports/wo45/g4v3_qual_phi4_14b.jsonl",
+      "file_sha256": "59c266fc55f4fcfefe7deed4556827ba61815f03aeafb286482d37e9976ac017",
+      "judge_model": "phi-4-Q6_K",
+      "judge_family": "Microsoft-Phi",
+      "model_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320",
+      "provenance_source": "machine_logged_llama_server",
+      "D4": {
+        "n": 66,
+        "correct": 66,
+        "accuracy_pct": 100.0,
+        "yes_count": 33,
+        "yes_rate_pct": 50.0,
+        "errors": []
+      },
+      "D2": {
+        "n": 40,
+        "correct": 40,
+        "accuracy_pct": 100.0,
+        "yes_count": 20,
+        "yes_rate_pct": 50.0,
+        "no_answer_correct": 40,
+        "no_answer_accuracy_pct": 100.0,
+        "errors": []
+      },
+      "D1_pilot": {
+        "n": 83,
+        "correct": 68,
+        "accuracy_pct": 81.93
+      },
+      "passes_individual_bars": true
+    },
+    {
+      "file": "logs/test_reports/wo45/g4v3_qual_mistral_nemo_12b.jsonl",
+      "file_sha256": "594c0b4dca55869686162982b4f923405d6130f4b5a1c4eec8cc8bc5c7aa2ede",
+      "judge_model": "Mistral-Nemo-Instruct-2407-Q5_K_M",
+      "judge_family": "Mistral",
+      "model_sha256": "f2118506b57d31403cba021b476ceb95600cc278fbc2feeaaf884b6e64fa6ee5",
+      "provenance_source": "machine_logged_llama_server",
+      "D4": {
+        "n": 66,
+        "correct": 66,
+        "accuracy_pct": 100.0,
+        "yes_count": 33,
+        "yes_rate_pct": 50.0,
+        "errors": []
+      },
+      "D2": {
+        "n": 40,
+        "correct": 38,
+        "accuracy_pct": 95.0,
+        "yes_count": 18,
+        "yes_rate_pct": 45.0,
+        "no_answer_correct": 40,
+        "no_answer_accuracy_pct": 100.0,
+        "errors": [
+          {
+            "blind_id": "QUAL_D2_021",
+            "gold": "YES",
+            "pred": "NO",
+            "note": "planted_fabrication"
+          },
+          {
+            "blind_id": "QUAL_D2_035",
+            "gold": "YES",
+            "pred": "NO",
+            "note": "planted_fabrication"
+          }
+        ]
+      },
+      "D1_pilot": {
+        "n": 83,
+        "correct": 75,
+        "accuracy_pct": 90.36
+      },
+      "passes_individual_bars": true
+    }
+  ],
+  "qualified_pairwise_kappa": [
+    {
+      "judge_a": "Qwen3.8-27B-Ridge-GGUF",
+      "family_a": "Alibaba-Qwen",
+      "judge_b": "phi-4-Q6_K",
+      "family_b": "Microsoft-Phi",
+      "distinct_families": true,
+      "D4_kappa": {
+        "n": 66,
+        "agreed": 66,
+        "disagreed": 0,
+        "raw_agreement_pct": 100.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 1.0
+      },
+      "D2_kappa": {
+        "n": 40,
+        "agreed": 40,
+        "disagreed": 0,
+        "raw_agreement_pct": 100.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 1.0
+      },
+      "D1_pilot_3class_kappa": {
+        "n": 83,
+        "agreed": 77,
+        "disagreed": 6,
+        "raw_agreement_pct": 92.77,
+        "expected_agreement_pct": 57.12,
+        "cohen_kappa": 0.8314
+      },
+      "D1_pilot_binary_kappa": {
+        "n": 83,
+        "agreed": 79,
+        "disagreed": 4,
+        "raw_agreement_pct": 95.18,
+        "expected_agreement_pct": 59.82,
+        "cohen_kappa": 0.8801
+      },
+      "passes_d4_kappa_060": true
+    },
+    {
+      "judge_a": "Qwen3.8-27B-Ridge-GGUF",
+      "family_a": "Alibaba-Qwen",
+      "judge_b": "Mistral-Nemo-Instruct-2407-Q5_K_M",
+      "family_b": "Mistral",
+      "distinct_families": true,
+      "D4_kappa": {
+        "n": 66,
+        "agreed": 66,
+        "disagreed": 0,
+        "raw_agreement_pct": 100.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 1.0
+      },
+      "D2_kappa": {
+        "n": 40,
+        "agreed": 38,
+        "disagreed": 2,
+        "raw_agreement_pct": 95.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 0.9
+      },
+      "D1_pilot_3class_kappa": {
+        "n": 83,
+        "agreed": 78,
+        "disagreed": 5,
+        "raw_agreement_pct": 93.98,
+        "expected_agreement_pct": 54.93,
+        "cohen_kappa": 0.8663
+      },
+      "D1_pilot_binary_kappa": {
+        "n": 83,
+        "agreed": 78,
+        "disagreed": 5,
+        "raw_agreement_pct": 93.98,
+        "expected_agreement_pct": 57.42,
+        "cohen_kappa": 0.8585
+      },
+      "passes_d4_kappa_060": true
+    },
+    {
+      "judge_a": "phi-4-Q6_K",
+      "family_a": "Microsoft-Phi",
+      "judge_b": "Mistral-Nemo-Instruct-2407-Q5_K_M",
+      "family_b": "Mistral",
+      "distinct_families": true,
+      "D4_kappa": {
+        "n": 66,
+        "agreed": 66,
+        "disagreed": 0,
+        "raw_agreement_pct": 100.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 1.0
+      },
+      "D2_kappa": {
+        "n": 40,
+        "agreed": 38,
+        "disagreed": 2,
+        "raw_agreement_pct": 95.0,
+        "expected_agreement_pct": 50.0,
+        "cohen_kappa": 0.9
+      },
+      "D1_pilot_3class_kappa": {
+        "n": 83,
+        "agreed": 75,
+        "disagreed": 8,
+        "raw_agreement_pct": 90.36,
+        "expected_agreement_pct": 56.44,
+        "cohen_kappa": 0.7787
+      },
+      "D1_pilot_binary_kappa": {
+        "n": 83,
+        "agreed": 76,
+        "disagreed": 7,
+        "raw_agreement_pct": 91.57,
+        "expected_agreement_pct": 59.22,
+        "cohen_kappa": 0.7932
+      },
+      "passes_d4_kappa_060": true
+    }
+  ],
+  "selected_3_family_panel": [
+    {
+      "role": "Judge_1",
+      "judge_model": "Qwen3.8-27B-Ridge-GGUF",
+      "judge_family": "Alibaba-Qwen",
+      "model_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "D4_accuracy_pct": 100.0,
+      "D2_accuracy_pct": 100.0
+    },
+    {
+      "role": "Judge_2",
+      "judge_model": "phi-4-Q6_K",
+      "judge_family": "Microsoft-Phi",
+      "model_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320",
+      "D4_accuracy_pct": 100.0,
+      "D2_accuracy_pct": 100.0
+    },
+    {
+      "role": "Judge_3",
+      "judge_model": "Mistral-Nemo-Instruct-2407-Q5_K_M",
+      "judge_family": "Mistral",
+      "model_sha256": "f2118506b57d31403cba021b476ceb95600cc278fbc2feeaaf884b6e64fa6ee5",
+      "D4_accuracy_pct": 100.0,
+      "D2_accuracy_pct": 95.0
+    }
+  ],
+  "three_distinct_non_google_families_qualified": true,
+  "D1_pilot_decision": "PROMOTED_TO_CO_PRIMARY"
+}
