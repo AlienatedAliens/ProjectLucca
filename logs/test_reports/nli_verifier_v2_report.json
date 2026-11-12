@@ -1,0 +1,396 @@
+{
+  "evaluation_id": "WO45-STEP4A-NLI-VERIFIER-V2",
+  "evaluated_at_utc": "2026-11-12T14:10:23.900127+00:00",
+  "prereg_lock_path": "logs/test_reports/nli_verifier_v2_prereg_lock.json",
+  "prereg_lock_sha256": "fef8afd75234e0853dd6fd48e8703a8ad5faf8e5b42e5bed0e36687354f4fc84",
+  "verified_locked_files_sha256": {
+    "src/lucca/senses/verifier.py": "6e60e7acc6ea18cad7cb5e80c06a01469abfb5a4c089d683e8241b83887da1e6",
+    "scripts/export_nli_deberta_v3_xsmall.py": "343c1b0a89060730c9662950a1a9a484f54f29abade8f69b569741dbbe6aba8a",
+    "scripts/eval_nli_verifier_v2.py": "c86a57e97a3476417bdb78976a0e327725ee210b1c24d50f0f56a4677a337e2f",
+    "logs/test_reports/wo45/prompts/nli_v2_holdout_author_prompt.txt": "aa5579248733b10c2cd033f237c93aaed130db3e6fd1708ea2db723d64015b6b",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.xml": "8a064814c9689c9efb1087eeab13f959ea52d3bf61af106f2ae104ab5b6f9d4a",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.bin": "202fdb1199136ccfa848c1d846ac1a1593d564c9578375a8cde359951de96bb5",
+    "models/verifier_deberta_v3_xsmall_ov/tokenizer.json": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf",
+    "models/verifier_deberta_v3_xsmall_ov/config.json": "1e943b927f6cc9aef0c83f8c437d473d0cffe0340ec761436cfe26cb2126d1e7",
+    "models/verifier_minilm/openvino_model.xml": "a284a32b61ad2ceabbd4582e543eb0abef1add955b67f2bbd14b769a72cbd388",
+    "models/verifier_minilm/openvino_model.bin": "fc9a56f614da0c3381ebdc555feb28ba77c6aae2e092c2049759d9f21bd002c7"
+  },
+  "decision_policy": {
+    "uncertainty_band": [
+      0.4,
+      0.6
+    ],
+    "dominant_prob_threshold": 0.6,
+    "timeout_ms": 50.0
+  },
+  "datasets": {
+    "nli_holdout_v2_120": {
+      "dataset_path": "data/benchmarks/nli_holdout_v2_120.jsonl",
+      "dataset_sha256": "e1d72c79dc65e5b560b80c7ff1f353024b967ad5b163261dcec36b5736cd3732",
+      "verifier_minilm": {
+        "num_pairs": 120,
+        "device": "CPU",
+        "model_dir": "C:\\Projects\\ProjectLucca\\models\\verifier_minilm",
+        "accuracy": 0.5583,
+        "accuracy_counts": "67/120",
+        "accuracy_wilson_95_ci": [
+          0.469,
+          0.644
+        ],
+        "macro_f1": 0.5519,
+        "polarity_inversions_ent_con": 6,
+        "per_class": {
+          "ENTAILMENT": {
+            "precision": 0.875,
+            "recall": 0.175,
+            "recall_wilson_95_ci": [
+              0.0875,
+              0.3195
+            ],
+            "f1": 0.2917,
+            "tp": 7,
+            "fp": 1,
+            "fn": 33
+          },
+          "CONTRADICTION": {
+            "precision": 0.75,
+            "recall": 0.675,
+            "recall_wilson_95_ci": [
+              0.5202,
+              0.7992
+            ],
+            "f1": 0.7105,
+            "tp": 27,
+            "fp": 9,
+            "fn": 13
+          },
+          "NEUTRAL": {
+            "precision": 0.541,
+            "recall": 0.825,
+            "recall_wilson_95_ci": [
+              0.6805,
+              0.9125
+            ],
+            "f1": 0.6535,
+            "tp": 33,
+            "fp": 28,
+            "fn": 7
+          }
+        },
+        "confusion_matrix": {
+          "ENTAILMENT": {
+            "ENTAILMENT": 7,
+            "CONTRADICTION": 5,
+            "NEUTRAL": 19,
+            "UNCERTAIN": 9
+          },
+          "CONTRADICTION": {
+            "ENTAILMENT": 1,
+            "CONTRADICTION": 27,
+            "NEUTRAL": 9,
+            "UNCERTAIN": 3
+          },
+          "NEUTRAL": {
+            "ENTAILMENT": 0,
+            "CONTRADICTION": 4,
+            "NEUTRAL": 33,
+            "UNCERTAIN": 3
+          }
+        },
+        "gold_distribution": {
+          "ENTAILMENT": 40,
+          "CONTRADICTION": 40,
+          "NEUTRAL": 40
+        },
+        "predicted_distribution": {
+          "ENTAILMENT": 8,
+          "CONTRADICTION": 36,
+          "NEUTRAL": 61,
+          "UNCERTAIN": 15
+        },
+        "degraded_count": 0,
+        "latency_ms_mean": 11.55,
+        "latency_ms_p50": 12.16,
+        "latency_ms_p95": 14.79,
+        "latency_ms_max": 16.5
+      },
+      "verifier_deberta_v3_xsmall_ov": {
+        "num_pairs": 120,
+        "device": "CPU",
+        "model_dir": "C:\\Projects\\ProjectLucca\\models\\verifier_deberta_v3_xsmall_ov",
+        "accuracy": 0.6833,
+        "accuracy_counts": "82/120",
+        "accuracy_wilson_95_ci": [
+          0.5955,
+          0.7598
+        ],
+        "macro_f1": 0.6985,
+        "polarity_inversions_ent_con": 3,
+        "per_class": {
+          "ENTAILMENT": {
+            "precision": 1.0,
+            "recall": 0.4,
+            "recall_wilson_95_ci": [
+              0.2635,
+              0.554
+            ],
+            "f1": 0.5714,
+            "tp": 16,
+            "fp": 0,
+            "fn": 24
+          },
+          "CONTRADICTION": {
+            "precision": 0.8158,
+            "recall": 0.775,
+            "recall_wilson_95_ci": [
+              0.625,
+              0.8768
+            ],
+            "f1": 0.7949,
+            "tp": 31,
+            "fp": 7,
+            "fn": 9
+          },
+          "NEUTRAL": {
+            "precision": 0.625,
+            "recall": 0.875,
+            "recall_wilson_95_ci": [
+              0.7389,
+              0.9454
+            ],
+            "f1": 0.7292,
+            "tp": 35,
+            "fp": 21,
+            "fn": 5
+          }
+        },
+        "confusion_matrix": {
+          "ENTAILMENT": {
+            "ENTAILMENT": 16,
+            "CONTRADICTION": 3,
+            "NEUTRAL": 16,
+            "UNCERTAIN": 5
+          },
+          "CONTRADICTION": {
+            "ENTAILMENT": 0,
+            "CONTRADICTION": 31,
+            "NEUTRAL": 5,
+            "UNCERTAIN": 4
+          },
+          "NEUTRAL": {
+            "ENTAILMENT": 0,
+            "CONTRADICTION": 4,
+            "NEUTRAL": 35,
+            "UNCERTAIN": 1
+          }
+        },
+        "gold_distribution": {
+          "ENTAILMENT": 40,
+          "CONTRADICTION": 40,
+          "NEUTRAL": 40
+        },
+        "predicted_distribution": {
+          "ENTAILMENT": 16,
+          "CONTRADICTION": 38,
+          "NEUTRAL": 56,
+          "UNCERTAIN": 10
+        },
+        "degraded_count": 1,
+        "latency_ms_mean": 20.91,
+        "latency_ms_p50": 20.47,
+        "latency_ms_p95": 26.7,
+        "latency_ms_max": 86.45
+      },
+      "paired_comparison": {
+        "overall_accuracy_discordant_v2_vs_minilm": "23:8",
+        "overall_accuracy_mcnemar_p_two_sided": 0.01067384,
+        "entailment_recall_discordant_v2_vs_minilm": "10:1",
+        "entailment_recall_mcnemar_p_two_sided": 0.01171875
+      }
+    },
+    "pairs_v1_100": {
+      "dataset_path": "data/benchmarks/nli_eval/pairs_v1.jsonl",
+      "dataset_sha256": "b520c19a2a665858e0120221087f9153d3572acbab30d45c42d49cd585af17b2",
+      "verifier_minilm": {
+        "num_pairs": 100,
+        "device": "CPU",
+        "model_dir": "C:\\Projects\\ProjectLucca\\models\\verifier_minilm",
+        "accuracy": 0.91,
+        "accuracy_counts": "91/100",
+        "accuracy_wilson_95_ci": [
+          0.8377,
+          0.9519
+        ],
+        "macro_f1": 0.917,
+        "polarity_inversions_ent_con": 0,
+        "per_class": {
+          "ENTAILMENT": {
+            "precision": 0.96,
+            "recall": 0.8,
+            "recall_wilson_95_ci": [
+              0.6269,
+              0.9049
+            ],
+            "f1": 0.8727,
+            "tp": 24,
+            "fp": 1,
+            "fn": 6
+          },
+          "CONTRADICTION": {
+            "precision": 0.975,
+            "recall": 0.975,
+            "recall_wilson_95_ci": [
+              0.8712,
+              0.9956
+            ],
+            "f1": 0.975,
+            "tp": 39,
+            "fp": 1,
+            "fn": 1
+          },
+          "NEUTRAL": {
+            "precision": 0.875,
+            "recall": 0.9333,
+            "recall_wilson_95_ci": [
+              0.7868,
+              0.9815
+            ],
+            "f1": 0.9032,
+            "tp": 28,
+            "fp": 4,
+            "fn": 2
+          }
+        },
+        "confusion_matrix": {
+          "ENTAILMENT": {
+            "ENTAILMENT": 24,
+            "CONTRADICTION": 0,
+            "NEUTRAL": 3,
+            "UNCERTAIN": 3
+          },
+          "CONTRADICTION": {
+            "ENTAILMENT": 0,
+            "CONTRADICTION": 39,
+            "NEUTRAL": 1,
+            "UNCERTAIN": 0
+          },
+          "NEUTRAL": {
+            "ENTAILMENT": 1,
+            "CONTRADICTION": 1,
+            "NEUTRAL": 28,
+            "UNCERTAIN": 0
+          }
+        },
+        "gold_distribution": {
+          "ENTAILMENT": 30,
+          "CONTRADICTION": 40,
+          "NEUTRAL": 30
+        },
+        "predicted_distribution": {
+          "ENTAILMENT": 25,
+          "CONTRADICTION": 40,
+          "NEUTRAL": 32,
+          "UNCERTAIN": 3
+        },
+        "degraded_count": 0,
+        "latency_ms_mean": 11.18,
+        "latency_ms_p50": 11.85,
+        "latency_ms_p95": 12.52,
+        "latency_ms_max": 16.43
+      },
+      "verifier_deberta_v3_xsmall_ov": {
+        "num_pairs": 100,
+        "device": "CPU",
+        "model_dir": "C:\\Projects\\ProjectLucca\\models\\verifier_deberta_v3_xsmall_ov",
+        "accuracy": 0.91,
+        "accuracy_counts": "91/100",
+        "accuracy_wilson_95_ci": [
+          0.8377,
+          0.9519
+        ],
+        "macro_f1": 0.9119,
+        "polarity_inversions_ent_con": 1,
+        "per_class": {
+          "ENTAILMENT": {
+            "precision": 0.9615,
+            "recall": 0.8333,
+            "recall_wilson_95_ci": [
+              0.6644,
+              0.9266
+            ],
+            "f1": 0.8929,
+            "tp": 25,
+            "fp": 1,
+            "fn": 5
+          },
+          "CONTRADICTION": {
+            "precision": 1.0,
+            "recall": 0.9,
+            "recall_wilson_95_ci": [
+              0.7695,
+              0.9604
+            ],
+            "f1": 0.9474,
+            "tp": 36,
+            "fp": 0,
+            "fn": 4
+          },
+          "NEUTRAL": {
+            "precision": 0.8108,
+            "recall": 1.0,
+            "recall_wilson_95_ci": [
+              0.8865,
+              1.0
+            ],
+            "f1": 0.8955,
+            "tp": 30,
+            "fp": 7,
+            "fn": 0
+          }
+        },
+        "confusion_matrix": {
+          "ENTAILMENT": {
+            "ENTAILMENT": 25,
+            "CONTRADICTION": 0,
+            "NEUTRAL": 4,
+            "UNCERTAIN": 1
+          },
+          "CONTRADICTION": {
+            "ENTAILMENT": 1,
+            "CONTRADICTION": 36,
+            "NEUTRAL": 3,
+            "UNCERTAIN": 0
+          },
+          "NEUTRAL": {
+            "ENTAILMENT": 0,
+            "CONTRADICTION": 0,
+            "NEUTRAL": 30,
+            "UNCERTAIN": 0
+          }
+        },
+        "gold_distribution": {
+          "ENTAILMENT": 30,
+          "CONTRADICTION": 40,
+          "NEUTRAL": 30
+        },
+        "predicted_distribution": {
+          "ENTAILMENT": 26,
+          "CONTRADICTION": 36,
+          "NEUTRAL": 37,
+          "UNCERTAIN": 1
+        },
+        "degraded_count": 0,
+        "latency_ms_mean": 18.01,
+        "latency_ms_p50": 19.62,
+        "latency_ms_p95": 20.56,
+        "latency_ms_max": 23.78
+      },
+      "paired_comparison": {
+        "overall_accuracy_discordant_v2_vs_minilm": "5:5",
+        "overall_accuracy_mcnemar_p_two_sided": 1.0,
+        "entailment_recall_discordant_v2_vs_minilm": "3:2",
+        "entailment_recall_mcnemar_p_two_sided": 1.0
+      }
+    }
+  }
+}

@@ -7,7 +7,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 OUT_LOCK_PATH = REPO_ROOT / "logs" / "test_reports" / "nli_verifier_v2_prereg_lock.json"
 HOLDOUT_V2_PATH = REPO_ROOT / "data" / "benchmarks" / "nli_holdout_v2_120.jsonl"
 
