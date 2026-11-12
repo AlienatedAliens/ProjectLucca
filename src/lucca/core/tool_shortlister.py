@@ -467,6 +467,8 @@ def check_tool_fit(
                 "url",
                 "webpage",
                 "website",
+                "web",
+                "online",
                 "fetch",
                 "scrape",
                 "download",

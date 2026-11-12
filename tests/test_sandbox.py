@@ -611,7 +611,11 @@ def test_search_web_execution_and_guard(workspace: Path) -> None:
         status_code = 200
         text = fake_html
 
-    with patch("httpx.Client.get", return_value=MockResponse()):
+    with (
+        patch("lucca.sandbox.search_tool._search_searxng", return_value=[]),
+        patch("lucca.sandbox.search_tool.DDGS", None),
+        patch("httpx.Client.get", return_value=MockResponse()),
+    ):
         res = service.execute_tool(
             "call-sw-1", "search_web", {"query": "test search", "max_results": 3}
         )

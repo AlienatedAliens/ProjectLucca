@@ -75,13 +75,14 @@ packages = ["src/lucca"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+include = ["src/**/*.py", "tests/**/*.py", "packages/**/*.py", "scripts/wo45/**/*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "BLE", "S", "UP", "ANN", "PL"]
 ignore = ["PLR0913", "PLR2004", "S105", "PLR0911", "PLR0912", "PLR0915", "PLR0917", "S311", "S324", "BLE001"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S102", "S106", "S603", "S607", "S608", "ANN", "PLR", "BLE001", "PLC0415", "E501"]
+"**/tests/**" = ["S101", "S102", "S106", "S603", "S607", "S608", "ANN", "PLR", "BLE001", "PLC0415", "E501"]
 "scripts/**" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501", "E741"]
 "packaging/**" = ["S", "F", "PL", "ANN", "PLC0415", "BLE001", "E501"]
 "**/contrastive_grader.py" = ["UP042"]

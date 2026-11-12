@@ -77,13 +77,17 @@ def test_fix1_sentence_filtered_scrapling_corroboration() -> None:
         args={"url": "https://nvd.nist.gov/vuln/detail/CVE-2026-4096", "domain": "nvd.nist.gov", "query": claim},
         output=extracted,
     )
+    r2_independent_release_note = (
+        "Upstream GNOME GitLab release announcement: libxml2 2.12.5 patches CVE 2026 4096 "
+        "in the parser entity expansion path."
+    )
     r2 = ToolReceipt(
         tool="search_web",
         tool_name="search_web",
         ok=True,
         call_id="01JTEST2",
         args={"url": "https://gitlab.gnome.org/GNOME/libxml2/-/releases/v2.12.5", "domain": "gitlab.gnome.org", "query": claim},
-        output=extracted,
+        output=r2_independent_release_note,
     )
     step = InferenceStep(
         s="web_search",

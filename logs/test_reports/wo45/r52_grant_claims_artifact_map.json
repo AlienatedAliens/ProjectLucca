@@ -56,6 +56,18 @@
       "claim_value": "0 forbidden lexicon hits; 36.67% 3-way arm-guess accuracy (<= 60%)",
       "artifact_path": "logs/test_reports/wo45/g4v3_normalizer_verification.json",
       "json_key": "forbidden_lexicon_hits_total, arm_guess_accuracy_3way"
+    },
+    {
+      "grant_section": "Part C Row 1 & Row 3 (NLnet M2 & Mozilla Builders R-33 syndication/sybil deduplication)",
+      "claim_value": "False corroboration reduced from 38/45 (84.44%) pre-dedup to 3/45 (6.67%, CI [2.29%, 17.86%]) on fresh holdout (0/15 verbatim, 0/15 wire-syndicated)",
+      "artifact_path": "logs/test_reports/wo45/r33_sybil_dedup_report.json",
+      "json_key": "before_pre_dedup_dev_baseline.overall, after_post_dedup_fresh_holdout"
+    },
+    {
+      "grant_section": "Part C Row 1 (NLnet M2 R-32 live Scrapling open-web baseline)",
+      "claim_value": "39/64 (60.94%, CI [48.69%, 71.94%]) overall burden decision accuracy across 250 archived raw HTML pages",
+      "artifact_path": "logs/test_reports/wo45/r32_real_web_v1_report.json",
+      "json_key": "gate_accuracy_metrics.burden_decision_accuracy, archive_verification.verified_archived_pages"
     }
   ]
 }

@@ -395,7 +395,10 @@ class SpeechStreamPipeline:
                         # BFCL <tool_fit_check> guard via VerifierWorker (WO-36 §36.5)
                         verifier_inst = getattr(orch, "verifier", None)
                         if user_msg and verifier_inst is not None:
-                            if not check_tool_fit(tool_name, user_msg, verifier=verifier_inst):
+                            fit_query = user_msg
+                            if tool_name == "fetch_url" and isinstance(tool_args.get("url"), str):
+                                fit_query = f"{user_msg} {tool_args['url']}".strip()
+                            if not check_tool_fit(tool_name, fit_query, verifier=verifier_inst):
                                 round_failed_tools.append(tool_name)
                                 logger.warning(
                                     "tool_fit_guard_rejected",

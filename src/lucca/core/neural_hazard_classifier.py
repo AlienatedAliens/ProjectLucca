@@ -371,7 +371,7 @@ class NeuralHazardClassifier:
             if clauses is not None
             else ClauseSplitter.split_clauses(cleaned)
         )
-        if len(sentences) <= 1 or cr_full:
+        if len(sentences) <= 1:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             return NeuralHazardVerdict(
                 predicted_class=cls_full,
@@ -393,9 +393,11 @@ class NeuralHazardClassifier:
         best_pred_cls = cls_full
         best_conf = conf_full
         best_hazard_lvl = lvl_full
-        any_cross_ref = False
-        cr_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] | None = None
-        cr_conf = 0.0
+        any_cross_ref = cr_full
+        cr_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] | None = (
+            probs_full if cr_full else None
+        )
+        cr_conf = conf_full if cr_full else 0.0
 
         for sent in sentences:
             probs, pred_cls, conf, hazard_lvl, is_cr = self._infer_single(sent)
@@ -426,7 +428,7 @@ class NeuralHazardClassifier:
                 best_hazard_lvl = hazard_lvl
 
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
-        if any_cross_ref and cr_probs is not None:
+        if any_cross_ref and cr_probs is not None and best_hazard_lvl != "high":
             return NeuralHazardVerdict(
                 predicted_class="CROSS_REFERENCE_CMD",
                 confidence=round(cr_conf, 4),

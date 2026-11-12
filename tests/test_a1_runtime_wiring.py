@@ -491,6 +491,8 @@ def test_turn_commit_writes_hmac_signatures(test_orch: Orchestrator) -> None:
         for r in rows:
             sig = r[2]
             signer = r[3]
-            assert sig and len(sig) == 44  # HMAC-SHA256 base64 digest is 44 chars
+            assert sig and (
+                (sig.startswith("ed25519:") and len(sig) == 96) or len(sig) == 44
+            )
             assert signer and len(signer) > 0
 

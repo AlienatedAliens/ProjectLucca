@@ -46,6 +46,7 @@ def test_ed25519_provenance_gate_public_key_only_and_tamper_rejection() -> None:
 
     # LLM_NARRATION is rejected by construction
     ineligible = UnsignedPayload(content="Hallucinated memory", provenance=Provenance.LLM_NARRATION)
+    assert ineligible.provenance == Provenance.LLM_NARRATION
     with pytest.raises(ProvenanceError):
         factory.for_domain(Provenance.LLM_NARRATION)
     fake_signed = env.model_copy(
