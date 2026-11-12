@@ -20,7 +20,7 @@ from pathlib import Path
 from lucca.sandbox.research_tool import research_topic
 
 REPO = Path(__file__).resolve().parents[2]
-LOCK_PATH = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock.json"
+LOCK_PATH = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock_v2.json"
 QUERIES_PATH = REPO / "scripts" / "wo45" / "r32_queries_64.json"
 ARCHIVE_DIR = REPO / "data" / "benchmarks" / "web_real_v1_archive"
 MANIFEST_PATH = ARCHIVE_DIR / "manifest_sha256.json"
@@ -135,7 +135,8 @@ def main() -> None:
         )
         print(
             f"[{idx_q:02d}/64] {qid}: {len(clean_sources)} sources, "
-            f"archived={sum(1 for s in clean_sources if s['archive_path'])}, {elapsed_ms}ms"
+            f"archived={sum(1 for s in clean_sources if s['archive_path'])}, {elapsed_ms}ms",
+            flush=True,
         )
         time.sleep(0.35)
 

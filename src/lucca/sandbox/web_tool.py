@@ -43,14 +43,6 @@ _HIDDEN_TAG_BLOCK_RE = re.compile(
     r"<(?P<tag>template|script|style|noscript|iframe|svg)\b[^>]*>.*?</(?P=tag)>",
     re.IGNORECASE | re.DOTALL,
 )
-_HIDDEN_ATTR_ELEMENT_RE = re.compile(
-    r"<(?P<tag>[a-zA-Z0-9]+)\b[^>]*(?:\bhidden\b|aria-hidden\s*=\s*['\"]?true['\"]?)[^>]*>.*?</(?P=tag)>",
-    re.IGNORECASE | re.DOTALL,
-)
-_HIDDEN_STYLE_ELEMENT_RE = re.compile(
-    r"<(?P<tag>[a-zA-Z0-9]+)\b[^>]*\bstyle\s*=\s*(['\"])(?P<style>.*?)\2[^>]*>.*?</(?P=tag)>",
-    re.IGNORECASE | re.DOTALL,
-)
 _ADVERSARIAL_CSS_RE = re.compile(
     r"(?:display\s*:\s*none|visibility\s*:\s*hidden|opacity\s*:\s*0(?:\.0+)?(?:\s*;|\s*$)|"
     r"font-size\s*:\s*0(?:px|pt|em|rem|%)?(?:\s*;|\s*$)|"
@@ -172,11 +164,25 @@ def validate_url_ssrf(
     return url, resolved_ip
 
 
+def _remove_lxml_node_preserving_tail(el: object) -> None:
+    parent = getattr(el, "getparent", lambda: None)()
+    if parent is None:
+        return
+    tail = getattr(el, "tail", None)
+    if tail:
+        prev = getattr(el, "getprevious", lambda: None)()
+        if prev is not None:
+            prev.tail = (prev.tail or "") + tail
+        else:
+            parent.text = (parent.text or "") + tail
+    parent.remove(el)
+
+
 def sanitize_html_against_prompt_injection(html: str) -> tuple[str, dict[str, int]]:
     """
-    WO-42 Milestone 4.2: Strips hidden DOM nodes, invisible CSS elements, HTML comments,
-    and invisible Unicode tag characters before text/Markdown extraction to defend against
-    indirect prompt-injection payloads hidden in web pages.
+    WO-42 Milestone 4.2 / WO-45 R-32: Strips hidden DOM nodes, invisible CSS elements, HTML
+    comments, and invisible Unicode tag characters in linear O(N) time via lxml.html DOM traversal
+    before extraction (eliminating O(N^2) nested-tag regex backtracking on large real-web HTML).
     """
     invisible_matches = _INVISIBLE_UNICODE_RE.findall(html)
     cleaned = _INVISIBLE_UNICODE_RE.sub("", html)
@@ -185,6 +191,58 @@ def sanitize_html_against_prompt_injection(html: str) -> tuple[str, dict[str, in
     cleaned = _HTML_COMMENT_RE.sub("", cleaned)
 
     hidden_nodes_count = 0
+    if not cleaned.strip():
+        return cleaned, {
+            "stripped_hidden_nodes": 0,
+            "stripped_comments": len(comment_matches),
+            "stripped_invisible_unicode": len(invisible_matches),
+        }
+
+    try:
+        lxml_html = importlib.import_module("lxml.html")
+        fromstring_fn = getattr(lxml_html, "fromstring", None)
+        tostring_fn = getattr(lxml_html, "tostring", None)
+        if not callable(fromstring_fn) or not callable(tostring_fn):
+            raise ImportError("lxml.html missing fromstring/tostring")
+
+        doc = fromstring_fn(cleaned)
+        doc_iter = getattr(doc, "iter", None)
+        if not callable(doc_iter):
+            raise TypeError("lxml document missing iter()")
+        to_remove: list[object] = []
+        strip_tags = {"template", "script", "style", "noscript", "iframe", "svg"}
+        for el in doc_iter():
+            tag_raw = getattr(el, "tag", None)
+            if not isinstance(tag_raw, str):
+                continue
+            tag_low = tag_raw.lower()
+            if tag_low in strip_tags:
+                if tag_low == "template":
+                    hidden_nodes_count += 1
+                to_remove.append(el)
+                continue
+            attrib = getattr(el, "attrib", {})
+            aria_hidden = str(attrib.get("aria-hidden", "")).strip().lower()
+            if "hidden" in attrib or aria_hidden == "true":
+                hidden_nodes_count += 1
+                to_remove.append(el)
+                continue
+            style_val = str(attrib.get("style", ""))
+            if style_val and _ADVERSARIAL_CSS_RE.search(style_val):
+                hidden_nodes_count += 1
+                to_remove.append(el)
+
+        for el in to_remove:
+            _remove_lxml_node_preserving_tail(el)
+
+        cleaned_out = str(tostring_fn(doc, encoding="unicode"))
+        return cleaned_out, {
+            "stripped_hidden_nodes": hidden_nodes_count,
+            "stripped_comments": len(comment_matches),
+            "stripped_invisible_unicode": len(invisible_matches),
+        }
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("lxml_dom_sanitize_fallback", error=str(exc))
 
     def _strip_block(m: re.Match[str]) -> str:
         nonlocal hidden_nodes_count
@@ -193,26 +251,6 @@ def sanitize_html_against_prompt_injection(html: str) -> tuple[str, dict[str, in
         return ""
 
     cleaned = _HIDDEN_TAG_BLOCK_RE.sub(_strip_block, cleaned)
-
-    def _strip_hidden_attr(m: re.Match[str]) -> str:
-        nonlocal hidden_nodes_count
-        hidden_nodes_count += 1
-        return ""
-
-    cleaned = _HIDDEN_ATTR_ELEMENT_RE.sub(_strip_hidden_attr, cleaned)
-
-    def _strip_hidden_style(m: re.Match[str]) -> str:
-        nonlocal hidden_nodes_count
-        style_val = m.group("style") or ""
-        if _ADVERSARIAL_CSS_RE.search(style_val):
-            hidden_nodes_count += 1
-            return ""
-        return m.group(0)
-
-    # Apply twice to catch nested hidden containers
-    cleaned = _HIDDEN_STYLE_ELEMENT_RE.sub(_strip_hidden_style, cleaned)
-    cleaned = _HIDDEN_STYLE_ELEMENT_RE.sub(_strip_hidden_style, cleaned)
-
     return cleaned, {
         "stripped_hidden_nodes": hidden_nodes_count,
         "stripped_comments": len(comment_matches),
@@ -293,7 +331,7 @@ def _extract_with_scrapling_selector(sanitized_html: str) -> str:
     return ""
 
 
-def extract_readable_text(html: str) -> str:
+def extract_readable_text(html: str, *, already_sanitized: bool = False) -> str:
     """
     Extracts clean, prompt-injection-sanitized article/page text using:
       1. `sanitize_html_against_prompt_injection` (strips hidden DOM / CSS / comments / invisible
@@ -301,7 +339,7 @@ def extract_readable_text(html: str) -> str:
       2. `trafilatura` (when > 50 chars) + Scrapling adaptive `Selector` code-block preservation
       3. Scrapling `Selector` / regex fallback.
     """
-    sanitized_html, _ = sanitize_html_against_prompt_injection(html)
+    sanitized_html = html if already_sanitized else sanitize_html_against_prompt_injection(html)[0]
 
     # Extract any <pre><code> blocks via Scrapling Selector so code snippets aren't lost
     scrapling_text = _extract_with_scrapling_selector(sanitized_html)
@@ -509,8 +547,8 @@ def fetch_url(
     except UnicodeDecodeError:
         html_str = raw_content.decode("latin1", errors="replace")
 
-    _, sanitization_stats = sanitize_html_against_prompt_injection(html_str)
-    text = extract_readable_text(html_str)
+    sanitized_html_str, sanitization_stats = sanitize_html_against_prompt_injection(html_str)
+    text = extract_readable_text(sanitized_html_str, already_sanitized=True)
 
     # Tier 2 Dynamic JS / Stealth rendering fallback for SPAs or bot-gated websites
     if (

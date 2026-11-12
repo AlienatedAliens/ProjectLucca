@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-OUT = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock.json"
+OUT = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock_v2.json"
 
 FILES_TO_LOCK = [
     "src/lucca/core/proof_policy.py",
@@ -48,7 +48,14 @@ def main() -> None:
         locked[rel] = _sha256(p)
 
     doc = {
-        "preregistration_id": "WO45-R32-REAL-WEB-SCRAPLING-v1",
+        "preregistration_id": "WO45-R32-REAL-WEB-SCRAPLING-v2",
+        "supersedes_voided_lock": "logs/test_reports/wo45/r32_real_web_prereg_lock.json",
+        "void_reason": (
+            "Lock v1 voided per Executor Rule 6 prior to corpus collection (0 corpus or holdout "
+            "items evaluated) after discovering O(N^2) regex backtracking in "
+            "web_tool.sanitize_html_against_prompt_injection (565s per 491KB HTML page) and "
+            "ddgs 9.16 backend='auto' early-exit dropping results."
+        ),
         "locked_at_utc": datetime.now(UTC).isoformat(),
         "sample_size": 64,
         "nominal_strata": {"low": 22, "medium": 22, "high": 20},

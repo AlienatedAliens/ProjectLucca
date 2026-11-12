@@ -12,7 +12,7 @@ from pathlib import Path
 from lucca.core.proof_policy import evaluate_web_evidence_burden
 
 REPO = Path(__file__).resolve().parents[2]
-LOCK_PATH = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock.json"
+LOCK_PATH = REPO / "logs" / "test_reports" / "wo45" / "r32_real_web_prereg_lock_v2.json"
 CORPUS_PATH = REPO / "data" / "benchmarks" / "web_evidentiary_burden_real_v1.jsonl"
 MANIFEST_PATH = REPO / "data" / "benchmarks" / "web_real_v1_archive" / "manifest_sha256.json"
 BLIND_MAP_PATH = REPO / "logs" / "test_reports" / "wo45" / "r32_blind_id_map.json"
@@ -101,7 +101,7 @@ def _verify_lock_and_archive() -> tuple[dict[str, object], dict[str, object]]:
 
     return (
         {
-            "lock_path": "logs/test_reports/wo45/r32_real_web_prereg_lock.json",
+            "lock_path": "logs/test_reports/wo45/r32_real_web_prereg_lock_v2.json",
             "lock_sha256": _sha256_file(LOCK_PATH),
             "verified_files_count": checked,
             "all_hashes_matched": True,

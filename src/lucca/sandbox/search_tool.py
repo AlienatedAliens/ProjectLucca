@@ -12,6 +12,7 @@ import html
 import re
 import shutil
 import subprocess
+import time
 import urllib.parse
 
 import httpx
@@ -108,18 +109,19 @@ SEARXNG_DEFAULT_URL: str = "http://127.0.0.1:8888/search"
 
 def _simplify_search_query(q: str) -> str:
     """Extract key substantive terms if a query has conversational filler."""
-    words = q.split()
-    if len(words) <= 5:
-        return ""
+    words = [w.strip("?,.:;\"'()") for w in q.split() if w.strip("?,.:;\"'()")]
+    if len(words) <= 4:
+        return " ".join(words)
     stopwords = {
-        "what", "was", "the", "a", "an", "in", "on", "at", "for", "of", "and", "or",
-        "to", "who", "did", "does", "is", "are", "about", "how", "why", "can", "you",
-        "tell", "me", "please", "could", "would", "where", "which",
+        "what", "was", "were", "the", "a", "an", "in", "on", "at", "for", "of", "and", "or",
+        "to", "who", "did", "does", "do", "is", "are", "about", "how", "why", "can", "you",
+        "tell", "me", "please", "could", "would", "where", "which", "when", "under",
+        "between", "compared", "with", "according", "by", "from", "its", "many",
     }
-    filtered = [w for w in words if w.lower().strip("?,.:;\"'") not in stopwords]
+    filtered = [w for w in words if w.lower() not in stopwords]
     if len(filtered) >= 2:
-        return " ".join(filtered[:10])
-    return " ".join(words[:8])
+        return " ".join(filtered[:7])
+    return " ".join(words[:7])
 
 
 def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
@@ -135,6 +137,7 @@ def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
 
 
 _RESOLVED_SEARXNG_URL: str | None = None
+_LAST_SEARXNG_NEG_PROBE_TS: float = 0.0
 
 
 def _resolve_searxng_url(force_refresh: bool = False) -> str:
@@ -142,13 +145,19 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
     Dynamically and robustly resolves an active SearXNG endpoint.
     Probes localhost, loopback, and WSL NAT hyper-v dynamic IP with live health checks.
     """
-    global _RESOLVED_SEARXNG_URL
+    global _RESOLVED_SEARXNG_URL, _LAST_SEARXNG_NEG_PROBE_TS
     if (
         not force_refresh
         and _RESOLVED_SEARXNG_URL
         and _probe_searxng_endpoint(_RESOLVED_SEARXNG_URL, timeout=0.3)
     ):
         return _RESOLVED_SEARXNG_URL
+    if (
+        not force_refresh
+        and _RESOLVED_SEARXNG_URL is None
+        and (time.monotonic() - _LAST_SEARXNG_NEG_PROBE_TS) < 60.0
+    ):
+        return ""
 
     try:
         from lucca.core.config import get_config  # noqa: PLC0415
@@ -209,6 +218,7 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
             return cand
 
     _RESOLVED_SEARXNG_URL = None
+    _LAST_SEARXNG_NEG_PROBE_TS = time.monotonic()
     return ""
 
 
@@ -379,7 +389,58 @@ def search_web(
     if searxng_res:
         results.extend(searxng_res)
 
-    # 2. Secondary path: Direct HTTP endpoints
+    # 2. Secondary path: DDGS using primp TLS impersonation
+    if not results and DDGS is not None:
+        simplified = _simplify_search_query(clean_query)
+        nopunct = re.sub(r"[?.,:;\"'()]", " ", clean_query)
+        nopunct = " ".join(nopunct.split())
+        compact_terms = [
+            w for w in (simplified or nopunct).split() if len(w) >= 3 and not w.islower()
+        ]
+        if len(compact_terms) < 3:
+            compact_terms = [w for w in (simplified or nopunct).split() if len(w) >= 3]
+        compact_q = " ".join(compact_terms[:5])
+
+        attempts: list[tuple[str, str]] = []
+        for q_cand in (simplified, nopunct, compact_q):
+            if q_cand and (q_cand, "yahoo") not in attempts:
+                attempts.append((q_cand, "yahoo"))
+        if simplified:
+            attempts.append((simplified, "auto"))
+        elif nopunct:
+            attempts.append((nopunct, "auto"))
+
+        for attempt, (q_try, backend_name) in enumerate(attempts, 1):
+            try:
+                with DDGS(timeout=int(SEARCH_TIMEOUT_S)) as ddgs_client:
+                    for item in ddgs_client.text(
+                        q_try, max_results=max_results, backend=backend_name
+                    ):
+                        title = item.get("title", "").strip()
+                        snippet = item.get("body", "").strip()
+                        url = item.get("href", "").strip()
+                        if title or snippet:
+                            results.append(
+                                {
+                                    "title": title or "Web Result",
+                                    "snippet": snippet or "No snippet preview available.",
+                                    "url": url,
+                                }
+                            )
+                        if len(results) >= max_results:
+                            break
+                if results:
+                    break
+            except Exception as e:
+                logger.debug(
+                    "ddgs_attempt_failed",
+                    error=str(e),
+                    query=q_try,
+                    backend=backend_name,
+                    attempt=attempt,
+                )
+
+    # 3. Direct HTTP Lite/HTML fallback when DDGS is unavailable or returned empty
     anomaly_detected = False
     if not results:
         encoded_q = urllib.parse.quote_plus(clean_query)
@@ -511,36 +572,7 @@ def search_web(
                             {"title": f"Result {idx}", "snippet": clean_snippet, "url": ""}
                         )
 
-    # 3. Fallback path: DDGS using primp TLS impersonation
-    if not results and DDGS is not None:
-        simplified = _simplify_search_query(clean_query)
-        queries_to_try = [clean_query]
-        if simplified and simplified.lower() != clean_query.lower():
-            queries_to_try.append(simplified)
-
-        for attempt, q_try in enumerate(queries_to_try, 1):
-            try:
-                with DDGS(timeout=int(SEARCH_TIMEOUT_S)) as ddgs_client:
-                    for item in ddgs_client.text(q_try, max_results=max_results):
-                        title = item.get("title", "").strip()
-                        snippet = item.get("body", "").strip()
-                        url = item.get("href", "").strip()
-                        if title or snippet:
-                            results.append(
-                                {
-                                    "title": title or "Web Result",
-                                    "snippet": snippet or "No snippet preview available.",
-                                    "url": url,
-                                }
-                            )
-                        if len(results) >= max_results:
-                            break
-                if results:
-                    break
-            except Exception as e:
-                logger.warning("ddgs_primary_failed", error=str(e), query=q_try, attempt=attempt)
-
-    # 3. Tertiary fallback path: RFC Standards Resolver + Wikipedia Search API
+    # 4. Tertiary fallback path: RFC Standards Resolver + Wikipedia Search API
     if not results:
         rfc_results = _resolve_rfc_standards(clean_query, max_results=max_results)
         if rfc_results:

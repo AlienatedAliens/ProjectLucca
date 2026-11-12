@@ -173,7 +173,20 @@ def research_topic(
     if not candidate_sources:
         candidate_sources = all_results[:max_sources]
 
-    selected_sources = candidate_sources[:max_sources]
+    # Prefer distinct registrable hosts first when building a multi-source dossier
+    distinct_host_sources: list[dict[str, JsonValue]] = []
+    overflow_sources: list[dict[str, JsonValue]] = []
+    seen_hosts: set[str] = set()
+    for cand in candidate_sources:
+        cand_url = str(cand.get("url", ""))
+        host = re.sub(r"^www\.", "", cand_url.split("/")[2].lower()) if "//" in cand_url else ""
+        if host and host not in seen_hosts:
+            seen_hosts.add(host)
+            distinct_host_sources.append(cand)
+        else:
+            overflow_sources.append(cand)
+
+    selected_sources = (distinct_host_sources + overflow_sources)[:max_sources]
     fetched_sources: list[JsonValue] = []
     dossier_sections: list[str] = [
         f"# Research Dossier: {clean_query}\n",
