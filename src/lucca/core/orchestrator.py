@@ -422,7 +422,10 @@ class Orchestrator:
         if ws_root is None:
             ws_root = self.config.resolve_path("workspace")
         self.bdi_validator = SpeculativeBDIValidator(
-            workspace_root=ws_root, db=self.db, clock_fn=self.clock.now_utc
+            workspace_root=ws_root,
+            db=self.db,
+            clock_fn=self.clock.now_utc,
+            master_key=effective_key,
         )
 
         # Affect State Machine & 3D PAD ODE (Milestone 5)

@@ -23,6 +23,7 @@ from lucca.core.affect import AffectTracker
 from lucca.core.bdi_validator import DeonticNorm, SpeculativeBDIValidator
 from lucca.core.cascade import EpistemicSearchCascade
 from lucca.core.coherence import ToolReceipt
+from lucca.core.constitutional import compute_constitutional_hash
 from lucca.core.memory_commit_service import MemoryCommitService
 from lucca.core.schemas import (
     Provenance,
@@ -40,7 +41,11 @@ from lucca.memory.latent_probe import BelnapValue
 from lucca.memory.retrieval import HybridRetriever
 from lucca.memory.signers import canonicalize_unsigned_payload
 from lucca.memory.store import MemoryStore
-from lucca.memory.tokens import derive_ed25519_public_key, verify_provenance_signature
+from lucca.memory.tokens import (
+    derive_ed25519_public_key,
+    derive_ed25519_public_keys,
+    verify_provenance_signature,
+)
 from lucca.reasoning.lifecycle import RuleLifecycleManager
 from lucca.senses.embed import LocalEmbeddingPort
 
@@ -106,6 +111,7 @@ class _MinimalOrchestratorHarness:
             workspace_root=workspace_root,
             db=db,
             clock_fn=clock.now_utc,
+            master_key=TEST_MASTER_KEY,
         )
         self.affect_tracker = AffectTracker()
         self.action_signer = signer_factory.tool_result()
@@ -281,7 +287,8 @@ def test_hot_work_permit_stands_but_gas_reading_expires_blocks_tool_and_binds_au
         evidence=[],
         topic="bay_4 gas_reading",
     )
-    assert belnap_val == BelnapValue.NEITHER == "BOT"
+    assert belnap_val == BelnapValue.NEITHER
+    assert belnap_val.value == "BOT"
     assert refusal is not None
 
     # 3c. Attempt candidate tool call -> hard pre-tool block BEFORE sandbox execution
@@ -431,14 +438,15 @@ def test_belnap_top_conflict_vs_bot_expired_and_renewal_recovery(tmp_path: Path)
     assert res_conflict.norm == DeonticNorm.PROHIBITED
     assert len(res_conflict.inspected_premises) == 1
     assert res_conflict.inspected_premises[0].status == "CONFLICT"
-    assert res_conflict.inspected_premises[0].belnap_state == BelnapValue.BOTH == "TOP"
+    assert res_conflict.inspected_premises[0].belnap_state == BelnapValue.BOTH
+    assert res_conflict.inspected_premises[0].belnap_state.value == "TOP"
 
     # 2. Once both 10-minute readings expire with no newer reading -> Belnap BOT (EXPIRED)
     clock.t = t0 + 900.0
     res_expired = validator.validate_tool_call("run_python", {"code": "print(1)"})
     assert res_expired.is_valid is False
     assert res_expired.inspected_premises[0].status == "EXPIRED"
-    assert res_expired.inspected_premises[0].belnap_state == BelnapValue.NEITHER == "BOT"
+    assert res_expired.inspected_premises[0].belnap_state == BelnapValue.NEITHER
 
     # 3. Fresh clear reading arrives at t0 + 910s -> restores VALID (Belnap TRUE)
     fresh = _commit_tool_verified_state_fact(
@@ -456,5 +464,216 @@ def test_belnap_top_conflict_vs_bot_expired_and_renewal_recovery(tmp_path: Path)
     assert res_renewed.is_valid is True
     assert res_renewed.norm == DeonticNorm.PERMITTED
     assert res_renewed.inspected_premises[0].status == "VALID"
-    assert res_renewed.inspected_premises[0].belnap_state == BelnapValue.TRUE == "T"
+    assert res_renewed.inspected_premises[0].belnap_state == BelnapValue.TRUE
     assert res_renewed.inspected_premises[0].entry_id == fresh.entry_id
+
+
+def test_declarative_policy_threshold_bounds_provenance_spoofing_and_sqlite_tamper_defense(
+    tmp_path: Path,
+) -> None:
+    """Proves underwriting-grade closure of all 4 adversarial bypasses:
+    1. Declarative config/deontic_policy.toml + dynamic (arg "bay") binding + constitutional_hash
+       (no LLM-controlled _preconditions needed in tool_args).
+    2. Value/Z3 threshold rejection: fresh unsafe reading (18.0 > 1.0% LEL or REVOKED permit)
+       fails closed as THRESHOLD_VIOLATED [Belnap FALSE].
+    3. Provenance spoofing rejection: USER_EXPLICIT verbal claim ('gas is 0.0') cannot satisfy
+       fresh-tool-fact<= (fails closed as UNTRUSTED [Belnap BOT]).
+    4. SQLite tamper rejection (D-MEM-05): mutating memories.valid_until or forging payload_json
+       without the ToolResultSigner Ed25519 private key fails closed as TAMPERED [Belnap BOT].
+    """
+    import hashlib
+
+    # 0. Constitutional hash binds config/deontic_policy.toml
+    base_hash = compute_constitutional_hash()
+    modified_policy = tmp_path / "modified_deontic.toml"
+    modified_policy.write_text('sexpr_rules = ["(tool= \\"noop\\")"]\n', encoding="utf-8")
+    assert compute_constitutional_hash(policy_path=modified_policy) != base_hash
+
+    t0 = 1_700_200_000.0
+    clock = _MutableClock(t0)
+    db = DatabaseManager(tmp_path / "adversarial_audit.sqlite")
+    db.migrate()
+    store = MemoryStore(db=db, master_key=TEST_MASTER_KEY, embedding_port=LocalEmbeddingPort())
+    signer_factory = SignerFactory(master_key=TEST_MASTER_KEY)
+    pub_keys = derive_ed25519_public_keys(TEST_MASTER_KEY)
+
+    # Public-key-only validator loading default config/deontic_policy.toml automatically
+    validator = SpeculativeBDIValidator(
+        workspace_root=tmp_path,
+        db=db,
+        clock_fn=clock.now_utc,
+        public_keys=pub_keys,
+    )
+
+    # 1. Missing bay arg in tool_args fails closed as MISSING (never normalizes "" -> "user")
+    res_missing_arg = validator.validate_tool_call("authorize_hot_work", {})
+    assert res_missing_arg.is_valid is False
+    assert res_missing_arg.inspected_premises[0].subject == "<missing_arg>"
+    assert res_missing_arg.inspected_premises[0].status == "MISSING"
+
+    # 2. Fresh permit = ACTIVE, but fresh gas_lel_pct = 18.0 (> 1.0% LEL bound)
+    #    -> fails closed as THRESHOLD_VIOLATED [Belnap FALSE]
+    _commit_tool_verified_state_fact(
+        store=store,
+        signer_factory=signer_factory,
+        subject="bay_7",
+        predicate="hot_work_permit",
+        obj_val="ACTIVE",
+        created_at=t0,
+        valid_until=t0 + 28_800.0,
+        trace_id="tr-b7-permit",
+    )
+    unsafe_gas = _commit_tool_verified_state_fact(
+        store=store,
+        signer_factory=signer_factory,
+        subject="bay_7",
+        predicate="gas_lel_pct",
+        obj_val="18.0",
+        created_at=t0,
+        valid_until=t0 + 1_800.0,
+        trace_id="tr-b7-unsafe-gas",
+    )
+    clock.t = t0 + 60.0
+    res_unsafe = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_7"})
+    assert res_unsafe.is_valid is False
+    by_p = {r.predicate: r for r in res_unsafe.inspected_premises}
+    assert by_p["hot_work_permit"].status == "VALID"
+    assert by_p["gas_lel_pct"].status == "THRESHOLD_VIOLATED"
+    assert by_p["gas_lel_pct"].belnap_state == BelnapValue.FALSE
+    assert by_p["gas_lel_pct"].belnap_state.value == "F"
+    assert by_p["gas_lel_pct"].expected_constraint == "<= 1.0"
+
+    # Supersede unsafe gas with safe 0.2% LEL reading -> PERMITTED via config/deontic_policy.toml
+    with db.read_cursor() as cur:
+        cur.execute(
+            "SELECT memory_id FROM memories WHERE entry_id = ?", (unsafe_gas.entry_id,)
+        )
+        unsafe_mid = int(cur.fetchone()[0])
+
+    safe_unsigned = UnsignedPayload(
+        provenance=Provenance.TOOL_VERIFIED,
+        kind="tool_fact",
+        content="bay_7 gas_lel_pct 0.2",
+        structured={
+            "s": "bay_7",
+            "p": "gas_lel_pct",
+            "o": "0.2",
+            "valid_from": t0 + 120.0,
+            "valid_until": t0 + 1_920.0,
+        },
+        created_at=t0 + 120.0,
+        nonce=os.urandom(16).hex(),
+        trace_id="tr-b7-safe-gas",
+        confidence=1.0,
+    )
+    safe_gas = signer_factory.tool_result().sign(safe_unsigned)
+    safe_mid = store.commit(safe_gas, now=t0 + 120.0)
+    store.supersede(unsafe_mid, safe_mid, reason=safe_gas.entry_id, now=t0 + 120.0)
+
+    clock.t = t0 + 180.0
+    res_safe = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_7"})
+    assert res_safe.is_valid is True
+    assert all(r.status == "VALID" for r in res_safe.inspected_premises)
+
+    # 3. Provenance spoofing attack: safe_gas expires at t0 + 1,920s; user verbally claims
+    #    'bay_7 gas_lel_pct is 0.0' via USER_EXPLICIT (grounding_eligible=1) -> UNTRUSTED
+    clock.t = t0 + 2_500.0
+    user_unsigned = UnsignedPayload(
+        provenance=Provenance.USER_EXPLICIT,
+        kind="fact",
+        content="bay_7 gas_lel_pct 0.0",
+        structured={
+            "s": "bay_7",
+            "p": "gas_lel_pct",
+            "o": "0.0",
+            "valid_from": t0 + 2_400.0,
+            "valid_until": t0 + 9_000.0,
+        },
+        created_at=t0 + 2_400.0,
+        nonce=os.urandom(16).hex(),
+        trace_id="tr-user-spoof",
+        confidence=1.0,
+    )
+    user_spoof = signer_factory.user_speech().sign(user_unsigned)
+    store.commit(user_spoof, now=t0 + 2_400.0)
+
+    # On bay_8 where ONLY a USER_EXPLICIT claim exists (no prior expired tool row), status=UNTRUSTED
+    _commit_tool_verified_state_fact(
+        store=store,
+        signer_factory=signer_factory,
+        subject="bay_8",
+        predicate="hot_work_permit",
+        obj_val="ACTIVE",
+        created_at=t0 + 2_400.0,
+        valid_until=t0 + 9_000.0,
+        trace_id="tr-b8-permit",
+    )
+    user_b8 = signer_factory.user_speech().sign(
+        UnsignedPayload(
+            provenance=Provenance.USER_EXPLICIT,
+            kind="fact",
+            content="bay_8 gas_lel_pct 0.0",
+            structured={
+                "s": "bay_8",
+                "p": "gas_lel_pct",
+                "o": "0.0",
+                "valid_from": t0 + 2_400.0,
+                "valid_until": t0 + 9_000.0,
+            },
+            created_at=t0 + 2_400.0,
+            nonce=os.urandom(16).hex(),
+            trace_id="tr-user-spoof-b8",
+            confidence=1.0,
+        )
+    )
+    store.commit(user_b8, now=t0 + 2_400.0)
+
+    res_spoof_b7 = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_7"})
+    assert res_spoof_b7.is_valid is False
+    # USER_EXPLICIT spoof cannot mask the expired TOOL_VERIFIED reading on bay_7
+    assert {r.predicate: r for r in res_spoof_b7.inspected_premises}["gas_lel_pct"].status == (
+        "EXPIRED"
+    )
+
+    res_spoof_b8 = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_8"})
+    assert res_spoof_b8.is_valid is False
+    gas_b8_rec = {r.predicate: r for r in res_spoof_b8.inspected_premises}["gas_lel_pct"]
+    assert gas_b8_rec.status == "UNTRUSTED"
+    assert gas_b8_rec.belnap_state == BelnapValue.NEITHER
+    assert gas_b8_rec.provenance == Provenance.USER_EXPLICIT
+
+    # 4a. SQLite column tamper attack: DBA updates memories.valid_until on expired safe_gas
+    extended_vu = t0 + 99_999.0
+    with db.write_transaction() as conn:
+        conn.execute(
+            "UPDATE memories SET valid_until = ? WHERE entry_id = ?",
+            (extended_vu, safe_gas.entry_id),
+        )
+    res_col_tamper = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_7"})
+    assert res_col_tamper.is_valid is False
+    tamper_rec = {r.predicate: r for r in res_col_tamper.inspected_premises}["gas_lel_pct"]
+    assert tamper_rec.status == "TAMPERED"
+    assert tamper_rec.tamper_stage == "valid_until_column_tamper"
+    assert tamper_rec.belnap_state == BelnapValue.NEITHER
+
+    # 4b. Full SQLite payload + SHA-256 forgery without Ed25519 private key -> caught by Ed25519
+    with db.write_transaction() as conn:
+        cur = conn.execute(
+            "SELECT payload_json FROM provenance_envelopes WHERE entry_id = ?",
+            (safe_gas.entry_id,),
+        )
+        forged_obj = json.loads(str(cur.fetchone()[0]))
+        forged_obj["structured"]["valid_until"] = extended_vu
+        forged_json = json.dumps(forged_obj)
+        forged_sha = hashlib.sha256(str(forged_obj["content"]).encode("utf-8")).hexdigest()
+        conn.execute(
+            "UPDATE provenance_envelopes SET payload_json = ?, content_sha256 = ? "
+            "WHERE entry_id = ?",
+            (forged_json, forged_sha, safe_gas.entry_id),
+        )
+    res_sig_tamper = validator.validate_tool_call("authorize_hot_work", {"bay": "bay_7"})
+    assert res_sig_tamper.is_valid is False
+    sig_rec = {r.predicate: r for r in res_sig_tamper.inspected_premises}["gas_lel_pct"]
+    assert sig_rec.status == "TAMPERED"
+    assert sig_rec.tamper_stage == "ed25519_signature"
+    assert sig_rec.belnap_state == BelnapValue.NEITHER

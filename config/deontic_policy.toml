@@ -1,0 +1,13 @@
+# Project Lucca — Declarative Deontic Precondition Policy
+# Bound into every DecisionRecord via compute_constitutional_hash().
+# Evaluated deterministically by SpeculativeBDIValidator before sandbox RPC dispatch.
+
+sexpr_rules = [
+    '(not (and (tool= "fetch_url") (tainted? "private") (external-url?)))',
+    '(not (and (or (tool= "write_file") (tool= "delete_file")) (forbidden-ext?)))',
+    '(or (not (tool= "authorize_hot_work")) (and (fresh-tool-fact= (arg "bay") "hot_work_permit" "ACTIVE") (fresh-tool-fact<= (arg "bay") "gas_lel_pct" 1.0)))',
+]
+
+[tool_premises]
+# Optional static (subject, predicate) freshness bindings per tool name.
+

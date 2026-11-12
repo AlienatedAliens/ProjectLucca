@@ -11,17 +11,26 @@ import hashlib
 from pathlib import Path
 
 
-def compute_constitutional_hash(config_path: Path | str | None = None) -> str:
+def compute_constitutional_hash(
+    config_path: Path | str | None = None,
+    policy_path: Path | str | None = None,
+) -> str:
     """
-    Computes SHA-256 kernel hash over persona configuration and invariant gates.
+    Computes SHA-256 kernel hash over persona configuration, declarative deontic
+    precondition policy (deontic_policy.toml), and invariant gates.
     Attached to every DecisionRecord to certify unbroken constitutional alignment.
     """
     path = Path(config_path) if config_path else Path("config/persona.toml")
+    deontic_path = Path(policy_path) if policy_path else Path("config/deontic_policy.toml")
     hasher = hashlib.sha256()
     if path.exists():
         hasher.update(path.read_bytes())
     else:
         hasher.update(b"default_persona_kernel")
+
+    if deontic_path.exists():
+        hasher.update(b";deontic_policy:")
+        hasher.update(deontic_path.read_bytes())
 
     invariants = (
         "never_pretend_to_feel:true;"

@@ -22,19 +22,24 @@ Invariants:
 from __future__ import annotations
 
 import ast
+import dataclasses
 import enum
+import hashlib
 import json
 import re
 import time
+import tomllib
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Final, Literal
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import BaseModel, Field, JsonValue
 
-from lucca.core.schemas import canonicalize_predicate
+from lucca.core.schemas import Provenance, canonicalize_predicate
 from lucca.memory.entities import FIRST_PERSON_TERMS, canonicalise
 from lucca.memory.latent_probe import BelnapValue
+from lucca.memory.tokens import derive_ed25519_public_keys, verify_provenance_signature
 from lucca.sandbox.policy import TaintFlags
 
 if TYPE_CHECKING:
@@ -54,20 +59,66 @@ class DeonticNorm(enum.StrEnum):
     OBLIGATORY = "obligatory"
 
 
+PremiseStatus = Literal[
+    "VALID",
+    "EXPIRED",
+    "MISSING",
+    "CONFLICT",
+    "UNTRUSTED",
+    "TAMPERED",
+    "THRESHOLD_VIOLATED",
+]
+
+PREMISE_SEXPR_OPS: Final[dict[str, tuple[bool, str | None]]] = {
+    "fresh-fact?": (False, None),
+    "fresh-fact=": (False, "="),
+    "fresh-fact<=": (False, "<="),
+    "fresh-fact>=": (False, ">="),
+    "fresh-fact<": (False, "<"),
+    "fresh-fact>": (False, ">"),
+    "fresh-tool-fact?": (True, None),
+    "fresh-tool-fact=": (True, "="),
+    "fresh-tool-fact<=": (True, "<="),
+    "fresh-tool-fact>=": (True, ">="),
+    "fresh-tool-fact<": (True, "<"),
+    "fresh-tool-fact>": (True, ">"),
+}
+
+_EXCLUDED_ENVELOPE_FIELDS: Final[frozenset[str]] = frozenset(
+    {"signature", "signer_id", "entry_id", "content_sha256"}
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class _PremiseCandidateRow:
+    memory_id: int
+    entry_id: str
+    provenance: Provenance
+    object_value: str
+    valid_from: float
+    valid_to: float | None
+    valid_until: float | None
+    superseded_by: int | None
+    tamper_stage: str | None = None
+
+
 class InspectedPremiseRecord(BaseModel, frozen=True):
     """Audit record of a grounded state premise checked before tool dispatch."""
 
     subject: str
     predicate: str
-    status: Literal["VALID", "EXPIRED", "MISSING", "CONFLICT"]
+    status: PremiseStatus
     belnap_state: BelnapValue
+    provenance: Provenance | None = None
     entry_id: str | None = None
     memory_id: int | None = None
     object_value: str | None = None
+    expected_constraint: str | None = None
     valid_from: float | None = None
     valid_until: float | None = None
     valid_to: float | None = None
     superseded_by: int | None = None
+    tamper_stage: str | None = None
     checked_at: float
 
 
@@ -186,63 +237,311 @@ class SpeculativeBDIValidator:
         db: DatabaseManager | None = None,
         clock_fn: Callable[[], float] = time.time,
         tool_premises: dict[str, list[tuple[str, str]]] | None = None,
+        master_key: bytes | None = None,
+        public_keys: dict[Provenance, Ed25519PublicKey] | None = None,
+        policy_path: Path | str | None = None,
     ) -> None:
         self.workspace_root = Path(workspace_root)
         self.db: DatabaseManager | None = db
         self._clock_fn: Callable[[], float] = clock_fn
-        self._tool_premises: dict[str, list[tuple[str, str]]] = (
-            {k: list(v) for k, v in tool_premises.items()} if tool_premises else {}
+        self._master_key: bytes | None = master_key
+        if public_keys is not None:
+            self._public_keys: dict[Provenance, Ed25519PublicKey] = dict(public_keys)
+        elif master_key is not None and len(master_key) >= 32:
+            self._public_keys = derive_ed25519_public_keys(master_key)
+        else:
+            self._public_keys = {}
+
+        self._tool_premises: dict[str, list[tuple[str, str, bool]]] = (
+            {k: [(s, p, False) for s, p in v] for k, v in tool_premises.items()}
+            if tool_premises
+            else {}
         )
-        self.deontic_sexprs: list[str] = (
-            list(deontic_rules) if deontic_rules is not None else list(DEFAULT_DEONTIC_SEXPRS)
-        )
+        loaded_rules, loaded_premises = self._load_policy_toml(policy_path)
+        if deontic_rules is not None:
+            self.deontic_sexprs: list[str] = list(deontic_rules)
+        elif loaded_rules:
+            merged = list(DEFAULT_DEONTIC_SEXPRS)
+            for r_str in loaded_rules:
+                if r_str not in merged:
+                    merged.append(r_str)
+            self.deontic_sexprs = merged
+        else:
+            self.deontic_sexprs = list(DEFAULT_DEONTIC_SEXPRS)
+
+        for t_name, p_list in loaded_premises.items():
+            if t_name not in self._tool_premises:
+                self._tool_premises[t_name] = p_list
+
         self._parsed_rules: list[SExprNode] = [_parse_sexpr(s) for s in self.deontic_sexprs]
 
-    def register_tool_premises(self, tool_name: str, premises: list[tuple[str, str]]) -> None:
+    @staticmethod
+    def _load_policy_toml(
+        policy_path: Path | str | None,
+    ) -> tuple[list[str], dict[str, list[tuple[str, str, bool]]]]:
+        p_file = (
+            Path(policy_path)
+            if policy_path is not None
+            else Path("config/deontic_policy.toml")
+        )
+        if not p_file.exists():
+            return [], {}
+        try:
+            raw = tomllib.loads(p_file.read_text(encoding="utf-8"))
+        except (OSError, tomllib.TOMLDecodeError):
+            return [], {}
+        rules: list[str] = []
+        raw_rules = raw.get("sexpr_rules")
+        if isinstance(raw_rules, list):
+            for item in raw_rules:
+                if isinstance(item, str) and item.strip():
+                    rules.append(item.strip())
+        premises: dict[str, list[tuple[str, str, bool]]] = {}
+        raw_prem = raw.get("tool_premises")
+        if isinstance(raw_prem, dict):
+            for t_key, entries in raw_prem.items():
+                if not isinstance(t_key, str) or not isinstance(entries, list):
+                    continue
+                parsed_entries: list[tuple[str, str, bool]] = []
+                for ent in entries:
+                    if isinstance(ent, dict):
+                        s_v = ent.get("subject") or ent.get("s")
+                        p_v = ent.get("predicate") or ent.get("p")
+                        req_tv = bool(ent.get("tool_verified", False))
+                        if isinstance(s_v, str) and isinstance(p_v, str) and s_v and p_v:
+                            parsed_entries.append((s_v, p_v, req_tv))
+                if parsed_entries:
+                    premises[t_key] = parsed_entries
+        return rules, premises
+
+    def register_tool_premises(
+        self,
+        tool_name: str,
+        premises: list[tuple[str, str]],
+        *,
+        require_tool_verified: bool = False,
+    ) -> None:
         """Registers mandatory (subject, predicate) freshness preconditions for a tool."""
-        self._tool_premises[tool_name] = list(premises)
+        self._tool_premises[tool_name] = [
+            (s, p, require_tool_verified) for s, p in premises
+        ]
 
     def add_deontic_rule(self, sexpr: str) -> None:
         """Registers an additional S-expression deontic precondition."""
         self.deontic_sexprs.append(sexpr)
         self._parsed_rules.append(_parse_sexpr(sexpr))
 
+    def _verify_premise_integrity(
+        self,
+        *,
+        content_str: str,
+        stored_sha: str,
+        stored_sig: str,
+        prov_enum: Provenance,
+        p_obj: dict[str, JsonValue],
+        st: dict[str, JsonValue],
+        row_valid_from: float,
+        row_valid_until: float | None,
+    ) -> str | None:
+        """Verifies D-MEM-05 SHA-256, signed-TTL consistency, and Ed25519 signature."""
+        actual_sha = hashlib.sha256(content_str.encode("utf-8")).hexdigest()
+        if stored_sha and actual_sha != stored_sha:
+            return "content_sha256"
+        if "content" in p_obj and str(p_obj.get("content", "")) != content_str:
+            return "payload_content_mismatch"
+
+        c_raw = p_obj.get("created_at")
+        signed_created = (
+            float(c_raw)
+            if isinstance(c_raw, (int, float)) and not isinstance(c_raw, bool)
+            else row_valid_from
+        )
+        vf_raw = st.get("valid_from")
+        signed_vf = (
+            float(vf_raw)
+            if isinstance(vf_raw, (int, float)) and not isinstance(vf_raw, bool)
+            else signed_created
+        )
+        signed_vu: float | None = None
+        vu_raw = st.get("valid_until")
+        ttl_raw = st.get("ttl_seconds")
+        if isinstance(vu_raw, (int, float)) and not isinstance(vu_raw, bool):
+            signed_vu = float(vu_raw)
+        elif isinstance(ttl_raw, (int, float)) and not isinstance(ttl_raw, bool):
+            signed_vu = signed_vf + float(ttl_raw)
+
+        if abs(row_valid_from - signed_vf) > 1e-6:
+            return "valid_from_column_tamper"
+        if (row_valid_until is None) != (signed_vu is None):
+            return "valid_until_column_tamper"
+        if (
+            row_valid_until is not None
+            and signed_vu is not None
+            and abs(row_valid_until - signed_vu) > 1e-6
+        ):
+            return "valid_until_column_tamper"
+
+        if self._public_keys or self._master_key is not None:
+            if not stored_sig:
+                return "missing_signature"
+            canon_dict = {
+                k: v for k, v in p_obj.items() if k not in _EXCLUDED_ENVELOPE_FIELDS
+            }
+            canonical_bytes = json.dumps(
+                canon_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+            ).encode("utf-8")
+            if not verify_provenance_signature(
+                stored_sig,
+                canonical_bytes,
+                prov_enum,
+                public_key=self._public_keys.get(prov_enum),
+                master_key=self._master_key,
+                allow_legacy_hmac=(self._master_key is not None),
+            ):
+                return "ed25519_signature"
+        return None
+
+    @staticmethod
+    def _check_premise_value_constraint(
+        actual_obj: str,
+        value_op: str,
+        expected_value: float | str,
+    ) -> bool:
+        """Evaluates string equality or Z3/float numeric bound on a live premise value."""
+        cleaned = actual_obj.strip()
+        if value_op == "=":
+            try:
+                lv = float(cleaned)
+                rv = float(expected_value)
+                return abs(lv - rv) <= 1e-9
+            except (TypeError, ValueError):
+                return cleaned.lower() == str(expected_value).strip().lower()
+
+        try:
+            actual_f = float(cleaned)
+            bound_f = float(expected_value)
+        except (TypeError, ValueError):
+            return False
+
+        if _HAS_Z3 and z3 is not None:
+            solver = z3.Solver()
+            solver.set("timeout", 20)
+            var = z3.Real("premise_val")
+            solver.add(var == z3.RealVal(actual_f))
+            b_val = z3.RealVal(bound_f)
+            if value_op == "<=":
+                solver.add(var <= b_val)
+            elif value_op == ">=":
+                solver.add(var >= b_val)
+            elif value_op == "<":
+                solver.add(var < b_val)
+            elif value_op == ">":
+                solver.add(var > b_val)
+            else:
+                return False
+            return bool(solver.check() == z3.sat)
+
+        if value_op == "<=":
+            return actual_f <= bound_f
+        if value_op == ">=":
+            return actual_f >= bound_f
+        if value_op == "<":
+            return actual_f < bound_f
+        if value_op == ">":
+            return actual_f > bound_f
+        return False
+
+    @staticmethod
+    def _build_premise_record(
+        *,
+        subject: str,
+        predicate: str,
+        status: PremiseStatus,
+        belnap_state: BelnapValue,
+        checked_at: float,
+        cand: _PremiseCandidateRow | None = None,
+        expected_constraint: str | None = None,
+    ) -> InspectedPremiseRecord:
+        if cand is None:
+            return InspectedPremiseRecord(
+                subject=subject,
+                predicate=predicate,
+                status=status,
+                belnap_state=belnap_state,
+                expected_constraint=expected_constraint,
+                checked_at=checked_at,
+            )
+        return InspectedPremiseRecord(
+            subject=subject,
+            predicate=predicate,
+            status=status,
+            belnap_state=belnap_state,
+            provenance=cand.provenance,
+            entry_id=cand.entry_id,
+            memory_id=cand.memory_id,
+            object_value=cand.object_value,
+            expected_constraint=expected_constraint,
+            valid_from=cand.valid_from,
+            valid_to=cand.valid_to,
+            valid_until=cand.valid_until,
+            superseded_by=cand.superseded_by,
+            tamper_stage=cand.tamper_stage,
+            checked_at=checked_at,
+        )
+
     def inspect_premise(
         self,
         subject: str,
         predicate: str,
         now: float | None = None,
+        *,
+        allowed_provenances: frozenset[Provenance] | None = None,
+        value_op: str | None = None,
+        expected_value: float | str | None = None,
     ) -> InspectedPremiseRecord:
-        """Inspects grounded SQLite state for (subject, predicate) freshness at wall-clock `now`.
-
-        Distinguishes:
-        - VALID (Belnap TRUE): >=1 grounded unretracted row with valid_until IS NULL or > now,
-          and all live rows agree on object value.
-        - CONFLICT (Belnap BOTH/TOP): >=2 live unretracted rows disagree on object value.
-        - EXPIRED (Belnap NEITHER/BOT): 0 live rows, >=1 unretracted row (superseded_by IS NULL)
-          whose valid_until <= now has lapsed with no replacement reading.
-        - MISSING (Belnap NEITHER/BOT): 0 live or expired unretracted rows exist.
+        """Inspects grounded SQLite state for (subject, predicate) freshness, cryptographic
+        integrity, provenance eligibility, and optional value/Z3 threshold constraints.
         """
         checked_at = float(now if now is not None else self._clock_fn())
-        raw_s = canonicalise(subject)
-        s_norm = "user" if (not raw_s or raw_s in FIRST_PERSON_TERMS) else raw_s
+        constraint_str = (
+            f"{value_op} {expected_value}"
+            if value_op is not None and expected_value is not None
+            else None
+        )
         p_norm = canonicalize_predicate(predicate)
+        if not subject.strip():
+            return self._build_premise_record(
+                subject="<missing_arg>",
+                predicate=p_norm,
+                status="MISSING",
+                belnap_state=BelnapValue.NEITHER,
+                checked_at=checked_at,
+                expected_constraint=constraint_str,
+            )
+
+        raw_s = canonicalise(subject)
+        s_norm = "user" if raw_s in FIRST_PERSON_TERMS else (raw_s or subject.strip().lower())
 
         if self.db is None:
-            return InspectedPremiseRecord(
+            return self._build_premise_record(
                 subject=s_norm,
                 predicate=p_norm,
                 status="MISSING",
                 belnap_state=BelnapValue.NEITHER,
                 checked_at=checked_at,
+                expected_constraint=constraint_str,
             )
 
-        matched: list[tuple[int, str, str, float, float | None, float | None, int | None]] = []
+        trusted_matched: list[_PremiseCandidateRow] = []
+        untrusted_unretracted: list[_PremiseCandidateRow] = []
+        tampered_unretracted: list[_PremiseCandidateRow] = []
+
         with self.db.read_cursor() as cur:
             cur.execute(
                 """
-                SELECT m.memory_id, m.entry_id, m.valid_from, m.valid_to,
-                       m.valid_until, m.superseded_by, p.payload_json
+                SELECT m.memory_id, m.entry_id, m.content, m.valid_from, m.valid_to,
+                       m.valid_until, m.superseded_by,
+                       p.provenance, p.content_sha256, p.signature, p.payload_json
                 FROM memories m
                 JOIN provenance_envelopes p ON m.entry_id = p.entry_id
                 WHERE m.forgotten_at IS NULL
@@ -258,6 +557,7 @@ class SpeculativeBDIValidator:
                     continue
                 try:
                     p_obj = json.loads(payload_str)
+                    prov_enum = Provenance(str(row["provenance"]))
                 except (json.JSONDecodeError, TypeError, ValueError):
                     continue
                 if not isinstance(p_obj, dict):
@@ -272,99 +572,129 @@ class SpeculativeBDIValidator:
                 cand_p = canonicalize_predicate(str(st.get("p", "")))
                 if cand_s != s_norm or cand_p != p_norm:
                     continue
-                cand_o = str(st.get("o", ""))
+
+                v_from = float(row["valid_from"])
                 v_to = float(row["valid_to"]) if row["valid_to"] is not None else None
                 v_until = float(row["valid_until"]) if row["valid_until"] is not None else None
                 sup_by = int(row["superseded_by"]) if row["superseded_by"] is not None else None
-                matched.append(
-                    (
-                        int(row["memory_id"]),
-                        str(row["entry_id"]),
-                        cand_o,
-                        float(row["valid_from"]),
-                        v_to,
-                        v_until,
-                        sup_by,
-                    )
-                )
 
-        unretracted = [r for r in matched if r[4] is None and r[6] is None]
-        live = [r for r in unretracted if r[5] is None or r[5] > checked_at]
-        expired = [r for r in unretracted if r[5] is not None and r[5] <= checked_at]
+                tamper_stage = self._verify_premise_integrity(
+                    content_str=str(row["content"] or ""),
+                    stored_sha=str(row["content_sha256"] or ""),
+                    stored_sig=str(row["signature"] or ""),
+                    prov_enum=prov_enum,
+                    p_obj=p_obj,
+                    st=st,
+                    row_valid_from=v_from,
+                    row_valid_until=v_until,
+                )
+                cand = _PremiseCandidateRow(
+                    memory_id=int(row["memory_id"]),
+                    entry_id=str(row["entry_id"]),
+                    provenance=prov_enum,
+                    object_value=str(st.get("o", "")),
+                    valid_from=v_from,
+                    valid_to=v_to,
+                    valid_until=v_until,
+                    superseded_by=sup_by,
+                    tamper_stage=tamper_stage,
+                )
+                if tamper_stage is not None:
+                    if v_to is None and sup_by is None:
+                        tampered_unretracted.append(cand)
+                    continue
+                if allowed_provenances is not None and prov_enum not in allowed_provenances:
+                    if v_to is None and sup_by is None:
+                        untrusted_unretracted.append(cand)
+                    continue
+                trusted_matched.append(cand)
+
+        if tampered_unretracted:
+            return self._build_premise_record(
+                subject=s_norm,
+                predicate=p_norm,
+                status="TAMPERED",
+                belnap_state=BelnapValue.NEITHER,
+                checked_at=checked_at,
+                cand=tampered_unretracted[0],
+                expected_constraint=constraint_str,
+            )
+
+        unretracted = [r for r in trusted_matched if r.valid_to is None and r.superseded_by is None]
+        live = [r for r in unretracted if r.valid_until is None or r.valid_until > checked_at]
+        expired = [
+            r for r in unretracted if r.valid_until is not None and r.valid_until <= checked_at
+        ]
 
         if live:
-            distinct_vals = {r[2].strip().lower() for r in live}
+            distinct_vals = {r.object_value.strip().lower() for r in live}
             top = live[0]
             if len(distinct_vals) > 1:
-                return InspectedPremiseRecord(
+                return self._build_premise_record(
                     subject=s_norm,
                     predicate=p_norm,
                     status="CONFLICT",
                     belnap_state=BelnapValue.BOTH,
-                    entry_id=top[1],
-                    memory_id=top[0],
-                    object_value=top[2],
-                    valid_from=top[3],
-                    valid_to=top[4],
-                    valid_until=top[5],
-                    superseded_by=top[6],
                     checked_at=checked_at,
+                    cand=top,
+                    expected_constraint=constraint_str,
                 )
-            return InspectedPremiseRecord(
+            if (
+                value_op is not None
+                and expected_value is not None
+                and not self._check_premise_value_constraint(
+                    top.object_value, value_op, expected_value
+                )
+            ):
+                return self._build_premise_record(
+                    subject=s_norm,
+                    predicate=p_norm,
+                    status="THRESHOLD_VIOLATED",
+                    belnap_state=BelnapValue.FALSE,
+                    checked_at=checked_at,
+                    cand=top,
+                    expected_constraint=constraint_str,
+                )
+            return self._build_premise_record(
                 subject=s_norm,
                 predicate=p_norm,
                 status="VALID",
                 belnap_state=BelnapValue.TRUE,
-                entry_id=top[1],
-                memory_id=top[0],
-                object_value=top[2],
-                valid_from=top[3],
-                valid_to=top[4],
-                valid_until=top[5],
-                superseded_by=top[6],
                 checked_at=checked_at,
+                cand=top,
+                expected_constraint=constraint_str,
             )
 
         if expired:
-            exp = expired[0]
-            return InspectedPremiseRecord(
+            return self._build_premise_record(
                 subject=s_norm,
                 predicate=p_norm,
                 status="EXPIRED",
                 belnap_state=BelnapValue.NEITHER,
-                entry_id=exp[1],
-                memory_id=exp[0],
-                object_value=exp[2],
-                valid_from=exp[3],
-                valid_to=exp[4],
-                valid_until=exp[5],
-                superseded_by=exp[6],
                 checked_at=checked_at,
+                cand=expired[0],
+                expected_constraint=constraint_str,
             )
 
-        if matched:
-            closed = matched[0]
-            return InspectedPremiseRecord(
+        if untrusted_unretracted:
+            return self._build_premise_record(
                 subject=s_norm,
                 predicate=p_norm,
-                status="MISSING",
+                status="UNTRUSTED",
                 belnap_state=BelnapValue.NEITHER,
-                entry_id=closed[1],
-                memory_id=closed[0],
-                object_value=closed[2],
-                valid_from=closed[3],
-                valid_to=closed[4],
-                valid_until=closed[5],
-                superseded_by=closed[6],
                 checked_at=checked_at,
+                cand=untrusted_unretracted[0],
+                expected_constraint=constraint_str,
             )
 
-        return InspectedPremiseRecord(
+        return self._build_premise_record(
             subject=s_norm,
             predicate=p_norm,
             status="MISSING",
             belnap_state=BelnapValue.NEITHER,
             checked_at=checked_at,
+            cand=trusted_matched[0] if trusted_matched else None,
+            expected_constraint=constraint_str,
         )
 
     def _eval_sexpr_node(
@@ -418,17 +748,44 @@ class SpeculativeBDIValidator:
                     break
             return result, steps
 
-        if head == "fresh-fact?" and len(node) >= 3:
-            subj_val, s1 = self._eval_sexpr_node(
+        if head == "arg" and len(node) >= 2:
+            arg_key, s = self._eval_sexpr_node(
                 node[1], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
             )
-            pred_val, s2 = self._eval_sexpr_node(
-                node[2], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
-            )
-            rec = self.inspect_premise(str(subj_val), str(pred_val), now=checked_at)
-            if inspected is not None:
-                inspected.append(rec)
-            return (rec.status == "VALID"), steps + s1 + s2 + 1
+            raw_v = tool_args.get(str(arg_key))
+            return ("" if raw_v is None else str(raw_v)), steps + s
+
+        if head in PREMISE_SEXPR_OPS:
+            req_tool_ver, val_op = PREMISE_SEXPR_OPS[head]
+            min_arity = 3 if val_op is None else 4
+            if len(node) >= min_arity:
+                subj_val, s1 = self._eval_sexpr_node(
+                    node[1], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+                )
+                pred_val, s2 = self._eval_sexpr_node(
+                    node[2], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+                )
+                s_extra = 0
+                exp_val: float | str | None = None
+                if val_op is not None:
+                    ev_raw, s_extra = self._eval_sexpr_node(
+                        node[3], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+                    )
+                    exp_val = str(ev_raw) if isinstance(ev_raw, bool) else ev_raw
+                allowed_provs = (
+                    frozenset({Provenance.TOOL_VERIFIED}) if req_tool_ver else None
+                )
+                rec = self.inspect_premise(
+                    str(subj_val),
+                    str(pred_val),
+                    now=checked_at,
+                    allowed_provenances=allowed_provs,
+                    value_op=val_op,
+                    expected_value=exp_val,
+                )
+                if inspected is not None:
+                    inspected.append(rec)
+                return (rec.status == "VALID"), steps + s1 + s2 + s_extra + 2
 
         if head == "tool=" and len(node) >= 2:
             target_tool, s = self._eval_sexpr_node(
@@ -693,18 +1050,24 @@ class SpeculativeBDIValidator:
         inspected: list[InspectedPremiseRecord] = []
 
         # 3b. Registered Tool & Call-Scoped Evidential Premise Freshness Gates
-        req_pairs: list[tuple[str, str]] = list(self._tool_premises.get(tool_name, []))
+        req_pairs: list[tuple[str, str, bool]] = list(self._tool_premises.get(tool_name, []))
         raw_req = tool_args.get("_required_premises")
         if isinstance(raw_req, list):
             for entry in raw_req:
                 if isinstance(entry, dict):
                     s_val = entry.get("s") or entry.get("subject")
                     p_val = entry.get("p") or entry.get("predicate")
+                    req_tv = bool(entry.get("tool_verified", False))
                     if isinstance(s_val, str) and isinstance(p_val, str) and s_val and p_val:
-                        req_pairs.append((s_val, p_val))
+                        req_pairs.append((s_val, p_val, req_tv))
 
-        for subj_req, pred_req in req_pairs:
-            inspected.append(self.inspect_premise(subj_req, pred_req, now=checked_at))
+        for subj_req, pred_req, req_tv in req_pairs:
+            allowed_p = frozenset({Provenance.TOOL_VERIFIED}) if req_tv else None
+            inspected.append(
+                self.inspect_premise(
+                    subj_req, pred_req, now=checked_at, allowed_provenances=allowed_p
+                )
+            )
             gas_used += 2
 
         failed_premises = [rec for rec in inspected if rec.status != "VALID"]
@@ -820,20 +1183,38 @@ class SpeculativeBDIValidator:
     def _format_premise_failure_reason(failed: list[InspectedPremiseRecord]) -> str:
         parts: list[str] = []
         for rec in failed:
+            b_val = rec.belnap_state.value
             if rec.status == "EXPIRED":
                 parts.append(
-                    f"({rec.subject}, {rec.predicate}) EXPIRED [Belnap {rec.belnap_state.value}]: "
+                    f"({rec.subject}, {rec.predicate}) EXPIRED [Belnap {b_val}]: "
                     f"entry_id={rec.entry_id} valid_until={rec.valid_until} <= "
                     f"checked_at={rec.checked_at} (superseded_by={rec.superseded_by})"
                 )
+            elif rec.status == "THRESHOLD_VIOLATED":
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) THRESHOLD_VIOLATED [Belnap {b_val}]: "
+                    f"entry_id={rec.entry_id} value={rec.object_value!r} failed "
+                    f"constraint '{rec.expected_constraint}'"
+                )
+            elif rec.status == "TAMPERED":
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) TAMPERED [Belnap {b_val}]: "
+                    f"entry_id={rec.entry_id} failed {rec.tamper_stage} integrity check"
+                )
+            elif rec.status == "UNTRUSTED":
+                prov_s = rec.provenance.value if rec.provenance is not None else "unknown"
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) UNTRUSTED [Belnap {b_val}]: "
+                    f"entry_id={rec.entry_id} provenance={prov_s} is not TOOL_VERIFIED"
+                )
             elif rec.status == "CONFLICT":
                 parts.append(
-                    f"({rec.subject}, {rec.predicate}) CONFLICT [Belnap {rec.belnap_state.value}]: "
+                    f"({rec.subject}, {rec.predicate}) CONFLICT [Belnap {b_val}]: "
                     f"conflicting active facts around entry_id={rec.entry_id}"
                 )
             else:
                 parts.append(
-                    f"({rec.subject}, {rec.predicate}) MISSING [Belnap {rec.belnap_state.value}]: "
+                    f"({rec.subject}, {rec.predicate}) MISSING [Belnap {b_val}]: "
                     f"no active grounded premise at checked_at={rec.checked_at}"
                 )
         return "Evidential precondition violation: " + "; ".join(parts)
