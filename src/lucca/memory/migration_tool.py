@@ -10,10 +10,8 @@ be permanently excised in v1.36.0.
 
 from __future__ import annotations
 
-import base64
 import dataclasses
 import hashlib
-import hmac
 import json
 import shutil
 from collections.abc import Sequence
@@ -25,16 +23,21 @@ import structlog
 
 from lucca.core.schemas import Provenance
 from lucca.memory.db import DatabaseManager
-from lucca.memory.tokens import derive_provenance_key
+from lucca.memory.tokens import (
+    ED25519_SIG_PREFIX,
+    derive_ed25519_private_key,
+    sign_ed25519_canonical,
+    verify_provenance_signature,
+)
 
 logger = structlog.get_logger(__name__)
 
 # Known historical development fallback keys detected across repository revisions
 KNOWN_LEGACY_KEYS: Final[tuple[bytes, ...]] = (
     b"01234567890123456789012345678901",  # Core dev key from signer_factory
-    b"dev_master_key_do_not_use_in_prod", # Canonical dev string
-    b"\x00" * 32,                         # 32 null bytes fallback
-    b"0123456789abcdef0123456789abcdef", # Hex fallback key
+    b"dev_master_key_do_not_use_in_prod",  # Canonical dev string
+    b"\x00" * 32,  # 32 null bytes fallback
+    b"0123456789abcdef0123456789abcdef",  # Hex fallback key
 )
 
 _EXCLUDED: Final[frozenset[str]] = frozenset(
@@ -168,8 +171,7 @@ def migrate_memory_keys(
         # and are never auto-blessed. Legacy LISP_ASSERTION rows predate the split and may
         # have been LLM-proposed, so they are held for operator review as well.
         if (
-            prov_str
-            in (Provenance.LLM_INFERRED_ASSERTION.value, Provenance.LISP_ASSERTION.value)
+            prov_str in (Provenance.LLM_INFERRED_ASSERTION.value, Provenance.LISP_ASSERTION.value)
             and not rebless_lisp_assertions
         ):
             report.lisp_assertions_held_count += 1
@@ -225,30 +227,39 @@ def migrate_memory_keys(
             )
             continue
 
-        # Compute signature under active new key
-        new_derived = derive_provenance_key(new_master_key, prov_enum)
-        new_sig = base64.b64encode(
-            hmac.new(new_derived, canonical_bytes, hashlib.sha256).digest()
-        ).decode("ascii")
-
-        if hmac.compare_digest(stored_sig, new_sig):
-            # Already valid under active new key
+        # Already valid RFC 8032 Ed25519 signature under active new key?
+        if stored_sig.startswith(ED25519_SIG_PREFIX) and verify_provenance_signature(
+            stored_sig,
+            canonical_bytes,
+            prov_enum,
+            master_key=new_master_key,
+            allow_legacy_hmac=False,
+        ):
             report.already_valid_count += 1
             quarantine_ids_to_clear.append(mid)
             continue
 
-        # Test against all known candidate legacy keys
-        matched_legacy = False
-        for leg_key in legacy_keys:
-            if len(leg_key) < 32:
-                continue
-            old_derived = derive_provenance_key(leg_key, prov_enum)
-            old_sig = base64.b64encode(
-                hmac.new(old_derived, canonical_bytes, hashlib.sha256).digest()
-            ).decode("ascii")
-            if hmac.compare_digest(stored_sig, old_sig):
-                matched_legacy = True
-                break
+        # Accept legacy HMAC under active new key OR any known historical legacy key (Ed25519/HMAC)
+        matched_legacy = verify_provenance_signature(
+            stored_sig,
+            canonical_bytes,
+            prov_enum,
+            master_key=new_master_key,
+            allow_legacy_hmac=True,
+        )
+        if not matched_legacy:
+            for leg_key in legacy_keys:
+                if len(leg_key) < 32:
+                    continue
+                if verify_provenance_signature(
+                    stored_sig,
+                    canonical_bytes,
+                    prov_enum,
+                    master_key=leg_key,
+                    allow_legacy_hmac=True,
+                ):
+                    matched_legacy = True
+                    break
 
         if not matched_legacy:
             report.tampered_skipped_count += 1
@@ -258,7 +269,11 @@ def migrate_memory_keys(
             )
             continue
 
-        # Valid legacy row: prepare new signature and updated payload JSON
+        # Valid legacy row: upgrade signature to RFC 8032 Ed25519 under active master key
+        new_sig = sign_ed25519_canonical(
+            derive_ed25519_private_key(new_master_key, prov_enum),
+            canonical_bytes,
+        )
         raw_dict["signature"] = new_sig
         new_payload_json = json.dumps(
             raw_dict,

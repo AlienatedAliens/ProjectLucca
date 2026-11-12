@@ -3,16 +3,20 @@ Project Lucca — Capability Provenance Signers
 Spec 03 §1, §2, §3, ADR-006
 """
 
-import base64
 import hashlib
-import hmac
 import json
 from collections.abc import Mapping
 from typing import Final, Protocol
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
 from lucca.core.exceptions import ProvenanceRejected
 from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload
-from lucca.memory.tokens import derive_provenance_key
+from lucca.memory.tokens import derive_ed25519_private_key, sign_ed25519_canonical
 
 KNOWN_DEV_KEYS: Final[frozenset[str]] = frozenset(
     {
@@ -51,12 +55,27 @@ class BaseProvenanceSigner:
     def __init__(self, master_key: bytes, signer_id: str) -> None:
         if len(master_key) < 32:
             raise ProvenanceRejected(f"Master key must be at least 32 bytes, got {len(master_key)}")
-        self.master_key = master_key
         self.signer_id = signer_id
-        # Precompute keys for allowed provenances
-        self._keys: dict[Provenance, bytes] = {
-            p: derive_provenance_key(master_key, p) for p in self.allowed_provenances
+        # Derive ONLY the capability-scoped Ed25519 private keys for allowed_provenances;
+        # master_key is never retained on the signer instance (least-privilege isolation).
+        self._signing_keys: dict[Provenance, Ed25519PrivateKey] = {
+            p: derive_ed25519_private_key(master_key, p) for p in self.allowed_provenances
         }
+        self._public_keys: dict[Provenance, Ed25519PublicKey] = {
+            p: priv.public_key() for p, priv in self._signing_keys.items()
+        }
+
+    def public_keys(self) -> dict[Provenance, Ed25519PublicKey]:
+        """Returns the public verification keys for this signer's allowed provenances."""
+        return dict(self._public_keys)
+
+    def public_key_bytes(self, provenance: Provenance) -> bytes:
+        """Returns the raw 32-byte RFC 8032 Ed25519 public key for an allowed provenance."""
+        if provenance not in self._public_keys:
+            raise ProvenanceRejected(
+                f"Signer '{self.signer_id}' has no public key for provenance '{provenance}'"
+            )
+        return self._public_keys[provenance].public_bytes(Encoding.Raw, PublicFormat.Raw)
 
     def sign(self, payload: UnsignedPayload) -> SignedPayload:
         if payload.provenance not in self.allowed_provenances:
@@ -67,9 +86,8 @@ class BaseProvenanceSigner:
             )
 
         canonical_bytes = canonicalize_unsigned_payload(payload)
-        key = self._keys[payload.provenance]
-        raw_sig = hmac.new(key, canonical_bytes, hashlib.sha256).digest()
-        signature = base64.b64encode(raw_sig).decode("ascii")
+        priv_key = self._signing_keys[payload.provenance]
+        signature = sign_ed25519_canonical(priv_key, canonical_bytes)
         content_sha256 = hashlib.sha256(payload.content.encode("utf-8")).hexdigest()
         entry_id = hashlib.sha256(canonical_bytes).hexdigest()[:32]
 

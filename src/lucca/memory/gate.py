@@ -3,16 +3,15 @@ Project Lucca — Provenance Verification Gate
 Spec 03 §4, Spec 04 §3, ADR-006
 """
 
-import base64
 import hashlib
-import hmac
 import json
 import re
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Final
 
 import structlog
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
 from lucca.core.config import get_config
 from lucca.core.exceptions import ProvenanceRejected
@@ -29,7 +28,7 @@ from lucca.core.schemas import (
     is_valid_predicate,
 )
 from lucca.memory.signers import canonicalize_unsigned_payload
-from lucca.memory.tokens import derive_provenance_key
+from lucca.memory.tokens import derive_ed25519_public_keys, verify_provenance_signature
 
 logger = structlog.get_logger(__name__)
 
@@ -185,8 +184,7 @@ def _check_nli_entailment(verifier: object, premise: str, hypothesis: str) -> bo
             label = getattr(res, "label", None)
             score = float(getattr(res, "score", getattr(res, "confidence", 0.0)))
             if (
-                label == VerifierLabel.ENTAILMENT
-                or str(label).lower().endswith("entailment")
+                label == VerifierLabel.ENTAILMENT or str(label).lower().endswith("entailment")
             ) and score >= 0.75:
                 return True
         elif hasattr(verifier, "verify"):
@@ -266,9 +264,11 @@ def _propositions_match_or_entail(
         jaccard = intersection / union if union > 0 else 0.0
         if jaccard >= 0.80:
             return True
-        if len(
-            set_claim) >= 2 and (
-                intersection / len(set_claim)) >= 0.80 and (intersection / len(set_cand)) >= 0.80:
+        if (
+            len(set_claim) >= 2
+            and (intersection / len(set_claim)) >= 0.80
+            and (intersection / len(set_cand)) >= 0.80
+        ):
             return True
 
     # 4. NLI Entailment via VerifierWorker (>= 0.75)
@@ -407,6 +407,7 @@ def resolve_grounding_eligible(provenance: Provenance, content: str, db: object)
         return 0
     return 1
 
+
 # Baseline predicate set; open predicates validated via is_valid_predicate (WO-17 Phase 2).
 PREDICATES: Final[frozenset[str]] = FACT_PREDICATES
 
@@ -421,19 +422,38 @@ class ProvenanceGate:
 
     def __init__(
         self,
-        master_key: bytes = b"0" * 32,
+        master_key: bytes | None = b"0" * 32,
         db: object = None,
         verifier: object = None,
+        *,
+        public_keys: Mapping[Provenance, Ed25519PublicKey | bytes] | None = None,
+        allow_legacy_hmac: bool = True,
     ) -> None:
-        if len(master_key) < 32:
+        if master_key is None and public_keys is None:
+            raise ProvenanceRejected("ProvenanceGate requires either master_key or public_keys")
+        if master_key is not None and len(master_key) < 32:
             raise ProvenanceRejected(f"Master key must be at least 32 bytes, got {len(master_key)}")
         self.master_key = master_key
         self.db = db
         self.verifier = verifier
-        # Verification keys derived via HKDF
-        self._keys: dict[Provenance, bytes] = {
-            p: derive_provenance_key(master_key, p) for p in Provenance
-        }
+        self.allow_legacy_hmac = allow_legacy_hmac and (master_key is not None)
+
+        # Asymmetric Ed25519 public verification keys (zero private material required when
+        # constructed with public_keys=... and master_key=None).
+        resolved_pubkeys: dict[Provenance, Ed25519PublicKey] = (
+            derive_ed25519_public_keys(master_key) if master_key is not None else {}
+        )
+        if public_keys is not None:
+            for prov, pk in public_keys.items():
+                if isinstance(pk, bytes):
+                    if len(pk) != 32:
+                        raise ProvenanceRejected(
+                            f"Ed25519 public key for {prov} must be 32 bytes, got {len(pk)}"
+                        )
+                    resolved_pubkeys[prov] = Ed25519PublicKey.from_public_bytes(pk)
+                else:
+                    resolved_pubkeys[prov] = pk
+        self._public_keys = resolved_pubkeys
         # Nonce replay tracking: (nonce, content_sha256) -> seen_timestamp
         self._seen_nonces: dict[tuple[str, str], float] = {}
 
@@ -635,12 +655,15 @@ class ProvenanceGate:
                 f"got {payload.content_sha256}"
             )
 
-        # 4. Cryptographic HMAC verification
-        key = self._keys[payload.provenance]
-        expected_raw_sig = hmac.new(key, canonical_bytes, hashlib.sha256).digest()
-        expected_sig = base64.b64encode(expected_raw_sig).decode("ascii")
-
-        if not hmac.compare_digest(payload.signature, expected_sig):
+        # 4. Asymmetric Ed25519 signature verification (with optional legacy HMAC fallback)
+        if not verify_provenance_signature(
+            payload.signature,
+            canonical_bytes,
+            payload.provenance,
+            public_key=self._public_keys.get(payload.provenance),
+            master_key=self.master_key,
+            allow_legacy_hmac=self.allow_legacy_hmac,
+        ):
             raise ProvenanceRejected("Invalid cryptographic signature on payload")
 
         # 5. Freshness check: |now - created_at| <= 300s
@@ -700,12 +723,14 @@ class ProvenanceGate:
 
         if payload.provenance == Provenance.INFERRED:
             if not payload.structured or "proof_trace" not in payload.structured:
-                raise ProvenanceRejected("INFERRED payload requires non-empty "
-                    "structured['proof_trace']")
+                raise ProvenanceRejected(
+                    "INFERRED payload requires non-empty structured['proof_trace']"
+                )
             proof_trace = payload.structured["proof_trace"]
             if not isinstance(proof_trace, list) or len(proof_trace) == 0:
-                raise ProvenanceRejected("INFERRED payload requires non-empty "
-                    "structured['proof_trace']")
+                raise ProvenanceRejected(
+                    "INFERRED payload requires non-empty structured['proof_trace']"
+                )
 
             effective_db = db if db is not None else getattr(self, "db", None)
             effective_verifier = getattr(self, "verifier", None) or getattr(
@@ -714,8 +739,11 @@ class ProvenanceGate:
 
             produced_envelopes: set[str] = set()
             produced_conclusions: set[str] = set()
-            payload_conds_raw = payload.structured.get("conditions",
-                []) if isinstance(payload.structured, dict) else []
+            payload_conds_raw = (
+                payload.structured.get("conditions", [])
+                if isinstance(payload.structured, dict)
+                else []
+            )
             payload_conditions = {
                 str(c).strip().lower()
                 for c in (payload_conds_raw if isinstance(payload_conds_raw, list) else [])
@@ -733,8 +761,11 @@ class ProvenanceGate:
                     raw_sc = step.get("conditions", [])
                     if isinstance(raw_sc, list):
                         step_conditions = {str(c).strip().lower() for c in raw_sc if str(c).strip()}
-                elif hasattr(step, "premises") and hasattr(step, "envelope_id") and hasattr(step,
-                    "conclusion"):
+                elif (
+                    hasattr(step, "premises")
+                    and hasattr(step, "envelope_id")
+                    and hasattr(step, "conclusion")
+                ):
                     raw_prem = getattr(step, "premises", [])
                     premises = list(raw_prem) if isinstance(raw_prem, (list, tuple)) else []
                     step_env_id = getattr(step, "envelope_id", None)
@@ -755,8 +786,8 @@ class ProvenanceGate:
                     if not prem_str:
                         continue
                     if (
-                        prem_str.lower() in step_conditions and prem_str.lower()
-                        in payload_conditions
+                        prem_str.lower() in step_conditions
+                        and prem_str.lower() in payload_conditions
                     ):
                         continue
                     if not self._verify_single_premise(
@@ -768,11 +799,15 @@ class ProvenanceGate:
                     ):
                         raise ProvenanceRejected(
                             f"Proof trace premise '{
-                                prem_str}' does not resolve to an existing envelope"
+                                prem_str
+                            }' does not resolve to an existing envelope"
                         )
 
-                if step_env_id and effective_db is not None and hasattr(effective_db,
-                    "read_cursor"):
+                if (
+                    step_env_id
+                    and effective_db is not None
+                    and hasattr(effective_db, "read_cursor")
+                ):
                     try:
                         with effective_db.read_cursor() as cur:
                             cur.execute(
@@ -782,7 +817,8 @@ class ProvenanceGate:
                             if not cur.fetchone():
                                 raise ProvenanceRejected(
                                     f"Proof trace step envelope '{
-                                        step_env_id}' does not exist in store"
+                                        step_env_id
+                                    }' does not exist in store"
                                 )
                     except ProvenanceRejected:
                         raise

@@ -314,3 +314,64 @@ def test_operator_correct_triple_demotes_active_rule_atomically(tmp_path: Path) 
     )
     assert mgr.rules["demote-on-correct-v1"].status == "RETIRED"
     assert mgr.rules["demote-on-correct-v1"].demotion_count == 2
+
+
+def test_ed25519_authenticated_rule_approval_fail_closed(tmp_path: Path) -> None:
+    """When operator_public_key is set, approve_rule requires a valid Ed25519 approval token."""
+    from lucca.reasoning.lifecycle import generate_operator_keypair, sign_rule_approval
+
+    op_priv, op_pub = generate_operator_keypair()
+    rogue_priv, _ = generate_operator_keypair()
+
+    db = DatabaseManager(tmp_path / "test_ed25519_approve.sqlite")
+    db.migrate()
+    mgr = RuleLifecycleManager(db=db, operator_public_key=op_pub)
+
+    rule_src = """
+    (rule "signed-approve-v1"
+      :when (intent= "read_file")
+      :plan (list (tool "read_file" :rel_path "notes.txt"))
+      :priority 5)
+    """
+    managed = mgr.register_rule(rule_src)
+    state = RuleState(intent="read_file", transcript="read notes.txt")
+    plan = Plan(actions=[ToolCall(tool="read_file", args={"rel_path": "notes.txt"}, call_id="c1")])
+    for i in range(5):
+        mgr.record_shadow(
+            "signed-approve-v1",
+            matched=True,
+            cluster_id=f"sc-{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+    mgr.promote_if_eligible("signed-approve-v1")
+    assert mgr.rules["signed-approve-v1"].status == "PENDING_APPROVAL"
+
+    # 1. Unsigned script call is rejected fail-closed
+    res_unsigned = mgr.approve_rule("signed-approve-v1", approver="script")
+    assert res_unsigned.promoted is False
+    assert "approval_token required" in res_unsigned.reason
+    assert mgr.rules["signed-approve-v1"].status == "PENDING_APPROVAL"
+
+    # 2. Rogue Ed25519 keypair is rejected
+    rogue_tok = sign_rule_approval(
+        rogue_priv, "signed-approve-v1", managed.definition.source_hash, approver="mallory"
+    )
+    res_rogue = mgr.approve_rule("signed-approve-v1", approval_token=rogue_tok)
+    assert res_rogue.promoted is False
+    assert "untrusted operator public key" in res_rogue.reason
+
+    # 3. Wrong source_hash (rule substitution attempt) is rejected
+    stale_tok = sign_rule_approval(op_priv, "signed-approve-v1", "0" * 64, approver="alice")
+    res_stale = mgr.approve_rule("signed-approve-v1", approval_token=stale_tok)
+    assert res_stale.promoted is False
+    assert "source_hash mismatch" in res_stale.reason
+
+    # 4. Valid operator-signed Ed25519 token promotes rule to ACTIVE
+    valid_tok = sign_rule_approval(
+        op_priv, "signed-approve-v1", managed.definition.source_hash, approver="alice@operator"
+    )
+    res_ok = mgr.approve_rule("signed-approve-v1", approval_token=valid_tok)
+    assert res_ok.promoted is True
+    assert "alice@operator" in res_ok.reason
+    assert mgr.rules["signed-approve-v1"].status == "ACTIVE"

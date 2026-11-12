@@ -3,9 +3,7 @@ Project Lucca — Hybrid Memory Retrieval (sqlite-vec KNN + FTS5 BM25 + RRF)
 Spec 04 §6, Spec 10
 """
 
-import base64
 import hashlib
-import hmac
 import json
 import re
 import sqlite3
@@ -28,7 +26,7 @@ from lucca.core.schemas import (
     standard_for_confidence,
 )
 from lucca.memory.db import DatabaseManager
-from lucca.memory.tokens import build_fts_query, derive_provenance_key, subtokens
+from lucca.memory.tokens import build_fts_query, subtokens, verify_provenance_signature
 from lucca.ports import EmbeddingPort
 from lucca.reasoning.relational.allen import AllenRelation, relation_1d
 from lucca.reasoning.relational.sorts import Interval1D
@@ -1610,7 +1608,8 @@ class HybridRetriever:
             placeholders = ",".join("?" for _ in sorted_candidates)
             query_sql = f"""
                 SELECT m.memory_id, m.content, m.kind, m.created_at, m.valid_from,
-                       m.valid_to, m.forgotten_at, p.provenance, p.trace_id,
+                       m.valid_to, m.valid_until, m.superseded_by, m.forgotten_at,
+                       p.provenance, p.trace_id,
                        p.session_id, p.grounding_eligible,
                        p.confidence, p.content_sha256, p.signature, p.payload_json
                 FROM memories m
@@ -1679,15 +1678,16 @@ class HybridRetriever:
 
                             if canonical_bytes is not None:
                                 prov_enum = Provenance(r["provenance"])
-                                derived_key = derive_provenance_key(self.master_key, prov_enum)
-                                expected_raw = hmac.new(
-                                    derived_key, canonical_bytes, hashlib.sha256
-                                ).digest()
-                                expected_sig = base64.b64encode(expected_raw).decode("ascii")
-                                if not hmac.compare_digest(stored_sig, expected_sig):
+                                if not verify_provenance_signature(
+                                    stored_sig,
+                                    canonical_bytes,
+                                    prov_enum,
+                                    master_key=self.master_key,
+                                    allow_legacy_hmac=True,
+                                ):
                                     logger.error(
                                         "memory_retrieval_integrity_violation",
-                                        stage="hmac",
+                                        stage="signature",
                                         memory_id=mid,
                                     )
                                     _integrity_ok = False
@@ -1732,6 +1732,8 @@ class HybridRetriever:
                     continue
 
                 valid_to = r["valid_to"]
+                valid_until = r["valid_until"]
+                superseded_by = r["superseded_by"]
                 forgotten_at = r["forgotten_at"]
                 kind = str(r["kind"])
                 created_at = float(r["created_at"])
@@ -1747,6 +1749,14 @@ class HybridRetriever:
                     and q.temporal_clock != "valid_time"
                 ):
                     continue
+                # - valid_until > current_time (wall-clock TTL expiry, even when unreplaced)
+                if (
+                    valid_until is not None
+                    and float(valid_until) <= current_time
+                    and not q.include_superseded
+                    and q.temporal_clock != "valid_time"
+                ):
+                    continue
                 # - kind filter
                 if q.kinds is not None and kind not in q.kinds:
                     continue
@@ -1756,10 +1766,14 @@ class HybridRetriever:
 
                 # - Qualitative temporal interval filter (Allen interval algebra)
                 if q.temporal_anchor is not None and q.temporal_relation is not None:
+                    eff_end: float | None = float(valid_to) if valid_to is not None else None
+                    if valid_until is not None:
+                        vu_f = float(valid_until)
+                        eff_end = min(eff_end, vu_f) if eff_end is not None else vu_f
                     if not _eval_temporal_constraint(
                         created_at=created_at,
                         valid_from=float(r["valid_from"]),
-                        valid_to=float(valid_to) if valid_to is not None else None,
+                        valid_to=eff_end,
                         anchor=q.temporal_anchor,
                         relation=q.temporal_relation,
                         clock=q.temporal_clock,
@@ -1813,6 +1827,8 @@ class HybridRetriever:
                     created_at=created_at,
                     valid_from=float(r["valid_from"]),
                     valid_to=float(valid_to) if valid_to is not None else None,
+                    valid_until=float(valid_until) if valid_until is not None else None,
+                    superseded_by=int(superseded_by) if superseded_by is not None else None,
                     grounding_eligible=grounding_el,
                     confidence=conf_val,
                 )
@@ -1837,9 +1853,11 @@ class HybridRetriever:
                         FROM kg_edges ed
                         JOIN kg_entities e1 ON ed.s = e1.entity_id
                         JOIN kg_entities e2 ON ed.o = e2.entity_id
-                        WHERE ed.memory_id IN ({ph}) AND ed.valid_to IS NULL
+                        WHERE ed.memory_id IN ({ph})
+                          AND ed.valid_to IS NULL
+                          AND (ed.valid_until IS NULL OR ed.valid_until > ?)
                     """  # noqa: S608
-                    cur.execute(edge_sql, fact_ids)
+                    cur.execute(edge_sql, [*fact_ids, current_time])
                     for erow in cur.fetchall():
                         s_name, p, o_name = str(erow[1]), str(erow[2]), str(erow[3])
                         graph_content = f"{s_name} {p} {o_name}"

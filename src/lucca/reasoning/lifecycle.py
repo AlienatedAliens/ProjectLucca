@@ -3,9 +3,11 @@ Project Lucca — Rule DSL Lifecycle State Machine & Regression Suite
 Spec 05 §8, §9, ADR-007
 """
 
+import base64
 import hashlib
 import json
 import math
+import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -14,7 +16,13 @@ from typing import Final, Literal
 
 import structlog
 import ulid
-from pydantic import JsonValue
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from lucca.core.capabilities import get_default_native_tools
 from lucca.core.config import get_resource_path
@@ -51,6 +59,118 @@ logger = structlog.get_logger(__name__)
 RuleStatus = Literal["PROPOSED", "QUARANTINE", "PENDING_APPROVAL", "ACTIVE", "DEMOTED", "RETIRED"]
 
 MAX_CHAIN_DEPTH: Final[int] = 8
+_ED25519_APPROVAL_PREFIX: Final[str] = "ed25519:"
+
+
+class OperatorApprovalToken(BaseModel):
+    """Cryptographically signed Ed25519 operator approval token for rule promotion."""
+
+    model_config = ConfigDict(frozen=True)
+
+    rule_id: str
+    source_hash: str
+    approver: str = "operator"
+    issued_at: float
+    public_key_b64: str
+    signature: str
+
+
+def _canonical_approval_bytes(
+    rule_id: str, source_hash: str, approver: str, issued_at: float
+) -> bytes:
+    payload = {
+        "approver": approver,
+        "domain": "lucca.rule_approval.v1",
+        "issued_at": round(float(issued_at), 6),
+        "rule_id": rule_id,
+        "source_hash": source_hash,
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+        "utf-8"
+    )
+
+
+def generate_operator_keypair() -> tuple[Ed25519PrivateKey, Ed25519PublicKey]:
+    """Generates a fresh RFC 8032 Ed25519 operator keypair for rule approval gating."""
+    priv = Ed25519PrivateKey.generate()
+    return priv, priv.public_key()
+
+
+def sign_rule_approval(
+    private_key: Ed25519PrivateKey,
+    rule_id: str,
+    source_hash: str,
+    approver: str = "operator",
+    issued_at: float | None = None,
+) -> OperatorApprovalToken:
+    """Signs a rule promotion approval bound to (rule_id, source_hash, approver, issued_at)."""
+    ts = round(float(issued_at if issued_at is not None else time.time()), 6)
+    msg = _canonical_approval_bytes(rule_id, source_hash, approver, ts)
+    sig_b64 = base64.b64encode(private_key.sign(msg)).decode("ascii")
+    pub_raw = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+    return OperatorApprovalToken(
+        rule_id=rule_id,
+        source_hash=source_hash,
+        approver=approver,
+        issued_at=ts,
+        public_key_b64=base64.b64encode(pub_raw).decode("ascii"),
+        signature=_ED25519_APPROVAL_PREFIX + sig_b64,
+    )
+
+
+def _coerce_ed25519_pubkey(key: Ed25519PublicKey | bytes | str) -> Ed25519PublicKey:
+    if isinstance(key, Ed25519PublicKey):
+        return key
+    raw = base64.b64decode(key, validate=True) if isinstance(key, str) else key
+    if len(raw) != 32:
+        raise ValueError(f"Ed25519 public key must be 32 raw bytes, got {len(raw)}")
+    return Ed25519PublicKey.from_public_bytes(raw)
+
+
+def verify_rule_approval_token(
+    token: OperatorApprovalToken,
+    trusted_public_key: Ed25519PublicKey | bytes | str | None,
+    *,
+    rule_id: str,
+    source_hash: str,
+    max_age_s: float = 3600.0,
+    now: float | None = None,
+) -> tuple[bool, str]:
+    """Verifies an Ed25519 operator approval token fail-closed."""
+    if token.rule_id != rule_id:
+        return False, f"Approval token rule_id mismatch: {token.rule_id!r} != {rule_id!r}"
+    if token.source_hash != source_hash:
+        return False, "Approval token source_hash mismatch (rule source changed since signing)"
+    if not token.signature.startswith(_ED25519_APPROVAL_PREFIX):
+        return False, "Approval token missing 'ed25519:' signature prefix"
+
+    current_ts = now if now is not None else time.time()
+    age = abs(current_ts - token.issued_at)
+    if age > max_age_s:
+        return False, f"Approval token expired ({age:.1f}s > {max_age_s:.1f}s)"
+
+    try:
+        token_pub = _coerce_ed25519_pubkey(token.public_key_b64)
+        if trusted_public_key is not None:
+            trusted_pub = _coerce_ed25519_pubkey(trusted_public_key)
+            if token_pub.public_bytes(Encoding.Raw, PublicFormat.Raw) != trusted_pub.public_bytes(
+                Encoding.Raw, PublicFormat.Raw
+            ):
+                return False, "Approval token signed by untrusted operator public key"
+            verify_pub = trusted_pub
+        else:
+            verify_pub = token_pub
+
+        raw_sig = base64.b64decode(token.signature[len(_ED25519_APPROVAL_PREFIX) :], validate=True)
+        if len(raw_sig) != 64:
+            return False, "Invalid Ed25519 signature byte length"
+        msg = _canonical_approval_bytes(
+            token.rule_id, token.source_hash, token.approver, token.issued_at
+        )
+        verify_pub.verify(raw_sig, msg)
+        return True, f"Cryptographically verified Ed25519 approval by {token.approver}"
+    except (InvalidSignature, ValueError) as exc:
+        return False, f"Invalid Ed25519 approval signature: {exc}"
 
 
 def get_default_tool_schemas() -> dict[str, ToolSchema]:
@@ -184,6 +304,7 @@ class RuleLifecycleManager:
         db: DatabaseManager | None = None,
         require_human_approval: bool = True,
         skills_dir: Path | str | None = None,
+        operator_public_key: Ed25519PublicKey | bytes | str | None = None,
     ) -> None:
         self.registered_tools = (
             registered_tools if registered_tools is not None else get_default_tool_schemas()
@@ -191,6 +312,13 @@ class RuleLifecycleManager:
         self.db = db
         self.require_human_approval = require_human_approval
         self.skills_dir = Path(skills_dir) if skills_dir is not None else None
+        env_pubkey = os.environ.get("LUCCA_OPERATOR_PUBKEY", "").strip()
+        eff_pubkey = (
+            operator_public_key if operator_public_key is not None else (env_pubkey or None)
+        )
+        self.operator_public_key: Ed25519PublicKey | None = (
+            _coerce_ed25519_pubkey(eff_pubkey) if eff_pubkey is not None else None
+        )
         self.rules: dict[str, ManagedRule] = {}
         self.regression_cases: list[RegressionCase] = []
         self.latest_triples: list[ExecutionTriple] = []
@@ -823,20 +951,43 @@ class RuleLifecycleManager:
         )
 
     def approve_rule(
-        self, rule_id: str, approver: str = "human", require_replay: bool = False
+        self,
+        rule_id: str,
+        approver: str = "human",
+        require_replay: bool = False,
+        approval_token: OperatorApprovalToken | None = None,
     ) -> PromotionResult:
         """
         Explicit promotion gate for rules when `require_human_approval=True`
         (where `promote_if_eligible` halts at `PENDING_APPROVAL`).
-        Accepts rules in either `PENDING_APPROVAL` or `QUARANTINE` if all promotion
-        checks pass. Note: `approver` is an unauthenticated audit label (defaults to
-        `"human"`) and cannot distinguish a human operator call from a script/harness call.
-        Validates criteria and transitions a PENDING_APPROVAL or QUARANTINE rule to ACTIVE.
+        When `operator_public_key` is configured (via constructor or `LUCCA_OPERATOR_PUBKEY`)
+        or `approval_token` is supplied, cryptographically verifies an RFC 8032 Ed25519
+        signature bound to `(rule_id, source_hash, approver, issued_at)` fail-closed.
         """
         if rule_id not in self.rules:
             return PromotionResult(promoted=False, rule_id=rule_id, reason="Rule not registered")
 
         rule = self.rules[rule_id]
+        if self.operator_public_key is not None or approval_token is not None:
+            if approval_token is None:
+                return PromotionResult(
+                    promoted=False,
+                    rule_id=rule_id,
+                    reason=(
+                        "Cryptographic Ed25519 operator approval_token required when "
+                        "operator_public_key is configured"
+                    ),
+                )
+            ok, auth_reason = verify_rule_approval_token(
+                approval_token,
+                self.operator_public_key,
+                rule_id=rule_id,
+                source_hash=rule.definition.source_hash,
+            )
+            if not ok:
+                return PromotionResult(promoted=False, rule_id=rule_id, reason=auth_reason)
+            approver = approval_token.approver
+
         if rule.status not in ("PENDING_APPROVAL", "QUARANTINE"):
             return PromotionResult(
                 promoted=False,

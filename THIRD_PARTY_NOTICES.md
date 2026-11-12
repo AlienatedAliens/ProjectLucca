@@ -59,6 +59,7 @@ The Project Lucca source code itself is licensed under the **GNU Affero General 
 | **onnxruntime** | MIT License | Microsoft Corporation | Execution engine for ONNX acoustic models |
 | **Scrapling** | BSD 3-Clause | Karim Shoair (D4Vinci) | Adaptive HTML parsing and 3-tier web research extraction (`WO-42`) |
 | **curl_cffi** | MIT License | Yifei Kong and contributors | Chrome TLS JA3/JA4 and HTTP/2 fingerprint impersonation (`WO-42`) |
+| **cryptography** | Apache License 2.0 / BSD 3-Clause | The Python Cryptographic Authority | RFC 8032 Ed25519 asymmetric provenance signing and operator rule-approval tokens |
 
 ---
 

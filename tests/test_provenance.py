@@ -294,3 +294,69 @@ def test_p_05_canonical_json_invariants(content: str, trace_id: str, nonce: str,
     )
     p2 = p1.model_copy(update={"content": content + "_mod"})
     assert canonicalize_unsigned_payload(p1) != canonicalize_unsigned_payload(p2)
+
+
+def test_ed25519_public_key_only_verification_and_no_secret_retention() -> None:
+    """
+    Verifies RFC 8032 Ed25519 asymmetric signing:
+    1. Signers do not retain master_key in memory.
+    2. Signatures carry 'ed25519:' prefix and 64-byte raw Ed25519 signature.
+    3. ProvenanceGate(master_key=None, public_keys=...) verifies using ONLY public keys
+       and rejects legacy HMAC downgrade attempts.
+    4. Default ProvenanceGate still reads legacy pre-v1.52 HMAC envelopes seamlessly.
+    """
+    import base64
+    import hashlib
+    import hmac
+
+    from lucca.core.schemas import SignedPayload
+    from lucca.memory.tokens import derive_provenance_key
+
+    now = time.time()
+    signer = UserSpeechSigner(master_key=TEST_MASTER_KEY)
+    assert not hasattr(signer, "master_key")
+    assert len(signer.public_key_bytes(Provenance.USER_EXPLICIT)) == 32
+
+    unsigned = UnsignedPayload(
+        provenance=Provenance.USER_EXPLICIT,
+        kind="transcript",
+        content="Verify me with public key only",
+        created_at=now,
+        nonce="ed25519_pk_only_01",
+    )
+    signed = signer.sign(unsigned)
+    assert signed.signature.startswith("ed25519:")
+    assert len(base64.b64decode(signed.signature[len("ed25519:") :])) == 64
+
+    # Public-key-only gate (zero secret keys) admits valid Ed25519 envelope
+    pub_only_gate = ProvenanceGate(
+        master_key=None,
+        public_keys=signer.public_keys(),
+        allow_legacy_hmac=False,
+    )
+    admitted = pub_only_gate.admit(signed, now=now)
+    assert admitted.payload.entry_id == signed.entry_id
+
+    # Construct a legacy HMAC-SHA256 envelope: rejected by pub_only_gate, admitted by migration gate
+    unsigned_leg = unsigned.model_copy(update={"nonce": "legacy_hmac_row_01"})
+    canon = canonicalize_unsigned_payload(unsigned_leg)
+    leg_sig = base64.b64encode(
+        hmac.new(
+            derive_provenance_key(TEST_MASTER_KEY, Provenance.USER_EXPLICIT),
+            canon,
+            hashlib.sha256,
+        ).digest()
+    ).decode("ascii")
+    legacy_signed = SignedPayload(
+        **unsigned_leg.model_dump(),
+        signer_id="legacy@lucca",
+        signature=leg_sig,
+        content_sha256=hashlib.sha256(unsigned_leg.content.encode("utf-8")).hexdigest(),
+        entry_id=hashlib.sha256(canon).hexdigest()[:32],
+    )
+
+    with pytest.raises(ProvenanceRejected, match="Invalid cryptographic signature"):
+        pub_only_gate.admit(legacy_signed, now=now)
+
+    compat_gate = ProvenanceGate(master_key=TEST_MASTER_KEY, allow_legacy_hmac=True)
+    assert compat_gate.admit(legacy_signed, now=now).payload.entry_id == legacy_signed.entry_id
