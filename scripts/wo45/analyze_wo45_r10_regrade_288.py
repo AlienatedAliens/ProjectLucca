@@ -22,6 +22,7 @@ import random
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WO45_DIR = REPO_ROOT / "logs/test_reports/wo45"
@@ -467,14 +468,20 @@ def main() -> None:
     out_json_sha = hashlib.sha256(out_json.read_bytes()).hexdigest()
 
     # 4. Generate Markdown Report: logs/test_reports/wo45/r10_regrade_288_REPORT.md
-    disagreements = [r for r in payload["evaluated_turns_288"] if r["regex_pass"] != r["semantic_pass"]]  # type: ignore[index]
-    ps = payload["pooled_summary_144_pairs"]  # type: ignore[index]
-    cb = ps["semantic_cluster_bootstrap_primary"]  # type: ignore[index]
-    sm = ps["semantic_pooled_mcnemar_secondary"]  # type: ignore[index]
-    rm = ps["regex_pooled_mcnemar"]  # type: ignore[index]
-    cm_all = regex_vs_judge_stats["confusion_matrix_pooled_288"]  # type: ignore[index]
-    cm_a = regex_vs_judge_stats["confusion_matrix_by_arm"]["Arm_A"]  # type: ignore[index]
-    cm_b = regex_vs_judge_stats["confusion_matrix_by_arm"]["Arm_B"]  # type: ignore[index]
+    eval_turns_list = cast(list[dict[str, object]], payload["evaluated_turns_288"])
+    disagreements = [r for r in eval_turns_list if r["regex_pass"] != r["semantic_pass"]]
+    ps = cast(dict[str, object], payload["pooled_summary_144_pairs"])
+    cb = cast(dict[str, object], ps["semantic_cluster_bootstrap_primary"])
+    cb_ci = cast(tuple[float, float], cb["cluster_bootstrap_95_ci_pp"])
+    sm = cast(dict[str, object], ps["semantic_pooled_mcnemar_secondary"])
+    rm = cast(dict[str, object], ps["regex_pooled_mcnemar"])
+    cm_all = cast(dict[str, int], regex_vs_judge_stats["confusion_matrix_pooled_288"])
+    cm_by_arm = cast(dict[str, dict[str, int]], regex_vs_judge_stats["confusion_matrix_by_arm"])
+    cm_a = cm_by_arm["Arm_A"]
+    cm_b = cm_by_arm["Arm_B"]
+    raw_agree_pct = float(cast(float | int, regex_vs_judge_stats["raw_agreement_pct"]))
+    ps_over_hedge = cast(dict[str, str], ps["over_hedge_on_met_cells_r16"])
+    ps_conflict_disc = cast(dict[str, str], ps["conflict_disclosed_on_disputed_cells"])
 
     md_lines = [
         "# WO-45 Task R-10 (Gate G3): Blinded Dual-Judge Semantic Re-Grading of 288 Replies",
@@ -515,8 +522,8 @@ def main() -> None:
             "",
             "## 2. Regex Scorer vs. Blinded Semantic Judge Agreement ($N=288$)",
             "",
-            f"- **Raw Agreement:** `{regex_vs_judge_stats['agreed']}/288 ({regex_vs_judge_stats['raw_agreement_pct']:.2f}%)`",
-            f"- **Disagreements:** `{regex_vs_judge_stats['disagreed']}/288 ({100.0 - float(regex_vs_judge_stats['raw_agreement_pct']):.2f}%)`",
+            f"- **Raw Agreement:** `{regex_vs_judge_stats['agreed']}/288 ({raw_agree_pct:.2f}%)`",
+            f"- **Disagreements:** `{regex_vs_judge_stats['disagreed']}/288 ({100.0 - raw_agree_pct:.2f}%)`",
             f"- **Cohen's $\\kappa$ (Regex vs. Semantic Judge):** `{regex_vs_judge_stats['cohen_kappa']:.4f}`",
             "",
             "### 2.1 Confusion Matrix (Pooled $N=288$ Turns, Arm A $N=144$, Arm B $N=144$)",
@@ -542,22 +549,22 @@ def main() -> None:
 
     for m_name in models_order:
         mr = per_model_results[m_name]
-        cia = mr["semantic_arm_a_wilson_95_ci"]  # type: ignore[index]
-        cib = mr["semantic_arm_b_wilson_95_ci"]  # type: ignore[index]
-        mm = mr["semantic_mcnemar"]  # type: ignore[index]
+        cia = cast(tuple[float, float], mr["semantic_arm_a_wilson_95_ci"])
+        cib = cast(tuple[float, float], mr["semantic_arm_b_wilson_95_ci"])
+        mm = cast(dict[str, object], mr["semantic_mcnemar"])
         md_lines.append(
             f"| **{m_name}** | `{mr['semantic_arm_a_pass']}` (`{mr['semantic_arm_a_pct']:.2f}%`, `[{cia[0]:.2f}%, {cia[1]:.2f}%]`) | `{mr['semantic_arm_a_hedge_cells']}` / `{mr['semantic_arm_a_met_cells']}` | **`{mr['semantic_arm_b_pass']}`** (`{mr['semantic_arm_b_pct']:.2f}%`, `[{cib[0]:.2f}%, {cib[1]:.2f}%]`) | `{mr['semantic_arm_b_hedge_cells']}` / `{mr['semantic_arm_b_met_cells']}` | `{mm['discordant_b_c']}` ($p = {mm['exact_p']:.2e}$) | `{mr['regex_arm_a_pass']}` (`{mr['regex_arm_a_pct']:.2f}%`) | `{mr['regex_arm_b_pass']}` (`{mr['regex_arm_b_pct']:.2f}%`) |"
         )
 
-    pcia = ps["semantic_arm_a_wilson_95_ci"]  # type: ignore[index]
-    pcib = ps["semantic_arm_b_wilson_95_ci"]  # type: ignore[index]
+    pcia = cast(tuple[float, float], ps["semantic_arm_a_wilson_95_ci"])
+    pcib = cast(tuple[float, float], ps["semantic_arm_b_wilson_95_ci"])
     md_lines.extend(
         [
             f"| **Pooled ($N=144$ pairs across $N=36$ items)** | **`{ps['semantic_arm_a_pass']}` (`{ps['semantic_arm_a_pct']:.2f}%`, `[{pcia[0]:.2f}%, {pcia[1]:.2f}%]`)** | `{ps['semantic_arm_a_hedge_cells']}` / `{ps['semantic_arm_a_met_cells']}` | **`{ps['semantic_arm_b_pass']}` (`{ps['semantic_arm_b_pct']:.2f}%`, `[{pcib[0]:.2f}%, {pcib[1]:.2f}%]`)** | `{ps['semantic_arm_b_hedge_cells']}` / `{ps['semantic_arm_b_met_cells']}` | `{sm['discordant_b_c']}` ($\\chi^2_{{\\text{{cc}}}} = {sm['chi2_cc']:.2f}$, $p = {sm['exact_p']:.2e}$) | `{ps['regex_arm_a_pass']}` (`{ps['regex_arm_a_pct']:.2f}%`) | `{ps['regex_arm_b_pass']}` (`{ps['regex_arm_b_pct']:.2f}%`) |",
             "",
             "### 3.1 Cluster-Robust Primary Inference (Effective $N = 36$ Item Clusters, $10,000$ Bootstrap Resamples)",
             "",
-            f"- **Primary Cluster-Bootstrap Treatment Effect (Arm B $-$ Arm A):** **`+{cb['observed_diff_b_minus_a_pp']:.2f} pp` (`95% CI [+{cb['cluster_bootstrap_95_ci_pp'][0]:.2f} pp, +{cb['cluster_bootstrap_95_ci_pp'][1]:.2f} pp]`)** over $N=36$ independent item clusters (`144` paired turns).",
+            f"- **Primary Cluster-Bootstrap Treatment Effect (Arm B $-$ Arm A):** **`+{cb['observed_diff_b_minus_a_pp']:.2f} pp` (`95% CI [+{cb_ci[0]:.2f} pp, +{cb_ci[1]:.2f} pp]`)** over $N=36$ independent item clusters (`144` paired turns).",
             f"- **Secondary Naïve Pooled McNemar ($N=144$ pairs):** Discordant `b:c = {sm['discordant_b_c']}`, $\\chi^2_{{\\text{{cc}}}} = {sm['chi2_cc']:.4f}$, exact $p = {sm['exact_p']:.2e}$ (vs. original regex `b:c = {rm['discordant_b_c']}`, $\\chi^2_{{\\text{{cc}}}} = {rm['chi2_cc']:.4f}$, $p = {rm['exact_p']:.2e}$).",
             "",
             "---",
@@ -577,7 +584,7 @@ def main() -> None:
 
     md_lines.extend(
         [
-            f"| **Pooled** | **`{ps['over_hedge_on_met_cells_r16']['Arm_A']}`** | **`{ps['over_hedge_on_met_cells_r16']['Arm_B']}`** | **`{ps['conflict_disclosed_on_disputed_cells']['Arm_A']}`** | **`{ps['conflict_disclosed_on_disputed_cells']['Arm_B']}`** |",
+            f"| **Pooled** | **`{ps_over_hedge['Arm_A']}`** | **`{ps_over_hedge['Arm_B']}`** | **`{ps_conflict_disc['Arm_A']}`** | **`{ps_conflict_disc['Arm_B']}`** |",
             "",
             "---",
             "",
@@ -589,7 +596,7 @@ def main() -> None:
     )
 
     for r in disagreements:
-        adj = r["adjudicated"]  # type: ignore[index]
+        adj = cast(dict[str, str], r["adjudicated"])
         lbl_str = f"`{adj['D1']} / {adj['D2']} / {adj['D3']} / {adj['D4']}`"
         excerpt = str(r["reply"]).replace("\n", " ").replace("|", "\\|")
         if len(excerpt) > 160:

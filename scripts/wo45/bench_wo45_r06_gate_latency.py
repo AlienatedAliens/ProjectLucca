@@ -25,10 +25,11 @@ if str(REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(REPO_ROOT / "src"))
 
 import openvino as ov  # noqa: E402
+
 from lucca.core.neural_hazard_classifier import (  # noqa: E402
-    NeuralHazardClassifier,
     _SINGLETON_HOLDER,
     _SINGLETON_LOCK,
+    NeuralHazardClassifier,
 )
 from lucca.core.proof_policy import evaluate_web_evidence_burden  # noqa: E402
 

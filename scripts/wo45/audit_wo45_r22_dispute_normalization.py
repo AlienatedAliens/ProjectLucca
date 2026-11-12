@@ -26,6 +26,7 @@ from lucca.core.coherence import ToolReceipt  # noqa: E402
 from lucca.core.corroboration import (  # noqa: E402
     CQAnswer,
     Scheme,
+    _tokenize_proposition,
     adjust_confidence,
     critical_questions,
 )
@@ -33,10 +34,8 @@ from lucca.core.proof_policy import (  # noqa: E402
     _QUESTION_FILLER_TOKENS,
     _extract_source_domain,
     _select_query_aligned_sentence,
-    _tokenize_proposition,
-    standard_for_confidence,
 )
-from lucca.core.schemas import InferenceStep  # noqa: E402
+from lucca.core.schemas import InferenceStep, standard_for_confidence  # noqa: E402
 
 SPECIAL_PATTERNS: list[tuple[str, str, str, str, str]] = [
     (
@@ -247,8 +246,8 @@ def evaluate_walton_with_ablation(
 
     std_ok = (
         achieved_std.value == item["expected_standard"]
-        and abs(eff_conf - float(item["expected_confidence"])) < 1e-6
-        and total_indep == int(item["expected_independent_sources"])
+        and abs(eff_conf - float(str(item["expected_confidence"]))) < 1e-6
+        and total_indep == int(str(item["expected_independent_sources"]))
         and is_disputed is bool(item["expected_disputed"])
     )
     return std_ok, is_disputed, matched_patterns
@@ -350,6 +349,24 @@ def main() -> None:
         if (std_ok, is_disp) != (base_results[pid][0], base_results[pid][1]):
             all_disabled_changed.append(pid)
 
+    combined_ablations = {
+        "all_7_special_patterns_disabled": {
+            "walton_conformance": f"{all_special_pass}/{len(items_360)}",
+            "items_changing_verdict_count": len(all_special_changed),
+            "items_changing_verdict_ids": all_special_changed,
+        },
+        "broad_negation_strip_433_443_disabled_only": {
+            "introducing_commit": git_introducing_commit("countervail"),
+            "walton_conformance": f"{broad_strip_pass}/{len(items_360)}",
+            "items_changing_verdict_count": len(broad_strip_changed),
+            "items_changing_verdict_ids": broad_strip_changed,
+        },
+        "all_normalizations_424_443_disabled": {
+            "walton_conformance": f"{all_disabled_pass}/{len(items_360)}",
+            "items_changing_verdict_count": len(all_disabled_changed),
+            "items_changing_verdict_ids": all_disabled_changed,
+        },
+    }
     payload = {
         "task_id": "R-22",
         "analysis_label": "post-hoc analysis on the WO-44 corpus",
@@ -360,24 +377,7 @@ def main() -> None:
         "prior_dev_dataset_sha256": hashlib.sha256(path_60.read_bytes()).hexdigest(),
         "baseline_walton_conformance": f"{base_pass_count}/{len(items_360)}",
         "per_pattern_ablation": ablation_rows,
-        "combined_ablations": {
-            "all_7_special_patterns_disabled": {
-                "walton_conformance": f"{all_special_pass}/{len(items_360)}",
-                "items_changing_verdict_count": len(all_special_changed),
-                "items_changing_verdict_ids": all_special_changed,
-            },
-            "broad_negation_strip_433_443_disabled_only": {
-                "introducing_commit": git_introducing_commit("countervail"),
-                "walton_conformance": f"{broad_strip_pass}/{len(items_360)}",
-                "items_changing_verdict_count": len(broad_strip_changed),
-                "items_changing_verdict_ids": broad_strip_changed,
-            },
-            "all_normalizations_424_443_disabled": {
-                "walton_conformance": f"{all_disabled_pass}/{len(items_360)}",
-                "items_changing_verdict_count": len(all_disabled_changed),
-                "items_changing_verdict_ids": all_disabled_changed,
-            },
-        },
+        "combined_ablations": combined_ablations,
     }
 
     out_path = REPO_ROOT / "logs/test_reports/wo45/r22_dispute_normalization_ablation.json"
@@ -391,9 +391,9 @@ def main() -> None:
             f"changed_360={row['items_changing_verdict_when_disabled_ids']} | "
             f"dev_60={row['matched_items_in_prior_dev_60_ids']}"
         )
-    print("Combined all 7 special disabled:", payload["combined_ablations"]["all_7_special_patterns_disabled"])
-    print("Broad negation strip disabled:", payload["combined_ablations"]["broad_negation_strip_433_443_disabled_only"])
-    print("All 424-443 disabled:", payload["combined_ablations"]["all_normalizations_424_443_disabled"])
+    print("Combined all 7 special disabled:", combined_ablations["all_7_special_patterns_disabled"])
+    print("Broad negation strip disabled:", combined_ablations["broad_negation_strip_433_443_disabled_only"])
+    print("All 424-443 disabled:", combined_ablations["all_normalizations_424_443_disabled"])
 
 
 if __name__ == "__main__":

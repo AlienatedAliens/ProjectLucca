@@ -158,8 +158,9 @@ def summarize_single_rater(
         b_wins = 0
         c_losses = 0
         for pid, ra, rb in m_pairs:
-            ja = ra[rater_key]  # type: ignore[index]
-            jb = rb[rater_key]  # type: ignore[index]
+            ja = ra[rater_key]
+            jb = rb[rater_key]
+            assert isinstance(ja, dict) and isinstance(jb, dict)
             sa = is_sem_pass(str(ja["D1"]), str(ja["D2"]), str(ja["D3"]))
             sb = is_sem_pass(str(jb["D1"]), str(jb["D2"]), str(jb["D3"]))
             pairs_by_item.setdefault(pid, []).append((int(sa), int(sb)))
