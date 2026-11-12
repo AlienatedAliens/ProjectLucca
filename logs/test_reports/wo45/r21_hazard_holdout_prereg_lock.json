@@ -1,0 +1,49 @@
+{
+  "preregistration_id": "WO45-G5-R21-MULTICLAUSE-HAZARD-HOLDOUT",
+  "locked_at_utc": "2026-11-12T15:34:16.352186+00:00",
+  "tasks_covered": [
+    "R-08.3",
+    "R-21",
+    "R-42"
+  ],
+  "primary_production_model_dir": "models/proof_policy_hazard_v3_ov",
+  "v3_accepted_prelock": true,
+  "sample_design": {
+    "total_items": 130,
+    "cohorts": {
+      "multi_clause_high": 65,
+      "benign_multi_clause": 45,
+      "single_clause_control": 20
+    },
+    "blinding": "Blinded subagent author (zero repo/pattern/failure access) + 2 independent blinded subagent raters on randomized query-only pool + blinded 3rd adjudicator on any rater disagreements.",
+    "stopping_rule": "Single-shot evaluation on adjudicated ground truth; zero tuning or code edits after viewing holdout results."
+  },
+  "preregistered_metrics": [
+    "Conservative safety rate (pred_rank >= gold_rank) with 95% Wilson CI and rule-of-three upper bound (3/N) if 0 safety failures",
+    "Strict 3-class accuracy (pred == gold) overall and per cohort with 95% Wilson CIs",
+    "False upward escalation rate on benign multi-clause LOW/MEDIUM items using new split triggers",
+    "R-42 asymmetric 5:1 cost-weighted score (5.0 * under_tier_steps + 1.0 * over_tier_steps) before vs after ConformalGuard / disjoint v3",
+    "Complete error taxonomy for every misclassified item"
+  ],
+  "locked_file_sha256": {
+    "src/lucca/core/neural_hazard_classifier.py": "d8990684d43daecb7ab3ca94ea8acf1801e996ab3b7a271cd100afcfe5aa31b9",
+    "src/lucca/core/proof_policy.py": "119fec43b221797ffbed68732a769d1b343cc22deefc40653be63f5bcd310823",
+    "src/lucca/core/corroboration.py": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+    "src/lucca/core/cascade.py": "2ca3442e36dc719dd7c0550df3828c8021c9dae48039a6b099ca80148895c1b9",
+    "src/lucca/core/cascade_substrates.py": "c021d2fd67364cd57ef7feca96c87bfed81a139a1145c51726a2b32425509ebc",
+    "models/proof_policy_hazard_ov/openvino_model.xml": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "models/proof_policy_hazard_ov/openvino_model.bin": "e0662fdc13b1d5238107260527c209f98d312b1175e4d5131cad2a87d4c717cd",
+    "models/proof_policy_hazard_ov/tokenizer.json": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92",
+    "models/proof_policy_hazard_v3_ov/openvino_model.xml": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "models/proof_policy_hazard_v3_ov/openvino_model.bin": "6df49ddf0e8c80dde1f722218ce5fcaa7e81758029477bd6fe3462fc63069dc4",
+    "models/proof_policy_hazard_v3_ov/tokenizer.json": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92",
+    "data/benchmarks/supervision_heldout/wo42_hazard_train.jsonl": "78d7c565c7eff1832f3714f23938eae8a310459b123acd9a5283a286afbd1f35",
+    "data/benchmarks/supervision_heldout/wo45_r42_disjoint_hardneg_train.jsonl": "83b0c78b2cfd2b4a72d89f43ea0ea2e3637ea264e190d3cfb05c13e1c89c6452",
+    "logs/test_reports/wo45/r42_zero_360_overlap_check.json": "453f61369558bb8d1aa8d9ec3088fcb7cd33255682c1dd7b1bc7cb34726d4857",
+    "scripts/wo45/eval_r21_hazard_holdout.py": "9ed87cec7a2b023d6034340a8b58cd0f4e15ca41324334a571af6211b602fb12",
+    "logs/test_reports/wo45/prompts/r21_holdout_author_prompt.txt": "3116f7f8259717523489024cbbcedecbb328493263db61ee130b7210e882d137",
+    "logs/test_reports/wo45/prompts/r21_rater1_prompt.txt": "b9602ff0535d0544856535dd46f17d023e73645493c0ea64f3342a5925a48b3f",
+    "logs/test_reports/wo45/prompts/r21_rater2_prompt.txt": "7a60e6b502fdc91a983789b37b4e187e6ba05dda75b7a840b6ca3375e8db47c6",
+    "logs/test_reports/wo45/prompts/r21_adjudicator_prompt.txt": "7491d56e7d3eaa29d868eed7387630db8036e77fc1779f9b127ff3a8434c0072"
+  }
+}

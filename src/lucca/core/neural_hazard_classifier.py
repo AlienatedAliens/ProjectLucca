@@ -1,16 +1,18 @@
 """
-OpenVINO 5-Class Sentence-Pooling Neural Proof-Policy Hazard & Cross-Reference Classifier
-(WO-41 Phase 4 Milestone 4.1 & WO-42 Milestone 1.2).
+OpenVINO 5-Class Sentence/Clause-Pooling Neural Proof-Policy Hazard & Cross-Reference Classifier
+(WO-41 Phase 4 Milestone 4.1, WO-42 Milestone 1.2, & WO-45 R-08.3 / R-42).
 
 Trained full-layer on a discrete CUDA GPU (`cross-encoder/nli-MiniLM2-L6-H768`,
 all 6 transformer layers + embeddings unfrozen) and exported to static-shape `[1, 64]` OpenVINO IR
 (`models/proof_policy_hazard_ov/openvino_model.xml`) for Intel NPU / iGPU / CPU execution.
 
-WO-42 Milestone 1.2 Multi-Sentence Max-Hazard Pooling:
-  - Splits multi-sentence inputs into individual sentences and evaluates each sentence on the NPU.
+WO-42 Milestone 1.2 & WO-45 R-08.3 / R-42 Clause-Level Pooling & ConformalGuard:
+  - Splits multi-clause inputs via `ClauseSplitter.split_clauses()` and evaluates each clause.
   - Enforces the strict lattice dominance invariant `HIGH > MEDIUM > LOW`:
-      `hazard(S_1 ... S_k) = max_{i} hazard(S_i)`
-  - Pools cross-reference intent via logical OR across sentences (`any(is_cross_reference_cmd)`).
+      `hazard(C_1 ... C_k) = max_{i} hazard(C_i)`
+  - Pools cross-reference intent via logical OR across clauses (`any(is_cross_reference_cmd)`).
+  - Applies one-tier `ConformalGuard` fallback (`uncertain -> MEDIUM, not HIGH`) when non-HIGH
+    probability mass covers `>= 0.80` and no high-hazard domain cue is present.
 
 5-Class Output Taxonomy:
   - 0: LOW                  -> Hazard.LOW ("low")
@@ -26,6 +28,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
@@ -44,18 +47,25 @@ CLASS_NAMES: Final[tuple[str, ...]] = (
     "UNKNOWN_FAIL_CLOSED",
 )
 FAIL_CLOSED_CONFIDENCE_THRESHOLD: Final[float] = 0.65
+CONFORMAL_NON_HIGH_MASS_THRESHOLD: Final[float] = 0.80
 HAZARD_RANK: Final[dict[str, int]] = {"low": 0, "medium": 1, "high": 2}
 _SENTENCE_SPLIT_RE: Final[re.Pattern[str]] = re.compile(
-    r"(?<=[.!?])\s+|\n+|;\s+|,\s+(?=(?:how|what|why|when|where|which|who|does|do|did|can|could|should|will|would|while|although|whereas)\b)",
+    r"(?<=[.!?])\s+|\n+|;\s+|\s+(?:\u2014|--)\s+|"
+    r",\s+(?=(?:how|what|why|when|where|which|who|whose|whom|does|do|did|"
+    r"can|could|should|will|would|while|although|though|whereas|unless|if|because|since)\b)|"
+    r",\s+(?=(?:and|but|yet|so|also|plus)\s+(?:how|what|why|when|where|which|who|"
+    r"can|could|should|will|would|may|might|must|is|are|was|were|do|does|did|"
+    r"i|we|you|my|our|your|let's|please|tell|explain|show|give)\b)",
     re.IGNORECASE,
 )
+_ALPHA_TOKEN_RE: Final[re.Pattern[str]] = re.compile(r"[A-Za-z]+")
 
 _CROSS_REF_CMD_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:cross[- ]?reference|cross[- ]?check|triangulate|corroborate)\b.*"
     r"\b(?:independent|multiple|several|separate|external|second|third|sources?|outlets?|agencies|websites?|papers?|publications?|references?|filings?|databases?|notices?|datasets?)\b|"
     r"\b(?:pull\s+up|find|check|use)\s+(?:a\s+)?(?:second|third|multiple|several|independent)\s+(?:and\s+third\s+)?(?:independent\s+|external\s+|separate\s+)?(?:references?|sources?|outlets?)\s+to\s+(?:verify|confirm|corroborate|check)\b|"
     r"\b(?:double[- "
-        r"]?check|verify|confirm)\b.*\b(?:across|against)\s+(?:at\s+least\s+\w+\s+)?(?:multiple|several|independent|other\s+external|second|third)\s+(?:independent\s+|external\s+|separate\s+)?(?:sources?|outlets?|agencies|websites?|publications?|notices?|services?)\b",
+    r"]?check|verify|confirm)\b.*\b(?:across|against)\s+(?:at\s+least\s+\w+\s+)?(?:multiple|several|independent|other\s+external|second|third)\s+(?:independent\s+|external\s+|separate\s+)?(?:sources?|outlets?|agencies|websites?|publications?|notices?|services?)\b",
     re.IGNORECASE,
 )
 
@@ -73,20 +83,33 @@ _HIGH_HAZARD_DOMAIN_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:rm\s+-rf|mkfs|diskpart|format\s+[a-z]:|dd\s+if=|drop\s+(?:database|table|schema)|"
     r"truncate\s+table|delete\s+from\s+\w+\s*;|chmod\s+(?:-r\s+)?777|0\.0\.0\.0|"
     r"blkdiscard|lvremove|pg_archivecleanup|clearsnapshot|drop_chunks|dropindexes|"
-    r"(?:delete|format|wipe|destroy|erase)\s+(?:or\s+format\s+)?(?:production\s+|live\s+|active\s+|mounted\s+)*(?:database|disk|partition|volume|ntfs|ext4|xfs|tablespace|wal)|"
-    r"verify\s*=\s*false|rejectunauthorized\s*:\s*false| ssl_verify\s*=\s*false|"
+    r"wipefs|shred\s+|fdisk|parted|zfs\s+destroy|kubectl\s+delete|terraform\s+destroy|"
+    r"iptables\s+-f|ufw\s+disable|setenforce\s+0|sudoers|nopasswd|bios\s+flash|"
+    r"(?:delete|format|wipe|destroy|erase)\s+(?:or\s+format\s+)?(?:production\s+|live\s+|active\s+|"
+    r"mounted\s+)*(?:database|disk|partition|volume|ntfs|ext4|xfs|tablespace|wal|cluster|namespace|bucket)|"  # noqa: E501
+    r"verify\s*=\s*false|rejectunauthorized\s*:\s*false|ssl_verify\s*=\s*false|"
     r"secret_access_key|private_key|id_rsa|seed\s+phrase|mnemonic\s+phrase|authorized_keys|"
-    r"bleach|ammonia|chloramine|hydrofluoric|phosgene|ricin|sarin|"
+    r"jwt\s+secret|api[-_ ]?key|bearer\s+token|client_secret|"
+    r"bleach|ammonia|chloramine|hydrofluoric|phosgene|ricin|sarin|cyanide|asbestos|"
+    r"chlorine\s+gas|carbon\s+monoxide|sulfuric\s+acid|muriatic\s+acid|sodium\s+hydroxide|lye\b|"
+    r"mains\s+(?:wire|wiring|voltage|power)|breaker\s+(?:panel|box)|240\s*v\b|120\s*v\b|"
+    r"high[- ]voltage|live\s+wires?|arc\s+flash|gas\s+leak|pilot\s+light|"
+    r"swollen\s+(?:lithium|battery)|lithium[- ]ion.*(?:puncture|fire|thermal\s+runaway)|"
     r"milligrams?|\d+\s*mg\b|dosage|overdose|warfarin|antiplatelet|propranolol|insulin|"
     r"epinephrine|epipen|maoi|monoamine\s+oxidase|dextromethorphan|serotonin\s+syndrome|"
     r"benzodiazepine|opioid|fentanyl|oxycodone|methotrexate|lithium\s+toxicity|digoxin|"
     r"nitroglycerin|albuterol|antibiotics?|antidepressants?|antihypertensive|anticoagulant|"
+    r"acetaminophen|paracetamol|ibuprofen|aspirin|metformin|lisinopril|prednisone|gabapentin|ssri|"
+    r"contraindicat\w*|drug\s+interaction|pregnant|pregnancy|trimester|breastfeeding|infant\s+dose|"
     r"seizure|anaphylaxis|chest\s+pain|stroke\s+symptoms|tourniquet|concussion|"
+    r"poison\w*|hemorrhag\w*|"
     r"indemnity|gross\s+negligence|tort\s+law|fiduciary\s+duty|statute\s+of\s+limitations|"
     r"subpoena|perjury|binding\s+arbitration|liquidated\s+damages|breach\s+of\s+contract|"
+    r"felony|misdemeanor|eviction|deportation|power\s+of\s+attorney|probate|search\s+warrant|"
+    r"bankruptcy|foreclosure|wage\s+garnishment|non[- ]compete|"
     r"wire\s+transfer|routing\s+number|unhosted\s+hardware\s+wallet|capital\s+gains\s+withholding|"
     r"form\s+1099|tax\s+evasion|offshore\s+shell|margin\s+call|short\s+squeeze|insider\s+trading|"
-    r"sec\s+rule| irrevocable\s+trust)\b",
+    r"sec\s+rule|irrevocable\s+trust|early\s+withdrawal\s+penalty|wash\s+sale|estate\s+tax)\b",
     re.IGNORECASE,
 )
 
@@ -101,6 +124,65 @@ _BENIGN_TECH_ARCH_RE: Final[re.Pattern[str]] = re.compile(
     r"http/2|head[- ]of[- ]line\s+blocking|mutex\s+locks?)\b",
     re.IGNORECASE,
 )
+
+
+def split_clauses(text: str) -> list[str]:
+    """Splits a single- or multi-clause query into non-empty clause segments.
+
+    Preserves Oxford-comma noun lists while splitting independent sentences, semicolons,
+    em-dash asides, subordinate relative/adverbial clauses, and coordinated clauses with
+    an explicit clause starter. Short fragments (<3 alphabetic tokens) are merged into
+    their neighboring clause to avoid orphan fragments.
+    """
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return []
+    raw_parts = [p.strip() for p in _SENTENCE_SPLIT_RE.split(cleaned) if p and p.strip()]
+    if len(raw_parts) <= 1:
+        return [cleaned]
+
+    merged: list[str] = []
+    for part in raw_parts:
+        if len(_ALPHA_TOKEN_RE.findall(part)) < 3 and merged:
+            merged[-1] = f"{merged[-1]} {part}"
+        else:
+            merged.append(part)
+
+    if len(merged) > 1 and len(_ALPHA_TOKEN_RE.findall(merged[0])) < 3:
+        merged[1] = f"{merged[0]} {merged[1]}"
+        merged.pop(0)
+    return merged if merged else [cleaned]
+
+
+class ClauseSplitter:
+    """Deterministic multi-clause splitter for proof-policy hazard pooling (WO-45 R-08.3)."""
+
+    @staticmethod
+    def split_clauses(text: str) -> list[str]:
+        return split_clauses(text)
+
+
+class ConformalGuard:
+    """One-tier conformal fallback (`uncertain -> MEDIUM, not HIGH`) when non-HIGH probability
+    mass covers at least `1 - alpha` and no explicit high-hazard domain cue is present (WO-45 R-42).
+    """
+
+    def __init__(self, non_high_mass_threshold: float = CONFORMAL_NON_HIGH_MASS_THRESHOLD) -> None:
+        self.non_high_mass_threshold = non_high_mass_threshold
+
+    def resolve_uncertain_tier(
+        self,
+        pred_cls: str,
+        probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]],
+        segment: str,
+    ) -> str:
+        if pred_cls in ("LOW", "MEDIUM") and not _HIGH_HAZARD_DOMAIN_RE.search(segment):
+            non_high_mass = float(probs[0]) + float(probs[1])
+            if non_high_mass >= self.non_high_mass_threshold and float(probs[2]) < (
+                1.0 - self.non_high_mass_threshold
+            ):
+                return "medium"
+        return "high"
 
 
 @dataclass(frozen=True)
@@ -129,17 +211,28 @@ class NeuralHazardClassifier:
         model_dir: Path | str | None = None,
         preferred_devices: tuple[str, ...] = ("NPU", "GPU.0", "GPU", "CPU"),
         confidence_threshold: float = FAIL_CLOSED_CONFIDENCE_THRESHOLD,
+        use_conformal_guard: bool = True,
     ) -> None:
         if model_dir is None:
             repo_root = Path(__file__).resolve().parents[3]
-            candidate = repo_root / "models" / "proof_policy_hazard_ov"
-            if not (candidate / "openvino_model.xml").exists():
-                candidate = Path(r"C:\ProjectLucca\models\proof_policy_hazard_ov")
-            self.model_dir = candidate
+            candidates = (
+                repo_root / "models" / "proof_policy_hazard_v3_ov",
+                Path(r"C:\ProjectLucca\models\proof_policy_hazard_v3_ov"),
+                repo_root / "models" / "proof_policy_hazard_ov",
+                Path(r"C:\ProjectLucca\models\proof_policy_hazard_ov"),
+            )
+            chosen = candidates[-1]
+            for cand in candidates:
+                if (cand / "openvino_model.xml").exists():
+                    chosen = cand
+                    break
+            self.model_dir = chosen
         else:
             self.model_dir = Path(model_dir)
 
         self.confidence_threshold = confidence_threshold
+        self.use_conformal_guard = use_conformal_guard
+        self._conformal_guard = ConformalGuard()
         self._lock = threading.Lock()
         self.available = False
         self.active_device = "NONE"
@@ -229,6 +322,8 @@ class NeuralHazardClassifier:
             hazard_lvl = "medium"
         elif pred_cls == "CROSS_REFERENCE_CMD" and conf >= self.confidence_threshold:
             hazard_lvl = "medium"
+        elif self.use_conformal_guard:
+            hazard_lvl = self._conformal_guard.resolve_uncertain_tier(pred_cls, probs, segment)
         else:
             hazard_lvl = "high"
 
@@ -250,7 +345,9 @@ class NeuralHazardClassifier:
             conf = max(float(probs[1]), 0.80)
         return probs, pred_cls, conf, hazard_lvl, is_cr
 
-    def evaluate(self, text: str) -> NeuralHazardVerdict:
+    def evaluate(
+        self, text: str, clauses: Sequence[str] | None = None
+    ) -> NeuralHazardVerdict:
         cleaned = (text or "").strip()
         if not cleaned or not self.available or self._tokenizer is None or self._infer_req is None:
             return NeuralHazardVerdict(
@@ -269,7 +366,11 @@ class NeuralHazardClassifier:
 
         t0 = time.perf_counter()
         probs_full, cls_full, conf_full, lvl_full, cr_full = self._infer_single(cleaned)
-        sentences = [s.strip() for s in _SENTENCE_SPLIT_RE.split(cleaned) if s.strip()]
+        sentences = (
+            [s.strip() for s in clauses if s and s.strip()]
+            if clauses is not None
+            else ClauseSplitter.split_clauses(cleaned)
+        )
         if len(sentences) <= 1 or cr_full:
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             return NeuralHazardVerdict(
@@ -286,7 +387,7 @@ class NeuralHazardClassifier:
                 device=self.active_device,
             )
 
-        # Multi-sentence max-hazard pooling (`HIGH > MEDIUM > LOW`) + OR-pooling for
+        # Multi-clause max-hazard pooling (`HIGH > MEDIUM > LOW`) + OR-pooling for
         # `CROSS_REFERENCE_CMD`
         best_probs: np.ndarray[tuple[int, ...], np.dtype[np.float64]] = probs_full
         best_pred_cls = cls_full
@@ -305,12 +406,11 @@ class NeuralHazardClassifier:
                     cr_probs = probs
                 continue
 
-            # If the full paragraph is already confidently LOW or MEDIUM, only let an isolated
-            # sub-sentence escalate to HIGH when that sentence contains a genuine high-hazard
-            # signal (medical/chemical/legal/financial/destructive-OS/security) rather than
-            # being a topic-less continuation sentence.
+            # If the full utterance is already confidently LOW or MEDIUM, only let an isolated
+            # sub-clause escalate to HIGH when that clause carries a genuine high-hazard domain
+            # cue or extreme neural HIGH probability rather than being a topic-less continuation.
             if hazard_lvl == "high" and lvl_full in ("low", "medium"):
-                if not _HIGH_HAZARD_DOMAIN_RE.search(sent) and conf < 0.985:
+                if not _HIGH_HAZARD_DOMAIN_RE.search(sent) and float(probs[2]) < 0.985:
                     continue
             elif hazard_lvl == "medium" and lvl_full == "low":
                 if conf < 0.80:

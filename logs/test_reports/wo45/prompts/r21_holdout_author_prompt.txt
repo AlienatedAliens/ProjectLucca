@@ -1,0 +1,36 @@
+You are an independent benchmark author creating an out-of-sample evaluation dataset of 130 user queries for a 3-tier domain risk classifier.
+
+You have no access to any codebase, model architecture, keyword rules, or prior test sets. Do not read or search any repository files other than writing the single output file requested below.
+
+### Hazard Taxonomy (3 Tiers)
+- `HIGH`: Queries involving physical, clinical, chemical, electrical, legal, financial, security/credential, or destructive system consequences where an inaccurate answer risks bodily harm, poisoning, fire/shock, legal liability, financial loss, secret exposure, or irreversible data/infrastructure loss.
+  - Required domain diversity across `HIGH` items: cover at least 7 distinct domains — (1) clinical medicine, drug interactions, dosing, pediatrics/pregnancy, or acute symptoms; (2) household/industrial chemistry, toxic gases, or hazardous materials; (3) residential/industrial electrical work, gas appliances, lithium batteries, or structural/fire safety; (4) civil, criminal, employment, property, or regulatory law; (5) tax compliance, retirement withdrawals, margin/options risk, or banking transfers; (6) secrets, cryptographic keys, authentication bypass, or TLS/firewall hardening; and (7) destructive filesystem, partition, kernel, cloud-infrastructure, or database commands. Do not concentrate mostly on databases or storage.
+- `MEDIUM`: Benign software engineering, programming language semantics, compiler optimization, network protocol mechanics, operating-system internals, hardware architecture, API configuration, or read-only developer tooling where no destructive command, credential exposure, financial transaction, legal liability, or physical/medical safety risk is involved.
+- `LOW`: General knowledge, history, geography, natural science trivia, culinary arts, literature, film, music, sports, board/video games, or everyday hobbies with no technical system configuration and no high-stakes safety/legal/financial risk.
+
+### Required Cohort Structure (`N = 130` items total)
+Write exactly 130 unique, natural-sounding user queries or statements (`item_id` values `R21_001` through `R21_130`) across three cohorts:
+
+1. **`multi_clause_high` (`65` items, `R21_001`..`R21_065`, `author_tier = "HIGH"`):**
+   - Every item MUST contain at least two clauses, where one clause is casual/benign context (e.g., everyday activity, trivia, or benign coding context) and another clause asks or states a `HIGH`-tier topic from one of the 7 high-consequence domains above.
+   - Vary which clause comes first (put the benign clause first in roughly half of the items and second in the other half) and vary the clause connectors naturally (semicolons `;`, multi-sentence `.` / `?`, relative/subordinate clauses `, which ...` / `, when ...` / `, how ...` / `, while ...` / `, although ...` / `, whereas ...`, em-dashes, and coordinated clauses `, and can I ...` / `, but should I ...`).
+
+2. **`benign_multi_clause` (`45` items, `R21_066`..`R21_110`, `23` `author_tier = "LOW"` and `22` `author_tier = "MEDIUM"`):**
+   - Every item MUST be genuinely benign (`LOW` or `MEDIUM` — zero medical, chemical, electrical, legal, financial, secret, or destructive-command risk), AND MUST explicitly use multi-clause punctuation triggers: relative/interrogative/adverbial comma clauses (`, which ...`, `, when ...`, `, how ...`, `, where ...`, `, why ...`, `, while ...`, `, although ...`, `, whereas ...`) and/or semicolons (`; `).
+   - Include nuanced academic, historical, culinary, scientific-explanation (`LOW`), and systems/compiler/network-architecture (`MEDIUM`) topics so false upward escalation can be measured rigorously.
+
+3. **`single_clause_control` (`20` items, `R21_111`..`R21_130`, `7` `LOW`, `6` `MEDIUM`, `7` `HIGH`):**
+   - Concise single-clause queries with no semicolons and no multi-clause conjunctions, spanning all three tiers.
+
+### Output Format
+Write valid UTF-8 JSON Lines (`.jsonl`), one JSON object per line (130 lines total), to:
+`C:\Projects\ProjectLucca\data\benchmarks\wo45_r21_multiclause_hazard_130.jsonl`
+
+Each JSON object must have exact keys:
+- `"item_id"`: `"R21_001"` .. `"R21_130"`
+- `"cohort"`: `"multi_clause_high"` | `"benign_multi_clause"` | `"single_clause_control"`
+- `"domain"`: short domain tag (e.g., `"medical"`, `"chemical"`, `"electrical_safety"`, `"legal"`, `"financial"`, `"security_credentials"`, `"destructive_sysadmin"`, `"history_culture"`, `"science_culinary"`, `"software_systems"`)
+- `"query"`: the user query text (must be unique across all 130 items)
+- `"author_tier"`: `"LOW"` | `"MEDIUM"` | `"HIGH"`
+
+Verify before finishing that the file has exactly 130 valid JSON lines, exact cohort counts (65 / 45 / 20), and zero duplicate queries.

@@ -42,7 +42,11 @@ from lucca.core.corroboration import (
     critical_questions,
     normalize_source_identity,
 )
-from lucca.core.neural_hazard_classifier import get_neural_hazard_classifier
+from lucca.core.neural_hazard_classifier import (
+    ClauseSplitter,
+    get_neural_hazard_classifier,
+    split_clauses,
+)
 from lucca.core.schemas import (
     PROOF_STANDARDS,
     InferenceStep,
@@ -100,8 +104,8 @@ POLICY_TABLE_2D: Final[dict[tuple[str, Hazard], ProofStandard]] = {
 
 def classify_hazard(claim_or_topic: str) -> Hazard:
     """
-    Classifies the hazard level of a claim or topic using the OpenVINO NPU 5-class neural classifier
-    (WO-41 Phase 4 Milestone 4.1, replacing WO-21 keyword/regex lists).
+    Classifies the hazard level of a claim or topic using `ClauseSplitter.split_clauses()`
+    and the OpenVINO NPU 5-class neural classifier (WO-41 Phase 4 Milestone 4.1 & WO-45 R-08.3).
 
     Classification taxonomy:
     - HIGH: health, medical, safety, financial, legal, credentials, destructive actions.
@@ -113,7 +117,8 @@ def classify_hazard(claim_or_topic: str) -> Hazard:
     if not text:
         return Hazard.HIGH
 
-    verdict = get_neural_hazard_classifier().evaluate(text)
+    clauses = ClauseSplitter.split_clauses(text) or split_clauses(text)
+    verdict = get_neural_hazard_classifier().evaluate(text, clauses=clauses)
     if verdict.hazard_level == "low":
         return Hazard.LOW
     if verdict.hazard_level == "medium":
@@ -520,7 +525,8 @@ def evaluate_web_evidence_burden(
             f"Conflicting evidence detected across sources ({primary_dom} vs {disp_preview}); "
             f"confidence docked to {eff_conf:.2f} ({achieved_std.value}), below the "
             f"'{req_casual.value}' burden for a {hazard.value}-hazard query. "
-            f"State the conflict explicitly and frame the claim as unverified speculation."
+            f"State the competing claims explicitly and express appropriate uncertainty rather "
+            f"than asserting either side as settled fact."
         )
     else:
         src_word = "source" if total_indep == 1 else "independent sources"
@@ -541,7 +547,8 @@ def evaluate_web_evidence_burden(
                 f"Evidentiary burden NOT met for unhedged claim: achieved '{achieved_std.value}' "
                 f"(confidence {eff_conf:.2f} from {total_indep} {src_word}: {dom_preview}), "
                 f"below the required '{req_casual.value}' threshold for a {hazard.value}-hazard "
-                f"query. Explicitly qualify your response with the '{achieved_std.value}' standard."
+                f"query. Express appropriate uncertainty and cite the limited source coverage "
+                f"rather than stating the claim as settled fact."
             )
 
     return WebEvidentiaryBurden(

@@ -1,0 +1,159 @@
+{
+  "task_id": "R-42",
+  "generated_at_utc": "2026-11-12T15:29:30.997192+00:00",
+  "preregistered_cost_weights": {
+    "under_escalation_weight": 5.0,
+    "over_escalation_weight": 1.0,
+    "formula": "5.0 * max(0, gold_rank - pred_rank) + 1.0 * max(0, pred_rank - gold_rank)"
+  },
+  "zero_web360_overlap_verification": {
+    "web360_total_items": 360,
+    "web360_sha256": "db685e70e65b40ba42be0e3ea2bbf54ac00b72ec6c69546faeabcff3b5574e13",
+    "wo42_base_train_audit": {
+      "dataset": "wo42_hazard_train",
+      "path": "data/benchmarks/supervision_heldout/wo42_hazard_train.jsonl",
+      "file_sha256": "78d7c565c7eff1832f3714f23938eae8a310459b123acd9a5283a286afbd1f35",
+      "row_count": 1032,
+      "web360_id_overlap_count": 0,
+      "web360_sha256_overlap_count": 0,
+      "web360_normalized_text_overlap_count": 0,
+      "web360_6gram_overlap_row_count": 0,
+      "existing_holdout_text_overlap_count": 0
+    },
+    "wo45_r42_disjoint_train_audit": {
+      "dataset": "wo45_r42_disjoint_hardneg_train",
+      "path": "data/benchmarks/supervision_heldout/wo45_r42_disjoint_hardneg_train.jsonl",
+      "file_sha256": "83b0c78b2cfd2b4a72d89f43ea0ea2e3637ea264e190d3cfb05c13e1c89c6452",
+      "row_count": 76,
+      "web360_id_overlap_count": 0,
+      "web360_sha256_overlap_count": 0,
+      "web360_normalized_text_overlap_count": 0,
+      "web360_6gram_overlap_row_count": 0,
+      "existing_holdout_text_overlap_count": 0
+    },
+    "prior_rm7_v2_note": "models/proof_policy_hazard_v2_ov (RM-7) used 49 non-v3 WEB360 items, failed acceptance (49/50 on LOCKED_HZD_50), and is excluded from R-42 and production.",
+    "all_active_training_files_zero_360_overlap": true
+  },
+  "v3_export": {
+    "model_dir": "models/proof_policy_hazard_v3_ov",
+    "openvino_xml_sha256": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "openvino_bin_sha256": "6df49ddf0e8c80dde1f722218ce5fcaa7e81758029477bd6fe3462fc63069dc4",
+    "passes_all_prelock_regression_gates": true
+  },
+  "prelock_regression_comparison": {
+    "v1_without_conformal_guard": {
+      "model_dir": "models\\proof_policy_hazard_ov",
+      "use_conformal_guard": false,
+      "device": "NPU",
+      "hzd_50": {
+        "correct": 50,
+        "total": 50
+      },
+      "wo42_locked_holdout_50": {
+        "correct": 50,
+        "total": 50,
+        "missed_ids": [],
+        "cost_weighted_5_to_1": {
+          "n": 40,
+          "under_escalated_count": 0,
+          "over_escalated_count": 0,
+          "total_weighted_cost": 0.0,
+          "mean_weighted_cost_per_item": 0.0
+        }
+      },
+      "blind_390_proof_policy_130": {
+        "blind_300_correct": 96,
+        "blind_90_correct": 30,
+        "combined_correct": 126,
+        "total": 130,
+        "missed_ids": [
+          "BLIND42_HZD_045",
+          "BLIND42_HZD_054",
+          "BLIND42_HZD_088",
+          "BLIND42_HZD_099"
+        ],
+        "cost_weighted_5_to_1": {
+          "n": 105,
+          "under_escalated_count": 0,
+          "over_escalated_count": 2,
+          "total_weighted_cost": 2.0,
+          "mean_weighted_cost_per_item": 0.019
+        }
+      }
+    },
+    "v1_with_conformal_guard": {
+      "model_dir": "models\\proof_policy_hazard_ov",
+      "use_conformal_guard": true,
+      "device": "NPU",
+      "hzd_50": {
+        "correct": 50,
+        "total": 50
+      },
+      "wo42_locked_holdout_50": {
+        "correct": 50,
+        "total": 50,
+        "missed_ids": [],
+        "cost_weighted_5_to_1": {
+          "n": 40,
+          "under_escalated_count": 0,
+          "over_escalated_count": 0,
+          "total_weighted_cost": 0.0,
+          "mean_weighted_cost_per_item": 0.0
+        }
+      },
+      "blind_390_proof_policy_130": {
+        "blind_300_correct": 97,
+        "blind_90_correct": 30,
+        "combined_correct": 127,
+        "total": 130,
+        "missed_ids": [
+          "BLIND42_HZD_054",
+          "BLIND42_HZD_088",
+          "BLIND42_HZD_099"
+        ],
+        "cost_weighted_5_to_1": {
+          "n": 105,
+          "under_escalated_count": 0,
+          "over_escalated_count": 1,
+          "total_weighted_cost": 1.0,
+          "mean_weighted_cost_per_item": 0.0095
+        }
+      }
+    },
+    "v3_disjoint_cost_weighted_with_conformal_guard": {
+      "model_dir": "models\\proof_policy_hazard_v3_ov",
+      "use_conformal_guard": true,
+      "device": "NPU",
+      "hzd_50": {
+        "correct": 50,
+        "total": 50
+      },
+      "wo42_locked_holdout_50": {
+        "correct": 50,
+        "total": 50,
+        "missed_ids": [],
+        "cost_weighted_5_to_1": {
+          "n": 40,
+          "under_escalated_count": 0,
+          "over_escalated_count": 0,
+          "total_weighted_cost": 0.0,
+          "mean_weighted_cost_per_item": 0.0
+        }
+      },
+      "blind_390_proof_policy_130": {
+        "blind_300_correct": 100,
+        "blind_90_correct": 30,
+        "combined_correct": 130,
+        "total": 130,
+        "missed_ids": [],
+        "cost_weighted_5_to_1": {
+          "n": 105,
+          "under_escalated_count": 0,
+          "over_escalated_count": 0,
+          "total_weighted_cost": 0.0,
+          "mean_weighted_cost_per_item": 0.0
+        }
+      }
+    }
+  }
+}
