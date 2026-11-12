@@ -1,0 +1,202 @@
+{
+  "amendment_id": "WO45-G4-LIVE-V3-AMENDMENT-1-JUDGE3-NEMOTRON",
+  "locked_at_utc": "2026-11-12T02:20:06.071562+00:00",
+  "parent_prereg_lock_sha256": "438e70041eb9de50b8e0fc63276c04e8ece004f091275a29ebbc3ff76523c5a0",
+  "sealed_pool_manifest_sha256": "47fd28291e2293f223eebd245dd4c248e9c4f1534f4abb5813202ff37915d6a2",
+  "pre_unblinding_verification": {
+    "unblinding_keys_absent_from_repo": true,
+    "mistral_nemo_v3_pool_never_completed_or_committed": true,
+    "already_committed_blinded_judge_files": {
+      "g4v3_norm_judge1_qwen38_27b.jsonl": "c2ba882f4b5a7f2d8415b5f63ad24ec370d9b8d9a73665331f61fafda19b49b3",
+      "g4v3_norm_judge2_phi4_14b.jsonl": "617b2f93cc3ae81f53322adfc750654f419389c80dac6d3eabb4a927c1c30011"
+    },
+    "rationale": "Prior to any unblinding of the v3 generation pools (and before Judge 3 completed a single v3 pool file), Judge 3 was upgraded from 2024 Mistral-Nemo-12B (which missed 2/40 D2 items on RM-2) to 2026 NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL (NVIDIA-Nemotron family). Note: FreeToken 0.1.3's local NVFP4 server does not register NemotronHForCausalLM (ValueError in freetoken/models/register.py:313), so Nemotron-3.5-30B-A3B is served via llama-server.exe (build 11868, native nemotron_h_moe) at T=0.0, seed=42 with identical RM-1 rubric sections and RM-5 sharding/retry rules. All files locked in parent live_v3_prereg_lock.json remain 100% byte-for-byte unmodified."
+  },
+  "upgraded_qualified_non_google_judges": [
+    {
+      "role": "Judge_1",
+      "profile": "qwen3.8-27b",
+      "judge_model": "Qwen3.8-27B-Ridge-GGUF",
+      "judge_family": "Alibaba-Qwen",
+      "backend": "llama_server",
+      "model_path": "C:\\Users\\seatr\\.ollama\\models\\blobs\\sha256-95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+      "model_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e"
+    },
+    {
+      "role": "Judge_2",
+      "profile": "phi4-14b",
+      "judge_model": "phi-4-Q6_K",
+      "judge_family": "Microsoft-Phi",
+      "backend": "llama_server",
+      "model_path": "C:\\ProjectLucca\\models\\llm\\phi-4-Q6_K.gguf",
+      "model_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320"
+    },
+    {
+      "role": "Judge_3",
+      "profile": "nemotron-3.5-30b-gguf",
+      "judge_model": "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL",
+      "judge_family": "NVIDIA-Nemotron",
+      "backend": "llama_server",
+      "model_path": "C:\\ProjectLucca\\models\\llm\\NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL.gguf",
+      "model_sha256": "8dff96e952e119bf2abf4cbce9b31611afc66a0c7f4ad7ed423b54cf000384cc"
+    }
+  ],
+  "rm2_qualification_summary": {
+    "three_distinct_non_google_families_qualified": true,
+    "D1_pilot_decision": "PROMOTED_TO_CO_PRIMARY",
+    "selected_3_family_panel": [
+      {
+        "role": "Judge_1",
+        "judge_model": "Qwen3.8-27B-Ridge-GGUF",
+        "judge_family": "Alibaba-Qwen",
+        "model_sha256": "95580dbdaad579582ee898257116abc18d7f3625a00c16a15735d41444a09f5e",
+        "D4_accuracy_pct": 100.0,
+        "D2_accuracy_pct": 100.0
+      },
+      {
+        "role": "Judge_2",
+        "judge_model": "phi-4-Q6_K",
+        "judge_family": "Microsoft-Phi",
+        "model_sha256": "537248da5492a9a34b1d811307c6b9226d9539a81653aa9bb0d7ec6104169320",
+        "D4_accuracy_pct": 100.0,
+        "D2_accuracy_pct": 100.0
+      },
+      {
+        "role": "Judge_3",
+        "judge_model": "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL",
+        "judge_family": "NVIDIA-Nemotron",
+        "model_sha256": "8dff96e952e119bf2abf4cbce9b31611afc66a0c7f4ad7ed423b54cf000384cc",
+        "D4_accuracy_pct": 100.0,
+        "D2_accuracy_pct": 95.0
+      }
+    ],
+    "qualified_pairwise_kappa": [
+      {
+        "judge_a": "Qwen3.8-27B-Ridge-GGUF",
+        "family_a": "Alibaba-Qwen",
+        "judge_b": "phi-4-Q6_K",
+        "family_b": "Microsoft-Phi",
+        "distinct_families": true,
+        "D4_kappa": {
+          "n": 66,
+          "agreed": 66,
+          "disagreed": 0,
+          "raw_agreement_pct": 100.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 1.0
+        },
+        "D2_kappa": {
+          "n": 40,
+          "agreed": 40,
+          "disagreed": 0,
+          "raw_agreement_pct": 100.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 1.0
+        },
+        "D1_pilot_3class_kappa": {
+          "n": 83,
+          "agreed": 77,
+          "disagreed": 6,
+          "raw_agreement_pct": 92.77,
+          "expected_agreement_pct": 57.12,
+          "cohen_kappa": 0.8314
+        },
+        "D1_pilot_binary_kappa": {
+          "n": 83,
+          "agreed": 79,
+          "disagreed": 4,
+          "raw_agreement_pct": 95.18,
+          "expected_agreement_pct": 59.82,
+          "cohen_kappa": 0.8801
+        },
+        "passes_d4_kappa_060": true
+      },
+      {
+        "judge_a": "Qwen3.8-27B-Ridge-GGUF",
+        "family_a": "Alibaba-Qwen",
+        "judge_b": "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL",
+        "family_b": "NVIDIA-Nemotron",
+        "distinct_families": true,
+        "D4_kappa": {
+          "n": 66,
+          "agreed": 66,
+          "disagreed": 0,
+          "raw_agreement_pct": 100.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 1.0
+        },
+        "D2_kappa": {
+          "n": 40,
+          "agreed": 38,
+          "disagreed": 2,
+          "raw_agreement_pct": 95.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 0.9
+        },
+        "D1_pilot_3class_kappa": {
+          "n": 83,
+          "agreed": 79,
+          "disagreed": 4,
+          "raw_agreement_pct": 95.18,
+          "expected_agreement_pct": 55.71,
+          "cohen_kappa": 0.8912
+        },
+        "D1_pilot_binary_kappa": {
+          "n": 83,
+          "agreed": 79,
+          "disagreed": 4,
+          "raw_agreement_pct": 95.18,
+          "expected_agreement_pct": 57.9,
+          "cohen_kappa": 0.8855
+        },
+        "passes_d4_kappa_060": true
+      },
+      {
+        "judge_a": "phi-4-Q6_K",
+        "family_a": "Microsoft-Phi",
+        "judge_b": "NVIDIA-Nemotron-3.5-Lightning-30B-A3B-IQ4_NL",
+        "family_b": "NVIDIA-Nemotron",
+        "distinct_families": true,
+        "D4_kappa": {
+          "n": 66,
+          "agreed": 66,
+          "disagreed": 0,
+          "raw_agreement_pct": 100.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 1.0
+        },
+        "D2_kappa": {
+          "n": 40,
+          "agreed": 38,
+          "disagreed": 2,
+          "raw_agreement_pct": 95.0,
+          "expected_agreement_pct": 50.0,
+          "cohen_kappa": 0.9
+        },
+        "D1_pilot_3class_kappa": {
+          "n": 83,
+          "agreed": 73,
+          "disagreed": 10,
+          "raw_agreement_pct": 87.95,
+          "expected_agreement_pct": 57.25,
+          "cohen_kappa": 0.7182
+        },
+        "D1_pilot_binary_kappa": {
+          "n": 83,
+          "agreed": 75,
+          "disagreed": 8,
+          "raw_agreement_pct": 90.36,
+          "expected_agreement_pct": 59.82,
+          "cohen_kappa": 0.7601
+        },
+        "passes_d4_kappa_060": true
+      }
+    ]
+  },
+  "amendment1_locked_repo_files_sha256": {
+    "logs/test_reports/wo45/g4v3_qual_nemotron35_30b.jsonl": "3bcbe78e1f77129da4402a8c2e1fd399b06fab9aec8624b34b8733ccddb5336c",
+    "logs/test_reports/wo45/g4v3_judge_qualification_amendment1_report.json": "a79266511b6bc157908b7fe2db2c063b69409117eb15ff75541203cb8ebccea2",
+    "scripts/wo45/run_wo45_v3_nemotron_judge.py": "1e4ab262de07b92eb743e6ec74ebbf3177247665a7067e6f778f200babcf73d5",
+    "scripts/wo45/analyze_wo45_live_v3_amendment1.py": "505e9635bf179c169f1e50dfc2feee61992394e8c67cbf66c5be55903ed1eb77"
+  }
+}
