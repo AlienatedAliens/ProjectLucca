@@ -1,0 +1,50 @@
+{
+  "preregistration_id": "WO45-STEP4A-NLI-VERIFIER-V2-PREREG",
+  "locked_at_utc": "2026-11-12T13:52:18.303907+00:00",
+  "causal_order_rule": "Commit 1: lock + .ots -> Commit 2: blinded N=120 holdout corpus -> Commit 3: single-shot evaluation report",
+  "candidate_model_id": "cross-encoder/nli-deberta-v3-xsmall",
+  "baseline_model_id": "cross-encoder/nli-MiniLM2-L6-H768",
+  "decision_policy_unchanged": {
+    "uncertainty_band": [
+      0.4,
+      0.6
+    ],
+    "dominant_prob_threshold": 0.6,
+    "timeout_ms": 50.0,
+    "static_seq_len": 128
+  },
+  "planned_holdout_corpus": {
+    "path": "data/benchmarks/nli_holdout_v2_120.jsonl",
+    "n_items": 120,
+    "class_counts": {
+      "ENTAILMENT": 40,
+      "CONTRADICTION": 40,
+      "NEUTRAL": 40
+    },
+    "domains": [
+      "companion_memory",
+      "desktop_tool_state",
+      "schedule_logistics",
+      "technical_system"
+    ],
+    "authoring_protocol": "Blinded subagent with zero repo/model/pairs_v1 access using verbatim prompt logs/test_reports/wo45/prompts/nli_v2_holdout_author_prompt.txt"
+  },
+  "acceptance_criteria": {
+    "latency_p95_ms_max": 50.0,
+    "entailment_recall_improvement_vs_minilm": "strictly higher on out-of-sample nli_holdout_v2_120",
+    "contradiction_recall_floor": 0.9,
+    "polarity_inversions_ent_con_max": 1
+  },
+  "locked_files_sha256": {
+    "src/lucca/senses/verifier.py": "6e60e7acc6ea18cad7cb5e80c06a01469abfb5a4c089d683e8241b83887da1e6",
+    "scripts/export_nli_deberta_v3_xsmall.py": "343c1b0a89060730c9662950a1a9a484f54f29abade8f69b569741dbbe6aba8a",
+    "scripts/eval_nli_verifier_v2.py": "c86a57e97a3476417bdb78976a0e327725ee210b1c24d50f0f56a4677a337e2f",
+    "logs/test_reports/wo45/prompts/nli_v2_holdout_author_prompt.txt": "aa5579248733b10c2cd033f237c93aaed130db3e6fd1708ea2db723d64015b6b",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.xml": "8a064814c9689c9efb1087eeab13f959ea52d3bf61af106f2ae104ab5b6f9d4a",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.bin": "202fdb1199136ccfa848c1d846ac1a1593d564c9578375a8cde359951de96bb5",
+    "models/verifier_deberta_v3_xsmall_ov/tokenizer.json": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf",
+    "models/verifier_deberta_v3_xsmall_ov/config.json": "1e943b927f6cc9aef0c83f8c437d473d0cffe0340ec761436cfe26cb2126d1e7",
+    "models/verifier_minilm/openvino_model.xml": "a284a32b61ad2ceabbd4582e543eb0abef1add955b67f2bbd14b769a72cbd388",
+    "models/verifier_minilm/openvino_model.bin": "fc9a56f614da0c3381ebdc555feb28ba77c6aae2e092c2049759d9f21bd002c7"
+  }
+}

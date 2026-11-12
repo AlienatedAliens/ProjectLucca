@@ -1,6 +1,6 @@
 """
-Project Lucca — Semantic Verifier Subsystem (MiniLM-L6 NLI on Intel CPU/NPU)
-Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2), WO-37 Phase 2
+Project Lucca — Semantic Verifier Subsystem (DeBERTa-v3-xsmall / MiniLM-L6 NLI on OpenVINO CPU/NPU)
+Spec 04 §3, Spec 11 §4, Release v1.35.7 (Phase 2), WO-37 Phase 2, WO-45 Step 4A
 """
 
 import json
@@ -30,7 +30,8 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 def _resolve_verifier_model_dir() -> Path:
     """
-    Resolve verifier model directory from environment or repo root, or raise FileNotFoundError.
+    Resolve verifier model directory from environment or repo/runtime root, preferring
+    `verifier_deberta_v3_xsmall_ov` and falling back cleanly to `verifier_minilm`.
     """
     env_dir = os.environ.get("LUCCA_VERIFIER_MODEL_DIR")
     if env_dir:
@@ -39,21 +40,29 @@ def _resolve_verifier_model_dir() -> Path:
             return p
         raise FileNotFoundError(
             f"LUCCA_VERIFIER_MODEL_DIR specified directory does not exist: '{p}'. "
-            "Please download cross-encoder/nli-MiniLM2-L6-H768 or set a valid path."
+            "Please export cross-encoder/nli-deberta-v3-xsmall or set a valid path."
         )
 
-    default_path = REPO_ROOT / "models" / "verifier_minilm"
-    if default_path.exists():
-        return default_path
+    candidates = (
+        REPO_ROOT / "models" / "verifier_deberta_v3_xsmall_ov",
+        Path(r"C:\ProjectLucca\models\verifier_deberta_v3_xsmall_ov"),
+        REPO_ROOT / "models" / "verifier_minilm",
+        Path(r"C:\ProjectLucca\models\verifier_minilm"),
+    )
+    for cand in candidates:
+        if (cand / "openvino_model.xml").exists():
+            return cand
 
-    export_script = REPO_ROOT / "scripts" / "export_nli_minilm.py"
+    export_script = REPO_ROOT / "scripts" / "export_nli_deberta_v3_xsmall.py"
     msg = (
-        f"Verifier model directory not found at '{default_path}'. "
-        "Please download cross-encoder/nli-MiniLM2-L6-H768 or set LUCCA_VERIFIER_MODEL_DIR."
+        f"Verifier model directory not found under '{REPO_ROOT / 'models'}'. "
+        "Please export cross-encoder/nli-deberta-v3-xsmall or set LUCCA_VERIFIER_MODEL_DIR."
     )
     if export_script.exists():
-        msg += f" Alternatively, generate it locally by running: python {
-            export_script.relative_to(REPO_ROOT)}"
+        msg += (
+            f" Alternatively, generate it locally by running: python "
+            f"{export_script.relative_to(REPO_ROOT)}"
+        )
     raise FileNotFoundError(msg)
 
 
@@ -117,11 +126,12 @@ class VerifierWorker:
                 msg = (
                     f"Verifier model directory not found at '{self.model_dir}'. "
                     "Please download cross-encoder/nli-MiniLM2-L6-H768 or set "
-                        "LUCCA_VERIFIER_MODEL_DIR."
+                    "LUCCA_VERIFIER_MODEL_DIR."
                 )
                 if export_script.exists():
                     msg += f" Alternatively, generate it locally by running: python {
-                        export_script.relative_to(REPO_ROOT)}"
+                        export_script.relative_to(REPO_ROOT)
+                    }"
                 raise FileNotFoundError(msg)
         else:
             self.model_dir = _resolve_verifier_model_dir()
@@ -205,9 +215,7 @@ class VerifierWorker:
                             [warm_enc.attention_mask], dtype=np.int64
                         )
                     if "token_type_ids" in self._input_names:
-                        warm_feed["token_type_ids"] = np.array(
-                            [warm_enc.type_ids], dtype=np.int64
-                        )
+                        warm_feed["token_type_ids"] = np.array([warm_enc.type_ids], dtype=np.int64)
                     self.infer_request.infer(warm_feed)
         except Exception as init_exc:
             logger.warning("verifier_model_init_failed", error=str(init_exc))

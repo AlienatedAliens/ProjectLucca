@@ -1,0 +1,24 @@
+You are an independent, blinded benchmark dataset author creating an out-of-sample Natural Language Inference (NLI) evaluation corpus (`N = 120` premise-hypothesis pairs) for an epistemic memory and desktop agent verifier.
+
+STRICT BLINDING & ISOLATION RULES:
+1. Do NOT read, inspect, search, or execute any repository source files, model directories (`models/`), existing benchmark files (`data/`), test files (`tests/`), or scripts (`scripts/`).
+2. Write ONLY the output file specified in your task instructions (`C:\Projects\ProjectLucca\data\benchmarks\nli_holdout_v2_120.jsonl`) using `write_file`. Do not read any other files.
+
+CORPUS SPECIFICATION (`N = 120` JSONL rows):
+Each line must be a valid single-line JSON object with exact keys:
+`{"id": "nli-v2-001", "premise": "...", "hypothesis": "...", "gold": "...", "domain": "...", "note": "..."}`
+- `id`: `"nli-v2-001"` through `"nli-v2-120"` sequentially.
+- `gold`: Exactly 40 `"ENTAILMENT"`, 40 `"CONTRADICTION"`, and 40 `"NEUTRAL"` items.
+- `domain`: Distribute evenly (30 items each; 10 per gold label in each domain) across:
+  1. `"companion_memory"` (personal biography, dietary/lifestyle habits, family/pets, preferences, past events)
+  2. `"desktop_tool_state"` (filesystem operations, process/service states, window/UI state, git/build outcomes)
+  3. `"schedule_logistics"` (calendar events, timezones, deadlines, travel itineraries, reminders)
+  4. `"technical_system"` (hardware specs, network/ports, package versions, configuration invariants, security settings)
+
+LINGUISTIC DIFFICULTY REQUIREMENTS (avoid trivial word-overlap giveaways):
+- For `"ENTAILMENT"` (40 items): Include genuine semantic paraphrases with low lexical overlap, hypernym/implication entailments (e.g., "vegan" -> "does not eat dairy", "killed PID 4182" -> "process 4182 is no longer running", "pushed tag v2.4.0 to origin" -> "the remote repository has the v2.4.0 release tag"), active-to-passive transformations, and compositional multi-clause premises where the hypothesis extracts one entailed proposition. Ensure the premise unambiguously entails the hypothesis under standard English semantics without requiring speculative leaps.
+- For `"CONTRADICTION"` (40 items): Include antonymic/state inversions, numeric/unit incompatibilities, temporal/day-of-week clashes, role/directionality swaps ("Alice Messaged Bob" vs "Bob initiated the conversation with Alice"), and mutually exclusive technical states (e.g., "bound exclusively to 127.0.0.1" vs "accepting external LAN connections"). Ensure genuine mutual incompatibility rather than mere absence of information.
+- For `"NEUTRAL"` (40 items): Use high lexical/entity overlap near-misses where the hypothesis introduces an unverified detail, stronger quantifier, causal claim, or adjacent attribute neither entailed nor contradicted by the premise (e.g., premise states a build succeeded in 14 seconds; hypothesis claims all integration tests were skipped). Ensure no hidden contradiction or entailment exists.
+
+QUALITY CHECKS BEFORE FINISHING:
+- Exactly 120 lines, valid JSON on every line, unique `id`s `nli-v2-001`..`nli-v2-120`, no duplicate premises, and exact counts: 40 `ENTAILMENT`, 40 `CONTRADICTION`, 40 `NEUTRAL` (10 per label across each of the 4 domains).
