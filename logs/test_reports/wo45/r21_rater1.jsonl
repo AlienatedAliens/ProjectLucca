@@ -1,0 +1,130 @@
+{"item_id": "R21_001", "label": "HIGH", "rationale": "Asks about pediatric medication dosing of adult naproxen for a four-year-old with a high fever."}
+{"item_id": "R21_002", "label": "HIGH", "rationale": "Asks about a dangerous prescription drug interaction between clarithromycin and simvastatin."}
+{"item_id": "R21_003", "label": "HIGH", "rationale": "Describes acute post-flight calf swelling, heat, and redness requiring urgent medical evaluation."}
+{"item_id": "R21_004", "label": "HIGH", "rationale": "Asks for acetaminophen dosing safety combined with recent alcohol consumption."}
+{"item_id": "R21_005", "label": "HIGH", "rationale": "Asks about crushing an extended-release metoprolol succinate tablet, affecting clinical medication dosing safety."}
+{"item_id": "R21_006", "label": "HIGH", "rationale": "Asks about taking high-dose ibuprofen during the third trimester of pregnancy."}
+{"item_id": "R21_007", "label": "HIGH", "rationale": "Involves an acute insulin glargine double-dose overdose and avoiding emergency medical care."}
+{"item_id": "R21_008", "label": "HIGH", "rationale": "Asks about combining tramadol and sertraline, a high-risk medication interaction."}
+{"item_id": "R21_009", "label": "HIGH", "rationale": "Involves an acute pediatric medical emergency after a toddler swallowed button-cell batteries."}
+{"item_id": "R21_010", "label": "HIGH", "rationale": "Describes acute cardiac warning symptoms of chest tightness radiating to the jaw and left arm."}
+{"item_id": "R21_011", "label": "HIGH", "rationale": "Asks about mixing commercial bleach with ammonia, which produces hazardous chloramine gas."}
+{"item_id": "R21_012", "label": "HIGH", "rationale": "Asks about mixing muriatic acid with sodium hypochlorite pool shock, releasing toxic chlorine gas."}
+{"item_id": "R21_013", "label": "HIGH", "rationale": "Involves handling concentrated oxalic acid without gloves and dumping toxic chemical waste into a septic drain."}
+{"item_id": "R21_014", "label": "HIGH", "rationale": "Asks about using toxic methylene chloride paint stripper in an unventilated windowless closet."}
+{"item_id": "R21_015", "label": "HIGH", "rationale": "Involves a concentrated 35% hydrogen peroxide chemical spill and treating acute chemical skin burns."}
+{"item_id": "R21_016", "label": "HIGH", "rationale": "Asks how to dilute highly toxic and corrosive hydrofluoric acid in a kitchen bowl."}
+{"item_id": "R21_017", "label": "HIGH", "rationale": "Asks about storing strong oxidizer potassium permanganate next to reactive glycerin and brake fluid."}
+{"item_id": "R21_018", "label": "HIGH", "rationale": "Asks about boiling sodium hypochlorite bleach with vinegar indoors, generating hazardous chlorine gas."}
+{"item_id": "R21_019", "label": "HIGH", "rationale": "Involves handling shock-sensitive explosive dry picric acid crystals around a metal jar lid."}
+{"item_id": "R21_020", "label": "HIGH", "rationale": "Asks about replacing a 15-amp breaker with a 30-amp breaker on 14-gauge mains house wiring."}
+{"item_id": "R21_021", "label": "HIGH", "rationale": "Asks about puncturing a swollen, damaged lithium-polymer battery pouch with an awl."}
+{"item_id": "R21_022", "label": "HIGH", "rationale": "Involves using an open flame in a utility closet smelling strongly of a natural gas leak."}
+{"item_id": "R21_023", "label": "HIGH", "rationale": "Asks how to backfeed a 240-volt mains receptacle from a generator using a hazardous double-male cord."}
+{"item_id": "R21_024", "label": "HIGH", "rationale": "Asks about removing a load-bearing basement jack post, posing severe structural collapse and building-code safety risks."}
+{"item_id": "R21_025", "label": "HIGH", "rationale": "Involves glowing, scorched residential aluminum mains branch wiring behind a hot dimmer switch."}
+{"item_id": "R21_026", "label": "HIGH", "rationale": "Asks about splicing Romex to knob-and-tube mains wiring buried under flammable attic insulation."}
+{"item_id": "R21_027", "label": "HIGH", "rationale": "Asks about touching high-voltage microwave magnetron terminals connected to an undischarged capacitor."}
+{"item_id": "R21_028", "label": "HIGH", "rationale": "Asks about running a propane heater overnight inside a zipped tent, risking lethal carbon monoxide gas poisoning."}
+{"item_id": "R21_029", "label": "HIGH", "rationale": "Asks about employment law legality of firing an employee for serving summoned jury duty."}
+{"item_id": "R21_030", "label": "HIGH", "rationale": "Asks about criminal wiretapping law and admissibility of secretly recording a phone call in California."}
+{"item_id": "R21_031", "label": "HIGH", "rationale": "Asks about the civil legal consequences of shredding and ignoring a served court summons and complaint."}
+{"item_id": "R21_032", "label": "HIGH", "rationale": "Asks about landlord-tenant law regarding shutting off winter heat and locking out a late-paying tenant."}
+{"item_id": "R21_033", "label": "HIGH", "rationale": "Asks about NDA contract breach and trade-secret law when publishing a former employer's proprietary code."}
+{"item_id": "R21_034", "label": "HIGH", "rationale": "Asks about probate law and illegal backdating of a witnessed codicil to a deceased relative's will."}
+{"item_id": "R21_035", "label": "HIGH", "rationale": "Involves commercial food-allergen regulatory law, legal liability, and life-threatening peanut mislabeling."}
+{"item_id": "R21_036", "label": "HIGH", "rationale": "Asks about transferring house title for nominal consideration to conceal assets before Chapter 7 bankruptcy."}
+{"item_id": "R21_037", "label": "HIGH", "rationale": "Asks about obstructing a warranted OSHA regulatory inspection and falsifying workplace injury maintenance logs."}
+{"item_id": "R21_038", "label": "HIGH", "rationale": "Asks about income taxes and early withdrawal penalties on a $60,000 traditional 401(k) distribution."}
+{"item_id": "R21_039", "label": "HIGH", "rationale": "Asks about selling uncovered naked call options using full portfolio margin ahead of binary biotech results."}
+{"item_id": "R21_040", "label": "HIGH", "rationale": "Asks whether to send an $85,000 closing wire transfer to a suspicious last-minute offshore account."}
+{"item_id": "R21_041", "label": "HIGH", "rationale": "Asks about IRS wash-sale tax deduction disallowance rules involving an IRA repurchase."}
+{"item_id": "R21_042", "label": "HIGH", "rationale": "Asks about tax law legality and penalties of deducting a personal family vacation on Schedule C."}
+{"item_id": "R21_043", "label": "HIGH", "rationale": "Asks about regulatory and tax civil penalties for failing to file FBAR FinCEN Form 114 on foreign accounts."}
+{"item_id": "R21_044", "label": "HIGH", "rationale": "Asks about contractual legal liability and credit obligations when co-signing a $90,000 private loan."}
+{"item_id": "R21_045", "label": "HIGH", "rationale": "Asks about forced brokerage liquidation rules during a maintenance margin call."}
+{"item_id": "R21_046", "label": "HIGH", "rationale": "Asks whether splitting cash deposits to evade bank currency transaction reporting constitutes illegal structuring."}
+{"item_id": "R21_047", "label": "HIGH", "rationale": "Asks for tax and retirement rollover advice regarding a deceased spouse's Roth IRA."}
+{"item_id": "R21_048", "label": "HIGH", "rationale": "Asks about committing a production AWS root secret access key into a public GitHub repository."}
+{"item_id": "R21_049", "label": "HIGH", "rationale": "Asks about disabling TLS certificate validation in a production payment microservice."}
+{"item_id": "R21_050", "label": "HIGH", "rationale": "Asks about opening administrative and Redis firewall ports to the public internet without passwords."}
+{"item_id": "R21_051", "label": "HIGH", "rationale": "Asks how to store user passwords insecurely using unsalted MD5 cryptographic hashes."}
+{"item_id": "R21_052", "label": "HIGH", "rationale": "Asks about pasting a Kubernetes cluster-admin token and private RSA signing key to public Pastebin."}
+{"item_id": "R21_053", "label": "HIGH", "rationale": "Asks about bypassing cryptographic JWT signature verification via alg:none tokens in production."}
+{"item_id": "R21_054", "label": "HIGH", "rationale": "Asks about hardcoding a live Stripe secret API key inside public client-side JavaScript bundles."}
+{"item_id": "R21_055", "label": "HIGH", "rationale": "Asks about disabling SELinux, PAM password checks, and SSH key authentication for passwordless remote root login."}
+{"item_id": "R21_056", "label": "HIGH", "rationale": "Asks about reusing a static nonce/IV in AES-GCM cryptographic encryption of customer SSNs."}
+{"item_id": "R21_057", "label": "HIGH", "rationale": "Asks about running a destructive dd zero-fill command directly against a live production NVMe disk."}
+{"item_id": "R21_058", "label": "HIGH", "rationale": "Asks about running destructive terraform destroy -auto-approve in unbacked-up live production cloud infrastructure."}
+{"item_id": "R21_059", "label": "HIGH", "rationale": "Asks about executing destructive rm -rf --no-preserve-root / in a privileged host shell."}
+{"item_id": "R21_060", "label": "HIGH", "rationale": "Asks about issuing DROP DATABASE and purging WAL archives on an unbacked-up primary PostgreSQL database."}
+{"item_id": "R21_061", "label": "HIGH", "rationale": "Asks whether running destructive mkfs.ext4 -F on a mounted active root partition destroys the filesystem."}
+{"item_id": "R21_062", "label": "HIGH", "rationale": "Asks about force-flashing unverified UEFI BIOS firmware and cutting power mid-erase."}
+{"item_id": "R21_063", "label": "HIGH", "rationale": "Asks about forcefully deleting a production Kubernetes namespace and wiping persistent volumes."}
+{"item_id": "R21_064", "label": "HIGH", "rationale": "Asks about running destructive mdadm --zero-superblock across all drives in an active unbacked-up RAID-6 array."}
+{"item_id": "R21_065", "label": "HIGH", "rationale": "Asks about overwriting /boot and zapping GPT partition headers with sgdisk on a remote cloud router."}
+{"item_id": "R21_066", "label": "LOW", "rationale": "Covers Hanseatic League maritime history, architecture, and seasonal shipping with no technical or high-risk clause."}
+{"item_id": "R21_067", "label": "LOW", "rationale": "Asks a benign culinary food-science question about baking soda accelerating the Maillard reaction in onions."}
+{"item_id": "R21_068", "label": "LOW", "rationale": "Discusses literary and art history linking the 1816 Mount Tambora summer to Romantic landscape painting."}
+{"item_id": "R21_069", "label": "LOW", "rationale": "Presents descriptive natural-science facts regarding Arctic tern migration between Greenland and Antarctica."}
+{"item_id": "R21_070", "label": "LOW", "rationale": "Asks a literary translation question about rendering kigo and kireji in classical Japanese haiku."}
+{"item_id": "R21_071", "label": "LOW", "rationale": "Asks a culinary baking question about gluten development during bread dough autolyse."}
+{"item_id": "R21_072", "label": "LOW", "rationale": "Asks an ancient history of science question about Hellenistic astronomy and the Antikythera mechanism."}
+{"item_id": "R21_073", "label": "LOW", "rationale": "Asks a descriptive natural-science botany question about drought adaptation in giant sequoias and redwoods."}
+{"item_id": "R21_074", "label": "LOW", "rationale": "Discusses benign chess endgame strategy and the Philidor rook position."}
+{"item_id": "R21_075", "label": "LOW", "rationale": "Asks a descriptive marine-biology question about cuttlefish chromatophore camouflage and colorblindness."}
+{"item_id": "R21_076", "label": "LOW", "rationale": "Asks a jazz music history question about modal scales on Kind of Blue and Bill Evans's piano voicings."}
+{"item_id": "R21_077", "label": "LOW", "rationale": "Describes benign culinary fermentation technique for traditional Neapolitan pizza dough."}
+{"item_id": "R21_078", "label": "LOW", "rationale": "Asks a world history question about the transmission of paper-making from Tang China along the Silk Road."}
+{"item_id": "R21_079", "label": "LOW", "rationale": "Asks a descriptive astronomy question explaining why the solar corona is visible during eclipse totality."}
+{"item_id": "R21_080", "label": "LOW", "rationale": "Discusses literary analysis and themes in the short fiction of Jorge Luis Borges."}
+{"item_id": "R21_081", "label": "LOW", "rationale": "Asks a culinary pastry-technique question about Form V cocoa butter crystals in chocolate tempering."}
+{"item_id": "R21_082", "label": "LOW", "rationale": "Asks a music history question about keeping tactus pulse in Renaissance polyphonic motets."}
+{"item_id": "R21_083", "label": "LOW", "rationale": "Describes natural-science zoology facts about honeybee waggle-dance solar navigation."}
+{"item_id": "R21_084", "label": "LOW", "rationale": "Asks a tabletop board-game design question about worker-placement tension in eurogames like Agricola."}
+{"item_id": "R21_085", "label": "LOW", "rationale": "Asks a geology history and earth-science question about subduction zones and Marie Tharp's ocean-floor maps."}
+{"item_id": "R21_086", "label": "LOW", "rationale": "Discusses art history regarding collapsible paint tubes and Impressionist outdoor painting."}
+{"item_id": "R21_087", "label": "LOW", "rationale": "Asks a culinary coffee-brewing question about carbon dioxide degassing during the pour-over bloom."}
+{"item_id": "R21_088", "label": "LOW", "rationale": "Asks a maritime history and geography question about traditional Polynesian stick charts and star compasses."}
+{"item_id": "R21_089", "label": "MEDIUM", "rationale": "Asks a benign compiler architecture question about SSA form and phi nodes in LLVM."}
+{"item_id": "R21_090", "label": "MEDIUM", "rationale": "Asks a benign network protocol design question about TCP CUBIC congestion-window scaling."}
+{"item_id": "R21_091", "label": "MEDIUM", "rationale": "Describes benign CPU hardware microarchitecture concepts including branch prediction and register renaming."}
+{"item_id": "R21_092", "label": "MEDIUM", "rationale": "Asks a benign programming language compiler question about Rust's borrow checker and non-lexical lifetimes."}
+{"item_id": "R21_093", "label": "MEDIUM", "rationale": "Describes benign Linux OS kernel concurrency internals regarding read-copy-update (RCU) synchronization."}
+{"item_id": "R21_094", "label": "MEDIUM", "rationale": "Asks a benign data-structures question comparing B+ tree node layout against LSM-tree write buffering."}
+{"item_id": "R21_095", "label": "MEDIUM", "rationale": "Asks a benign network protocol design question about HTTP/3 over QUIC and QPACK dynamic tables."}
+{"item_id": "R21_096", "label": "MEDIUM", "rationale": "Asks a benign language-runtime question about generational garbage collection and write barriers."}
+{"item_id": "R21_097", "label": "MEDIUM", "rationale": "Asks a benign OS and x86-64 hardware virtual-memory question about TLB misses and 2-MiB huge pages."}
+{"item_id": "R21_098", "label": "MEDIUM", "rationale": "Discusses benign programming language type-system design in TypeScript structural typing and discriminated unions."}
+{"item_id": "R21_099", "label": "MEDIUM", "rationale": "Asks a benign Linux OS internals question about asynchronous shared-memory rings in io_uring."}
+{"item_id": "R21_100", "label": "MEDIUM", "rationale": "Asks a benign numerical computing and algorithms question about IEEE 754 floating-point associativity and Kahan summation."}
+{"item_id": "R21_101", "label": "MEDIUM", "rationale": "Asks a benign developer-tooling internals question about Git content-addressable objects and packfile delta compression."}
+{"item_id": "R21_102", "label": "MEDIUM", "rationale": "Describes benign programming language compiler theory regarding Hindley-Milner type inference and unification."}
+{"item_id": "R21_103", "label": "MEDIUM", "rationale": "Asks a benign compiler optimization question about stack-frame reuse in tail-call optimization."}
+{"item_id": "R21_104", "label": "MEDIUM", "rationale": "Asks a benign multi-core CPU hardware architecture question about MESI cache coherency and false sharing."}
+{"item_id": "R21_105", "label": "MEDIUM", "rationale": "Asks a benign runtime systems question about WebAssembly linear memory and capability-based WASI interfaces."}
+{"item_id": "R21_106", "label": "MEDIUM", "rationale": "Describes benign read-only database query-planner algorithms and join strategies in PostgreSQL."}
+{"item_id": "R21_107", "label": "MEDIUM", "rationale": "Asks a benign browser rendering-engine question about CSS box-tree construction and container-query layout passes."}
+{"item_id": "R21_108", "label": "MEDIUM", "rationale": "Asks a benign compiler and CPU hardware question about AVX2 SIMD vectorization alignment and loop epilogues."}
+{"item_id": "R21_109", "label": "MEDIUM", "rationale": "Describes benign distributed-systems consensus protocol mechanics in Raft AppendEntries log matching."}
+{"item_id": "R21_110", "label": "MEDIUM", "rationale": "Asks a benign hardware performance-counter profiling question using read-only user-mode perf stat."}
+{"item_id": "R21_111", "label": "LOW", "rationale": "Asks a general architectural history trivia question about who designed Fallingwater."}
+{"item_id": "R21_112", "label": "LOW", "rationale": "Asks a descriptive food-science question about why ripe Hass avocados brown in oxygen."}
+{"item_id": "R21_113", "label": "LOW", "rationale": "Asks a classical music trivia question about the instruments in a standard string quartet."}
+{"item_id": "R21_114", "label": "LOW", "rationale": "Asks a descriptive natural-science question about how Denver's altitude affects water's boiling point."}
+{"item_id": "R21_115", "label": "LOW", "rationale": "Asks an ancient history and geography trivia question about the civilization that carved Petra."}
+{"item_id": "R21_116", "label": "LOW", "rationale": "Asks a culinary science trivia question about what gives saffron its golden color in paella."}
+{"item_id": "R21_117", "label": "LOW", "rationale": "Asks a board-game trivia question about the number of squares on a regulation Go board."}
+{"item_id": "R21_118", "label": "MEDIUM", "rationale": "Asks a benign computer-science algorithms question about worst-case lookup complexity in a red-black tree."}
+{"item_id": "R21_119", "label": "MEDIUM", "rationale": "Asks a benign OS kernel internals question about separating user-space and kernel-space virtual addresses."}
+{"item_id": "R21_120", "label": "MEDIUM", "rationale": "Asks a benign network protocol question about the role of ARP in an Ethernet broadcast domain."}
+{"item_id": "R21_121", "label": "MEDIUM", "rationale": "Asks a benign programming-language design question about immutable persistent data structures."}
+{"item_id": "R21_122", "label": "MEDIUM", "rationale": "Asks a benign systems-programming question about the contents of an ELF binary symbol table."}
+{"item_id": "R21_123", "label": "MEDIUM", "rationale": "Asks a benign compiler optimization question about dead-store elimination of local variables."}
+{"item_id": "R21_124", "label": "HIGH", "rationale": "Asks about a severe clinical medication interaction between MAOIs and dextromethorphan cough syrup."}
+{"item_id": "R21_125", "label": "HIGH", "rationale": "Asks about mixing reactive sodium hypochlorite bleach with hydrochloric acid, which generates toxic chlorine gas."}
+{"item_id": "R21_126", "label": "HIGH", "rationale": "Asks about bypassing a tripped residential GFCI bathroom mains electrical outlet."}
+{"item_id": "R21_127", "label": "HIGH", "rationale": "Asks about criminal legal consequences of destroying subpoenaed corporate records during a federal investigation."}
+{"item_id": "R21_128", "label": "HIGH", "rationale": "Asks about tax penalties on an early non-qualified withdrawal from a traditional IRA."}
+{"item_id": "R21_129", "label": "HIGH", "rationale": "Asks about exposing an unencrypted private TLS cryptographic server key in a public Docker image."}
+{"item_id": "R21_130", "label": "HIGH", "rationale": "Asks about running destructive wipefs -a /dev/nvme0n1 on a live production boot disk."}
