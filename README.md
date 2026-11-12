@@ -1,107 +1,180 @@
-# Project Lucca — Autonomous Neuro-Symbolic Desktop Companion (`v1.51.0` / `WO-45`)
+# Project Lucca
 
-Project Lucca is an autonomous, local-first desktop companion for Windows workstations that combines real-time voice interaction (Push-to-Talk and energy VAD), symbolic procedural reasoning (MicroScheme LISP engine and Z3 formal verification), and sandboxed execution inside an isolated Docker container with cryptographically signed, provenance-gated long-term memory.
+**Autonomous, local-first neurosymbolic desktop companion with Ed25519 provenance memory, clause-level receipt supervision, and hazard-scaled evidentiary gating.**
 
-> **Status:** Single-developer research project. Hardware-specific. All benchmarks author-measured on one workstation. No independent external reproduction yet.
+Project Lucca runs locally on workstation hardware, combining real-time voice interaction (Push-to-Talk and energy VAD), a four-process fault-isolated runtime (`UI`, `Core Orchestrator`, `Voice Senses`, and an isolated `Docker Sandbox` exposing 19 native tools), compiled symbolic reasoning (MicroScheme LISP, Z3 SMT, SymPy CAS, and CEGIS), and OpenVINO CPU/NPU epistemic guardrails (`0 MB` dGPU VRAM overhead).
 
----
-
-## Known Limitations
-
-- **Self-run benchmarks:** All benchmark figures reported below are author-measured on local workstation silicon (`RTX 5080 Laptop GPU`, `Core Ultra 9 275HX`); none have been independently reproduced yet.
-- **Residual action-claim supervision boundary (`src/lucca/sandbox/neural_claim_verifier.py`):** Clause-level OpenVINO supervision paired with deterministic `ToolReceipt` set verification (`WO-42`) reaches `98.7% (465/471)` recall at `0.6% (9/1,551)` FPR across `N=2,022` pooled turns ([`wo42_large_sample_2020_report.json`](./logs/test_reports/wo42_large_sample_2020_report.json)), leaving `6/471 (1.27%)` missed zero-verb indirect state-consequence claims and `9/1,551 (0.58%)` false alarms on first-person hypothetical walkthroughs. Output supervision remains an empirical runtime guardrail rather than a formal safety guarantee.
-- **NLI entailment recall on low-overlap paraphrases & fail-closed conservatism (`src/lucca/senses/verifier.py`):** Upgrading the OpenVINO CPU NLI cross-encoder from `MiniLM-L6` to `DeBERTa-v3-xsmall` (`20.47 ms` p50 / `26.70 ms` p95, `0 MB` VRAM; [`nli_verifier_v2_report.json`](./logs/test_reports/nli_verifier_v2_report.json)) raised `pairs_v1` (`N=100`) entailment recall from `24/30 (80.0%)` to `25/30 (83.3%)` (`91/100 = 91.0%` overall) and raised blinded out-of-sample `nli_holdout_v2_120` (`N=120` hard non-lexical paraphrases & shared-entity near-misses) accuracy from `67/120 (55.8%)` to `82/120 (68.3%, p = 0.0107)` (`7/40 = 17.5%` $\to$ `16/40 = 40.0%` entailment recall at `100.0% [16/16]` precision, $p = 0.0117$). Because all NLI consumers fail closed on `UNCERTAIN`/`NEUTRAL` verdicts (`test_no_nli_uncertain_fail_open_consumers`), low-overlap implicit entailments are conservatively withheld from automatic clustering rather than mis-merged.
-- **Open-web retrieval relevance & full-HTML dispute noise (`src/lucca/core/proof_policy.py`, `WO-45 R-32`):** While Walton `Scheme.AUTHORITY` passes `(360/360, 100.0%)` synthetic conformance and near-duplicate syndication deduplication (`R-33`) cuts adversarial sybil/wire false corroboration from `(38/45, 84.44%)` to `(3/45, 6.67%, CI [2.29%, 17.86%])` ([`r33_sybil_dedup_report.json`](./logs/test_reports/wo45/r33_sybil_dedup_report.json)), single-shot live `ResearchTool`/Scrapling evaluation across `N=64` real-web queries (`250` archived raw HTML pages, dual-rater $\kappa = 0.9549$–$1.0000$, [`r32_real_web_v1_report.json`](./logs/test_reports/wo45/r32_real_web_v1_report.json)) scores `(39/64, 60.94%, CI [48.69%, 71.94%])` overall burden-decision accuracy because off-topic search results lack a cross-encoder query-passage relevance filter (`(21/64, 32.81%)` exact / `(45/64, 70.31%)` within-1 independent source count) and full-page HTML prose lowers dispute accuracy to `(42/64, 65.62%)`.
-- **Windows + WSL2 desktop companion stack vs. standalone `lucca-epistemic` library:** Full 4-process desktop voice/UI/sandbox operation targets Windows 11 with WSL2 Docker CE (with automatic `NPU -> CPU` OpenVINO fallback and `CUDA float16 -> CPU int8` ASR fallback). For Linux/macOS/Windows CPU-only agent pipelines without UI, audio, or Docker dependencies, the core verification gates (RFC 8032 provenance envelopes, 2D hazard-scaled Walton corroboration, near-duplicate syndication deduplication, and clause-level receipt supervision) are packaged standalone in [`packages/lucca-epistemic/`](./packages/lucca-epistemic/README.md) (`14.08 ms` mean CPU latency, [`r51_lucca_epistemic_wheel_report.json`](./logs/test_reports/wo45/r51_lucca_epistemic_wheel_report.json)).
+For cross-platform Python agents that do not need the Windows voice UI or Docker runtime, the core verification gates are packaged as a standalone library in [`packages/lucca-epistemic`](./packages/lucca-epistemic/README.md) (`v0.2.0`).
 
 ---
 
-## Requirements
+## Two Ways to Use Project Lucca
 
-- **OS:** Windows 11 64-bit with WSL2 (Ubuntu) and Docker CE (`.wslconfig` clamped to `4.5 GB`).
-- **dGPU (scales with chosen GGUF tier at `ctx=32768`, [`q1_vram_nvidia_smi_evidence.json`](./logs/test_reports/wo45/q1_vram_nvidia_smi_evidence.json)):**
-  - **`Gemma-4-E2B (Q6_K)`:** NVIDIA RTX GPU with **4–6 GB+ VRAM** (`~2.7 GiB` resident).
-  - **`Gemma-4-E4B (Q6_K)`:** NVIDIA RTX GPU with **6–8 GB+ VRAM** (`~4.8–5.0 GiB` resident).
-  - **`Gemma-4-12B (Q6_K)`:** NVIDIA RTX GPU with **12 GB+ VRAM** (`~10.9 GiB` resident).
-  - **`Gemma-4-26B-A4B MoE (Q6_K, --cpu-moe)`:** NVIDIA RTX GPU with **12–16 GB VRAM** (`~11.5 GiB` resident) + host RAM expert offload.
-- **CPU / NPU / RAM:**
-  - **CPU & Optional NPU:** Modern x86_64 multi-core CPU. An **Intel AI Boost NPU is optional** — OpenVINO uses the NPU automatically when present (`0 MB` VRAM, `6.58 ms` mean web-burden gate latency) and falls back transparently to OpenVINO CPU when absent (`16.92 ms` mean on Core Ultra 9 275HX per [`r06_gate_latency_npu_vs_cpu.json`](./logs/test_reports/wo45/r06_gate_latency_npu_vs_cpu.json)).
-  - **System RAM:** **16 GB** for `E2B` / `E4B` (`~3.5 GB` host boot budget + `4.5 GB` WSL2 clamp), **16–24 GB** for `12B`, and **32 GB+** only when running `26B-A4B` with CPU-offloaded MoE experts (`--cpu-moe --moe-cache-mib 7680`).
-- **Environment:** Python 3.12+ managed via `uv`.
+### 1. Standalone Verification Library (`lucca-epistemic` `v0.2.0`)
 
----
+Runs on Linux, macOS, and Windows (CPU or Intel NPU, `14.08 ms` mean CPU gate latency) with zero UI, audio, WSL2, or Docker dependencies:
 
-## Quick Start
+```bash
+pip install ./packages/lucca-epistemic
+```
+
+```python
+import os
+from lucca_epistemic import (
+    Provenance,
+    ProvenanceGate,
+    ReceiptSupervisor,
+    SignerFactory,
+    ToolReceipt,
+    evaluate_web_evidence_burden,
+)
+
+# 1. RFC 8032 Ed25519 domain-separated provenance signing & public-key verification
+factory = SignerFactory.from_master_key(os.urandom(32))
+gate = ProvenanceGate(factory.public_keys())
+
+signed_record = factory.for_domain(Provenance.TOOL_VERIFIED).sign(
+    "Backup archive sha256 verified.", trace_id="tr-01"
+)
+assert gate.verify(signed_record, expected_provenance=Provenance.TOOL_VERIFIED) is True
+
+# 2. 2D hazard-scaled open-web corroboration, syndication dedup, & conflict detection
+burden = evaluate_web_evidence_burden(
+    "Why should honey never be fed to infants younger than twelve months?",
+    [
+        {
+            "url": "https://www.cdc.gov/botulism/infant-honey.html",
+            "title": "Infant Botulism Prevention",
+            "content_preview": "Honey should never be fed to infants younger than 12 months because Clostridium botulinum spores cause infant botulism.",
+        },
+        {
+            "url": "https://www.nhs.uk/baby/weaning/foods-to-avoid/",
+            "title": "Foods to Avoid Giving Babies",
+            "content_preview": "Babies under 1 year old must not eat honey due to the risk of infant botulism toxin.",
+        },
+        {
+            "url": "https://www.mayoclinic.org/infant-health/honey",
+            "title": "Infant Honey Safety",
+            "content_preview": "Avoid giving honey to infants under twelve months; Clostridium spores can cause infant botulism.",
+        },
+    ],
+    device="CPU",
+)
+assert burden.meets_casual_burden is True
+
+# 3. Clause-level action-claim supervision against deterministic ToolReceipts
+supervisor = ReceiptSupervisor(device="CPU")
+verdict = supervisor.verify_narration(
+    "I saved your summary to notes.txt; I also deleted backup.sql.",
+    receipts=[ToolReceipt(tool="write_file", ok=True, args={"path": "notes.txt"}, output="ok")],
+)
+assert verdict.is_valid is False  # catches unexecuted backup.sql deletion clause
+```
+
+### 2. Full Local-First Desktop Companion (`src/lucca/`)
 
 ```powershell
-# 1. Run environment check
+# 1. Verify environment, GPU/OpenVINO devices, and model SHA-256 manifest pins
 uv run python -m lucca.core.env_check
 
-# 2. Run static gates and unit test suite
+# 2. Run static architecture gates (40/40) and unit test suite
 uv run pytest tests/test_static_gates.py
 uv run pytest
 
-# 3. Launch multi-process companion supervisor
+# 3. Launch multi-process companion supervisor (UI + Core + Senses + Sandbox)
 uv run python -m lucca.main
 ```
 
 ---
 
-## Architecture
+## System Architecture
 
-See [Unified System Architecture Specification](luccadocs/ARCHITECTURE.md) for the complete 4-process topology, execution tiers (`REFLEX`, `ACT_THEN_NARRATE`, `FULL_LOOP`), modularized orchestrator/supervision/reasoning services (`WO-43`: `198` modules, `83,931` LOC in `src/lucca/`), MicroScheme engine with cryptographically authenticated operator rule promotion (`OperatorApprovalToken`) and 1-strike user-correction demotion, and RFC 8032 asymmetric provenance envelope verification (`src/lucca/memory/signers.py`, `src/lucca/memory/gate.py`).
+```mermaid
+flowchart LR
+    User(["Voice / Text Input"]) --> Senses["Senses Process<br/>Whisper ASR + DeBERTa NLI"]
+    Senses --> Router["OpenVINO Intent Router<br/>REFLEX / ACT / FULL_LOOP (M=4)"]
+    Router --> Brain["Local GGUF Brain<br/>llama-server (Gemma-4 Q6_K)"]
+    Router --> Symbolic["Symbolic Lobes<br/>MicroScheme + Z3 + SymPy + CEGIS"]
+    Brain <--> Sandbox["Isolated Docker Sandbox<br/>19 Native Tools + Scrapling Web"]
+    Sandbox --> Burden["2D Evidentiary Burden Gate<br/>Relevance + Shingle Dedup + Hazard"]
+    Burden --> Brain
+    Brain --> Supervisor["Clause-Level Receipt Supervisor<br/>OpenVINO NPU/CPU + ToolReceipts"]
+    Supervisor --> Memory["Ed25519 Provenance Memory<br/>SQLite-vec + Belnap Bilattice"]
+    Supervisor --> Output(["Verified Speech / UI Output"])
+```
 
----
+### Four Core Engineering Pillars
 
-## Benchmark Results
+1. **Cryptographic Provenance Memory (`src/lucca/memory/`):** Long-term memory writes require domain-separated RFC 8032 Ed25519 signatures verified by a public-key-only `ProvenanceGate`. Unverified assistant prose cannot self-certify into durable factual memory, while `BelnapLatentInvestigator` tracks 4-valued paraconsistent truth states (`TRUE`, `FALSE`, `BOTH`, `NEITHER`) and fails closed on `UNCERTAIN` NLI verdicts.
+2. **Clause-Level Receipt Supervision (`src/lucca/sandbox/`):** Assistant responses are split into syntactic clauses and scored by an OpenVINO classifier (`models/action_claim_verifier_ov`, `0 MB` GPU VRAM) paired with deterministic `ToolReceipt` set verification and `[ACTION: ...]` Structured Output Action Contracts (`SOAC`), blocking unexecuted tool fabrications before speech synthesis or memory commit.
+3. **2D Hazard-Scaled Open-Web Evidentiary Burden (`src/lucca/core/proof_policy.py`, `walton_schemes/`):** Open-web `ResearchTool` dossiers pass through OpenVINO passage-relevance filtering (`web_relevance.py`), shingle/SimHash + bidirectional NLI syndication deduplication (`dedup.py`), and multi-clause hazard lattice pooling (`proof_policy_hazard_v3_ov` + `ConformalGuard`). Required independent corroboration scales with query hazard (`LOW -> 1`, `MEDIUM -> 2`, `HIGH -> 3` independent eTLD+1 publishers), and cross-source contradictions inject structured conflict disclosure metadata (`Arm D`).
+4. **Bicameral Symbolic & Sandboxed Execution (`src/lucca/reasoning/`, `src/lucca/core/`):** Procedural rules induced during offline consolidation (`ConsolidationEngine`) are quarantined behind Z3 SMT safety checks, require an Ed25519-signed `OperatorApprovalToken` to promote to `ACTIVE`, and demote on a 1-strike user correction. File, shell, math, and web tools execute inside a memory-clamped WSL2 Docker container.
 
-All figures below are author-measured on workstation silicon (`RTX 5080 Laptop GPU`, `Core Ultra 9 275HX`, native Windows 11).
-
-> [!NOTE]
-> **Scientific Audit & Provenance Ledger (`WO-39` – `WO-45`):** All active benchmarks below reflect decontaminated `llama-server` runs verified in Docker or isolated SQLite stores (with per-step OpenTimestamps + `origin/main` causal `lock -> corpus -> results` commit chains across `WO-45 G4 v3`, `G5`, and `G6`). Historical errata and superseded baselines — including `WO-44` (`82b1da8`, where Ed25519 was not used and `v1`/`v2` web-burden runs were superseded by pre-registered `G4 v3`), retired `G4 v2` defects (`F-1..F-8` in [`REVIEW_G4.md`](./logs/test_reports/wo45/REVIEW_G4.md)), and `WO-39` pre-decontamination archives — are documented in full in [`AUDIT_AND_RETRACTION_HISTORY.md`](./logs/test_reports/wo45/AUDIT_AND_RETRACTION_HISTORY.md) and [`WO45_HANDBACK.md`](./logs/test_reports/wo45/WO45_HANDBACK.md).
-
-| Benchmark | Config | Result (Author-measured, [95% Wilson CI]) | Evidence File |
-| :--- | :--- | :---: | :--- |
-| **Paper 1 / 3: Memory Poisoning v3 (`prereg-wo43-power-300`, `N=300`)** | `N=300` 5-arm ablation (`Cohort A n=100` natural confabulations, `Cohort B n=100` benign math/plans, `Cohort C n=100` user falsehoods; `1,500` evaluations on `E4B`) | **Cohort A & C Poisoning: `0/100 (0.0% [0.0%, 4.61%])`** vs `100/100 (100.0%)` Naive RAG & Adversarial Soft Tagging (exact McNemar $p = 4.16 \times 10^{-23}$) and `11/100 (11.0%)` Passive Soft Tagging ($p = 9.77 \times 10^{-4}$); **Cohort A & B Continuity: `100/100 (100.0% [95.39%, 100.0%])`** vs `1/100 (1.0%)` No-Assistant ($p = 6.90 \times 10^{-23}$); Dual Blinded Judge IRR $\kappa = 0.9206$ (`58/60`) | [`memory_poisoning_v3_300_results.json`](./logs/test_reports/memory_poisoning_v3_300_results.json), [`wo43_phase5_blinded_irr_60_report.json`](./logs/test_reports/wo43_phase5_blinded_irr_60_report.json) |
-| **Contrastive Companion Battery v2 (`prereg-wo43-power-300`, `N=300`)** | `N=300` (`100` `recall`, `100` `receipt_introspection`, `100` `abstention`) $\times$ 3 arms (`Bare LLM`, `Compound Lucca`, `Top-5 Hybrid RAG` = `900` live turns on `E4B`) | **Recall: `100/100 (100.0% [95.4%, 100.0%])`** Compound Lucca vs `2/100 (2.0%)` Bare LLM (`+98.0 pp`, $p_{\text{HB}} = 1.03 \times 10^{-21}$) and `85/100 (85.0%)` Hybrid RAG (`+15.0 pp`, $p_{\text{HB}} = 3.05 \times 10^{-4}$); **Receipt Introspection: `100/100 (100.0%)`** vs `50/100` Bare LLM and `98/100` Hybrid RAG; **Abstention: `100/100 (100.0%)`** (`0` errors across `900` turns; IRR $\kappa = 1.0000$) | [`contrastive_v2_300_results.json`](./logs/test_reports/contrastive_v2_300_results.json), [`contrastive_v2_300_results_REPORT.md`](./logs/test_reports/contrastive_v2_300_results_REPORT.md) |
-| **Paper 4 / WO-45 G4 v3: Pre-Registered 4-Arm Web Evidentiary Burden (`N=132` Items, `2,640` Live Turns)** | `132` fresh `WEB360` items (`0` `v2` overlap) $\times$ `4` arms (`A`, `B`, `C`, `D`) $\times$ `5` Gemma-4 `Q6_K` models (`E2B`, `E4B-heretic`, `E4B-stock`, `12B`, `26B-A4B`) at `ctx=32768`; 3 non-Google judge families (`Qwen3.8-27B`, `Phi-4-14B`, `Nemotron-3.5-30B-A3B`) on normalized text (`0` forbidden lexicon hits) | **Co-Primary `D4` Conflict Disclosure (`660` disputed turns, $\min \kappa = 0.6983$):** `Arm A` `61/165 (36.97%)`, `Arm C` (generic tip) `85/165 (51.52%)`, **`Arm D` (structured contract + Arm C prompt, no `MUST`/legal vocab) `164/165 (99.39% [98.18, 100.0])`**, `Arm B` `165/165 (100.0%)` — **`D vs C = +47.88 pp` `[+36.36, +60.00]`, $p = 0.0001$, `79:0` discordant** (`B vs D = +0.61 pp`, $p = 0.7214$, null). **Substantive Faithful Answering (`D2=NO & NO_ANSWER=NO`):** `648/660 (98.18%)` `Arm D` vs `612/660 (92.73%)` `Arm C` (`+5.45 pp`, $p = 0.0001$). **`D1` `ACCURATE`:** `643/660 (97.42%)` `Arm D` vs `614/660 (93.03%)` `Arm C` (`+4.39 pp`, $p = 0.0012$; `B vs D = -2.27 pp`, $p = 0.0108$; live `D1`/`D2` $\kappa < 0.60$ under `93%–99%` base-rate skew). **First-Class Utility / Over-Hedge Cost (`R-41`, `D3` $\min\kappa = 0.8811$):** `D3` over-hedging on nominal-met turns is `15/330 (4.55%)` `Arm B`, `18/330 (5.45%)` `Arm D` vs `24/330 (7.27%)` `Arm C`, `47/330 (14.24%)` `Arm A` (on `6` nominal-met items blocked by `v1` NPU over-escalation, model-majority item over-hedging is `1/6 [16.67%]` `Arm B`, `2/6 [33.33%]` `Arm D`; `mean 36.67% [26.67, 46.67]` `Arm B`, `43.33% [26.67, 60.00]` `Arm D`). **Gate Latency:** `6.58 ms` mean NPU / `16.92 ms` mean CPU (`360/360` Walton synthetic conformance) | [`GATE_G4v3.md`](./logs/test_reports/wo45/GATE_G4v3.md), [`g4_live_v3_report.json`](./logs/test_reports/wo45/g4_live_v3_report.json), [`r06_gate_latency_npu_vs_cpu.json`](./logs/test_reports/wo45/r06_gate_latency_npu_vs_cpu.json) |
-| **Paper 4 / WO-45 G5–G6: Multi-Clause Hazard (`N=130`), Sybil Dedup (`N=45`), & Live Real-Web Scrapling (`N=64`)** | Causal `lock -> corpus -> results` OpenTimestamps holdouts: `R-21`/`R-42` disjoint `proof_policy_hazard_v3_ov` + `ConformalGuard` (`0` `WEB360` overlap, $\kappa = 1.0000$); `R-33` shingle/SimHash + NLI dedup on fresh Domain Set B; `R-32` live `ResearchTool`/Scrapling (`250` archived `.html.gz` pages, $\kappa = 0.9549$–$1.0000$) | • **`R-21` / `R-42` Fresh Multi-Clause Hazard (`N=130`):** **`126/130 (96.92% [92.36%, 98.80%])` conservative safety** (`68/72 = 94.44%` `HIGH` recall), **`119/130 (91.54% [85.48%, 95.21%])` strict 3-class**, `6/45 (13.33% [6.26%, 26.18%])` 1-tier benign false escalation (**`0/45 = 0.00%` to `HIGH`**); `5:1` cost **`95.0` $\to$ `37.0` (`-61.1%`)**<br>• **`R-33` Adversarial Syndication / Sybil Dedup (`N=45`):** False corroboration **`38/45 (84.44% [71.22%, 92.25%])` $\to$ `3/45 (6.67% [2.29%, 17.86%])`** on fresh holdout (`0/15` verbatim, `0/15` wire-syndicated, `3/15` sybil 3-vs-1; false burden pass `21/29 [72.41%]` $\to$ `1/42 [2.38%]`)<br>• **`R-32` Live Real-Web Scrapling (`N=64`):** **`39/64 (60.94% [48.69%, 71.94%])` burden decision accuracy** (`20/37 = 54.05%` unmet specificity; `19/27 = 70.37%` met utility pass / `8/27 = 29.63%` over-hedge [`2/13 = 15.38%` on `LOW` sufficient]; `54/64 = 84.38%` safe hazard; `42/64 = 65.62%` dispute; `21/64 = 32.81%` exact / `45/64 = 70.31%` within-1 source count) | [`GATE_G5.md`](./logs/test_reports/wo45/GATE_G5.md), [`r21_hazard_holdout_report.json`](./logs/test_reports/wo45/r21_hazard_holdout_report.json), [`GATE_G6.md`](./logs/test_reports/wo45/GATE_G6.md), [`r33_sybil_dedup_report.json`](./logs/test_reports/wo45/r33_sybil_dedup_report.json), [`r32_real_web_v1_report.json`](./logs/test_reports/wo45/r32_real_web_v1_report.json) |
-| **Paper 4 / WO-42: Clause-Level OpenVINO Supervision & Routing (`N=2,022` Pooled + `N=540` Blind + `100` Live E2E)** | 3 OpenVINO IR classifiers (`action_claim_verifier_ov`, `proof_policy_hazard_ov`, `router_intent_ov`, `0 MB` GPU VRAM) across `N=2,022` pooled supervision turns, `Blind-390`, `WO42_LOCKED_HOLDOUT_150` (SHA-256 locked pre-generation), `550` `Hypothesis` fuzz cases, and `100` live 4-model turns | • **Action-Claim Supervision (`N=2,022`):** **`98.7% (465/471)` Recall / `0.6% (9/1,551)` FPR (`99.3% [98.8%, 99.6%]` acc.)** (`12.1 ms` mean; `100.0% [47/47]` recall on unseen `H001..H100`, `93.3% [14/15]` on zero-verb `IMP_01..IMP_30`, vs `58.5%` legacy stem regex)<br>• **`Blind-390`:** **`377/390 (96.7% [94.38%, 98.04%])`** (`Coherence: 130/130`, `Hazard: 125/130`, `Router: 122/130`; IRR $\kappa = 1.000$)<br>• **`WO42_LOCKED_HOLDOUT_150`:** **`145/150 (96.67% [92.43%, 98.57%])`** single-pass locked (`50/50` coherence, `50/50` hazard, `45/50` router $\to$ `150/150` post-router-fix)<br>• **Live 4-Model E2E (`100` Turns):** **`100/100 (100.0%)`** coherence & grounding, **`98/100 (98.0%)`** task/reasoning | [`wo42_large_sample_2020_report.json`](./logs/test_reports/wo42_large_sample_2020_report.json), [`wo42_locked_holdout_150_report.json`](./logs/test_reports/wo42_locked_holdout_150_report.json), [`wo42_live_4model_summary.json`](./logs/test_reports/wo42_live_4model_summary.json) |
-| **Paper 2: Structured Output Action Contract (`SOAC`, `720` Live Turns)** | `N=120` held-out prompts on `26B-A4B` (`720` completions across `v1`/`v2` Natural, SOAC, and SOAC+GBNF; dual-rater $\kappa = 1.0000$) | **SOAC** binds explicit `[ACTION: ...]` frames in **`6.82 µs`** with **`0/120 (0.00% [0.00%, 3.87%])` unframed prose leakage** across `v1 SOAC`, `v2 SOAC`, and `v2 SOAC+GBNF` (`100%` frame coupling on all `13/13`, `18/18`, and `17/17` prose claims — passing $H_{2e} \le 2/120$) | [`docs/papers/02_deontic_supervision_evasion.pdf`](./docs/papers/02_deontic_supervision_evasion.pdf), [`paper2_v1_v2_semantic_audit_720.json`](./logs/test_reports/paper2_v1_v2_semantic_audit_720.json) |
-| **Paper 1: Memory Poisoning Multi-Scale (`N=100` + 4-Scale Rebench)** | `N=100` 4-arm ablation on `26B-A4B` + `WO-39` 4-scale live rebench (`n=10`/scale across `26B-A4B`, `12B`, `E4B`, `E2B`) | **`0/40 (0.0% [0.0%, 8.8%])`** poisoned vs `40/40` Naive RAG ($p = 1.82 \times 10^{-12}$); `96.7%` Cohort B retention; `0/10` poisoned across all 4 scales under `V2c` ($p = 0.00195$) | [`docs/papers/01_memory_poisoning_ablation.pdf`](./docs/papers/01_memory_poisoning_ablation.pdf), [`wo39_live_4models_rebench.json`](./logs/test_reports/wo39_live_4models_rebench.json) |
-| **Paper 3: LongMemEval Pipeline (`N=30`, `12B`)** | Conversational memory & temporal reasoning: Context-Truncation Baseline vs. Lucca Provenance + RRF + Allen Pipeline | **`23.3% (7/30 [11.8%, 40.9%])` $\to$ `70.0% (21/30 [52.1%, 83.3%])`** (`0:14` discordant pairs, exact McNemar $p = 0.000122$, `8.1 ms` mean retrieval latency) | [`longmemeval_pipeline_12B_1791794644.json`](./logs/test_reports/longmemeval_pipeline_12B_1791794644.json) |
-| **Paper 3: IN-D Live 52-Turn Rule Induction** | Organic 52-turn waking trace + 16 held-out turns on `12B` (`RuleInducer` + Z3 SMT + 50-turn `Dream-RSI` replay + 1-strike eviction) | **4/4** tool rules Z3-quarantined (`100%` 50-turn replay, **`8/8 [67.6%, 100%]`** held-out recall at `0.14 ms`, **`0/8 [0.0%, 32.4%]`** misfires; `0/2` free-form S-expr macros admitted) | [`in_d_live_baseline_wo39.json`](./logs/test_reports/in_d_live_baseline_wo39.json), [`SINGLE_RULE_LIFECYCLE_TRACE.md`](./docs/SINGLE_RULE_LIFECYCLE_TRACE.md) |
-| **DeBERTa-v3-xsmall vs MiniLM-L6 NLI Verifier (`WO-45 Step 4A` & `WO-37`)** | Pre-registered OpenVINO CPU (`0 MB` VRAM, `50 ms` budget) head-to-head on `pairs_v1` (`N=100`) + blinded out-of-sample `nli_holdout_v2_120` (`N=120`: `40` entailment, `40` contradiction, `40` neutral) | • **Out-of-sample `nli_holdout_v2_120`:** `MiniLM-L6` `67/120 (55.8% [46.9%, 64.4%])` $\to$ **`DeBERTa-v3-xsmall` `82/120 (68.3% [59.6%, 76.0%])`** (`23:8` discordant, $p = 0.0107$); entailment recall `7/40 (17.5%)` $\to$ **`16/40 (40.0% [26.4%, 55.4%], 100.0% precision)`** (`10:1` discordant, $p = 0.0117$), contradiction recall `27/40 (67.5%)` $\to$ **`31/40 (77.5%)`**, **`20.47 ms` p50 / `26.70 ms` p95**<br>• **`pairs_v1` (`N=100`):** **`91/100 (91.0% [83.8%, 95.2%])`** on both (`24/30 = 80.0%` $\to$ **`25/30 = 83.3%`** entailment recall, **`19.62 ms` p50 / `20.56 ms` p95**) | [`nli_verifier_v2_report.json`](./logs/test_reports/nli_verifier_v2_report.json), [`nli_verifier_v2_prereg_lock.json`](./logs/test_reports/nli_verifier_v2_prereg_lock.json), [`Paper 03 §4.1`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md#L121) |
-| **WO-39: Sealed Parametric Suite (`v139`)** | `N=15` (`3/lobe`: `ContainerWorld`, `Z3`, `SymPy`, `2-Lobe`, `CEGIS`) across `26B-A4B`, `12B`, `E4B`, `E2B` | **`15/15 (100% [79.6%, 100%])`** on `26B-A4B`, `12B`, `E4B` ($p = 0.000061$ vs `0/15` raw); **`14/15 (93.3% [70.2%, 98.8%])`** on `E2B` | [`RESULTS.md`](./RESULTS.md#L7) |
-| **Canonical HumanEval & HumanEval-Plus (`N=164`)** | 164 coding tasks `pass@1` in Docker (`cache_prompt: false`, `12B`) + EvalPlus 80x differential tests | **`94.51% (155/164 [89.90%, 97.09%])`** HumanEval raw (`93.90%` assisted) • **`91.46% (150/164 [86.18%, 94.84%])`** HumanEval-Plus | [`RESULTS.md`](./RESULTS.md#L58) |
-| **GSM-Symbolic (`N=100`) & MATH-500 (`N=100` Sealed / `N=500` Fresh)** | Perturbed symbolic math & competition mathematics (`12B`) | **`94.00% (94/100 [87.52%, 97.22%])`** GSM-Symbolic • **`93.00%` strict (`94.00%` lenient)** MATH-500 Sealed B4 • **`85.80%` strict (`429/500`) / `90.20%` lenient (`451/500`)** MATH-500 Fresh | [`RESULTS.md`](./RESULTS.md#L56) |
-| **Static, Anti-Cheat & Modularity Gates (`WO-43` / `WO-45`)** | Structural invariants, zero-`Any`, LOC ceilings, AST parity, NLI fail-closed, 100% runtime reachability (`198` modules), zero Ruff/mypy errors | **40 / 40 gates PASSED** + **8 / 8 Import-Linter contracts KEPT** | [`tests/test_static_gates.py`](./tests/test_static_gates.py), [`.importlinter`](./.importlinter) |
+See [Unified System Architecture Specification](./luccadocs/ARCHITECTURE.md) for the full 4-process IPC contract (`199` reachable modules in `src/lucca/`, `8/8` Import-Linter boundary contracts).
 
 ---
 
-## Documentation & Community
+## Hardware Tiers (Full Desktop Companion)
 
-- **Reproduction Guide:** [`REPRODUCING.md`](./REPRODUCING.md) — Step-by-step reproduction instructions, dataset hashes, and one-command benchmark targets.
-- **Audit & Retraction History:** [`logs/test_reports/wo45/AUDIT_AND_RETRACTION_HISTORY.md`](./logs/test_reports/wo45/AUDIT_AND_RETRACTION_HISTORY.md) — Complete `WO-39`–`WO-45` audit disclosures, `WO-44` corrections, and superseded benchmark runs.
-- **System Glossary:** [`luccadocs/GLOSSARY.md`](./luccadocs/GLOSSARY.md) — Plain-English definitions of cognitive architecture terms.
-- **Security Policy & Threat Model:** [`SECURITY.md`](./SECURITY.md) and [`luccadocs/security/THREAT_MODEL.md`](./luccadocs/security/THREAT_MODEL.md) — Vulnerability reporting, attack surfaces, and verified defense invariants.
-- **Contributing:** [`CONTRIBUTING.md`](./CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md) — Development guidelines and invariants.
-- **Third-Party Notices:** [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md) — Upstream runtime, library, and foundation model licenses.
+VRAM scales with the selected GGUF model at `ctx=32768` ([`q1_vram_nvidia_smi_evidence.json`](./logs/test_reports/wo45/q1_vram_nvidia_smi_evidence.json)). An **Intel AI Boost NPU is optional**; OpenVINO automatically uses the NPU when present (`6.58 ms` mean web-burden gate latency) and falls back to OpenVINO CPU when absent (`16.92 ms` mean on Core Ultra 9 275HX, [`r06_gate_latency_npu_vs_cpu.json`](./logs/test_reports/wo45/r06_gate_latency_npu_vs_cpu.json)).
+
+| Model Tier (`Q6_K` GGUF) | Recommended dGPU VRAM | Resident VRAM (`ctx=32768`) | Recommended System RAM | Notes |
+| :--- | :---: | :---: | :---: | :--- |
+| **`Gemma-4-E2B`** | 4–6 GB+ | `~2.7 GiB` | 16 GB | Compact low-latency local companion |
+| **`Gemma-4-E4B`** | 6–8 GB+ | `~4.8–5.0 GiB` | 16 GB | Balanced everyday voice & tool tier |
+| **`Gemma-4-12B`** | 12 GB+ | `~10.9 GiB` | 16–24 GB | Primary dense reasoning & coding tier |
+| **`Gemma-4-26B-A4B MoE`** | 12–16 GB | `~11.5 GiB` | 32 GB+ | `--cpu-moe --moe-cache-mib 7680` expert offload |
+
+- **OS (Full Companion):** Windows 11 64-bit with WSL2 (`4.5 GB` `.wslconfig` cap) and Docker CE, Python 3.12+ via `uv`.
+- **Cross-Platform (`lucca-epistemic`):** Linux, macOS, or Windows (Python 3.11+, CPU/NPU only).
 
 ---
 
-## Research
+## Empirical Evaluation Summary
 
-See [`luccadocs/research/README.md`](./luccadocs/research/README.md) for the research roadmap, experimental logs, and technical reports:
-- **Foundational Pre-Print (PDF):** [`docs/paper.pdf`](./docs/paper.pdf) — *Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents* (Zenodo DOI: [`10.5281/zenodo.23649049`](https://doi.org/10.5281/zenodo.23649049)).
-- **Paper 1 (Memory Poisoning Ablation PDF & LaTeX):** [`docs/papers/01_memory_poisoning_ablation.pdf`](./docs/papers/01_memory_poisoning_ablation.pdf), [`papers/01_memory_poisoning_ablation/main.tex`](./papers/01_memory_poisoning_ablation/main.tex) — *Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents* (Zenodo DOI: [`10.5281/zenodo.23901452`](https://doi.org/10.5281/zenodo.23901452)).
-- **Paper 2 (Deontic Supervision Evasion PDF & LaTeX):** [`docs/papers/02_deontic_supervision_evasion.pdf`](./docs/papers/02_deontic_supervision_evasion.pdf), [`papers/02_deontic_supervision_evasion/main.tex`](./papers/02_deontic_supervision_evasion/main.tex) — *Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation* (Zenodo DOI: [`10.5281/zenodo.23901605`](https://doi.org/10.5281/zenodo.23901605)).
-- **Paper 3 (5-Layer Epistemic & Procedural Memory PDF & LaTeX):** [`docs/papers/03_provenance_gated_five_layer_memory.pdf`](./docs/papers/03_provenance_gated_five_layer_memory.pdf), [`papers/03_provenance_gated_five_layer_memory/main.tex`](./papers/03_provenance_gated_five_layer_memory/main.tex) — *Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction* (Zenodo DOI: [`10.5281/zenodo.23901683`](https://doi.org/10.5281/zenodo.23901683)).
-- **Paper 4 (Clause-Level NPU Supervision & 2D Evidentiary Burden PDF & LaTeX):** [`docs/papers/04_clause_level_npu_supervision.pdf`](./docs/papers/04_clause_level_npu_supervision.pdf), [`papers/04_clause_level_npu_supervision/main.tex`](./papers/04_clause_level_npu_supervision/main.tex) — *Breaking the Lexical Supervision Ceiling: Clause-Level MiniLM-L6 Verification and Task-Priority Intent Routing on a Zero-VRAM Edge NPU*.
-- **Subsystem Technical Reports (Markdown):** [`Paper 03 (Provenance & Belnap/NARS)`](./luccadocs/research/papers/03_PARACONSISTENT_BILATTICES_AND_PROVENANCE_ENVELOPES.md) • [`TR-04 (E-Graph, Z3 Quarantine & Live IN-D Baseline)`](./luccadocs/research/papers/04_E_GRAPH_EQUALITY_SATURATION_AND_RULE_INDUCTION.md) • [`Paper 06 (4-Model Scale Ablation)`](./luccadocs/research/papers/06_MODEL_SCALE_ABLATION_GEMMA4_E4B_VS_12B.md) • [`Single-Rule Lifecycle Case Study (26B-A4B)`](./docs/SINGLE_RULE_LIFECYCLE_TRACE.md).
+All active benchmarks below were executed against live `llama-server` GGUF models, isolated SQLite stores, or archived live-web HTML corpora on local workstation silicon (`RTX 5080 Laptop GPU`, `Core Ultra 9 275HX`). Pre-registered holdouts (`G4 v3`, `G5`, `G6`, and `WO-46 real_web_v2`) enforce a strict `lock -> corpus -> results` OpenTimestamps + `origin/main` commit chain.
+
+| Evaluation Suite | Experimental Setup | Key Result (Author-Measured, `[95% Wilson CI]`) | Evidence Artifacts |
+| :--- | :--- | :--- | :--- |
+| **Multi-Session Memory Poisoning Resistance (`N=300`)** | 5-arm ablation (`100` natural confabulations, `100` benign reasoning, `100` adversarial user falsehoods; `1,500` live `E4B` turns; blinded IRR $\kappa = 0.9206$) | **`0/100 (0.0% [0.0%, 4.6%])` poisoning** on both natural confabulations & user falsehoods vs `100/100 (100.0%)` Naive RAG ($p = 4.16 \times 10^{-23}$) and `11/100 (11.0%)` Passive Soft Tagging ($p = 9.77 \times 10^{-4}$); **`100/100 (100.0% [95.4%, 100.0%])` factual continuity** (`0/40` poisoned across 4 model scales in multi-scale rebench) | [`memory_poisoning_v3_300_results.json`](./logs/test_reports/memory_poisoning_v3_300_results.json), [`wo39_live_4models_rebench.json`](./logs/test_reports/wo39_live_4models_rebench.json) |
+| **Contrastive Companion Recall, Receipt Introspection & Abstention (`N=300`)** | `300` items (`100` seeded recall, `100` receipt introspection, `100` abstention) $\times$ 3 arms (`900` live `E4B` turns; IRR $\kappa = 1.0000$) | **Recall: `100/100 (100.0% [95.4%, 100.0%])`** vs `2/100 (2.0%)` Bare LLM and `85/100 (85.0%)` Hybrid RAG ($p_{\text{HB}} = 3.05 \times 10^{-4}$); **Receipt Introspection: `100/100 (100.0%)`**; **Abstention: `100/100 (100.0%)`** | [`contrastive_v2_300_results.json`](./logs/test_reports/contrastive_v2_300_results.json), [`contrastive_v2_300_results_REPORT.md`](./logs/test_reports/contrastive_v2_300_results_REPORT.md) |
+| **Clause-Level Action-Claim Supervision & Intent Routing (`N=2,022` + `N=540` Holdouts + `100` Live E2E)** | 3 zero-VRAM OpenVINO classifiers (`action_claim_verifier_ov`, `proof_policy_hazard_ov`, `router_intent_ov`) across pooled supervision corpus, `Blind-390`, SHA-256 locked `Holdout-150`, and 4-model live orchestrator | • **Pooled Supervision (`N=2,022`):** **`465/471 (98.7% [97.3%, 99.4%])` recall**, **`9/1,551 (0.6% [0.3%, 1.1%])` FPR**, **`2,007/2,022 (99.3%)` accuracy** (vs `58.5%` legacy stem regex)<br>• **Locked Holdout (`N=150`):** **`145/150 (96.7% [92.4%, 98.6%])`** single-pass (`50/50` coherence, `50/50` hazard, `45/50 -> 50/50` router post-fix)<br>• **Live 4-Model E2E (`N=100`):** **`100/100 (100.0%)`** grounding, **`98/100 (98.0%)`** task completion | [`wo42_large_sample_2020_report.json`](./logs/test_reports/wo42_large_sample_2020_report.json), [`wo42_locked_holdout_150_report.json`](./logs/test_reports/wo42_locked_holdout_150_report.json), [`wo42_live_4model_summary.json`](./logs/test_reports/wo42_live_4model_summary.json) |
+| **Structured Output Action Contract (`SOAC`, `720` Live Turns)** | `120` held-out prompts on `26B-A4B` across Natural, `SOAC`, and `SOAC+GBNF` (`6.82 µs` parser; dual-rater $\kappa = 1.0000$) | **`0/120 (0.0% [0.0%, 3.9%])` unframed prose action leakage** across `v1 SOAC`, `v2 SOAC`, and `v2 SOAC+GBNF` (`100%` `[ACTION: ...]` frame coupling) | [`paper2_v1_v2_semantic_audit_720.json`](./logs/test_reports/paper2_v1_v2_semantic_audit_720.json) |
+| **4-Arm Web Evidentiary Burden & Conflict Disclosure (`N=132` Items, `2,640` Live Turns)** | `132` disjoint items $\times$ 4 arms (`A` bare, `B` full policy, `C` generic tip, `D` structured contract without legal phrasing) $\times$ 5 Gemma-4 models at `ctx=32768`; 3 non-Google judge families (`Qwen3.8-27B`, `Phi-4-14B`, `Nemotron-3.5-30B-A3B`) | **Disputed Conflict Disclosure (`660` turns, $\min\kappa = 0.6983$):** **`164/165 (99.4% [98.2%, 100.0%])` `Arm D`** vs `85/165 (51.5%)` `Arm C` (`+47.9 pp`, $p = 0.0001$, `79:0` discordant) and `61/165 (37.0%)` `Arm A`; **Faithful Substantive Answering:** **`648/660 (98.2%)` `Arm D`** vs `612/660 (92.7%)` `Arm C` ($p = 0.0001$); **Nominal-Met Over-Hedging (`D3` $\min\kappa = 0.8811$):** **`18/330 (5.5%)` `Arm D`** vs `24/330 (7.3%)` `Arm C` and `47/330 (14.2%)` `Arm A` | [`GATE_G4v3.md`](./logs/test_reports/wo45/GATE_G4v3.md), [`g4_live_v3_report.json`](./logs/test_reports/wo45/g4_live_v3_report.json) |
+| **Multi-Clause Hazard (`N=130`), Sybil Dedup (`N=45`), & Out-of-Sample Live Open-Web Scrapling (`N=64` `v2`)** | Causal OpenTimestamps holdouts: disjoint `proof_policy_hazard_v3_ov` (`N=130`); fresh Domain Set B wire/sybil dedup (`N=45`); single-shot live `ResearchTool`/Scrapling `real_web_v2` (`N=64` fresh queries, `246` `.html.gz` pages, dual-rater $\kappa = 0.9107$–$1.0000$) | • **Multi-Clause Hazard (`N=130`):** **`126/130 (96.9% [92.4%, 98.8%])` conservative safe** (`119/130 [91.5%]` strict 3-class, `0/45` benign false escalations to `HIGH`)<br>• **Sybil / Wire Dedup (`N=45`):** False corroboration cut **`38/45 (84.4%) -> 3/45 (6.7% [2.3%, 17.9%])`**<br>• **Live Open-Web `real_web_v2` (`N=64`, `WO-46`):** **`46/64 (71.9% [59.9%, 81.4%])` burden decision accuracy** (up from `39/64 [60.9%]` on historical `v1`), **`56/64 (87.5% [77.2%, 93.5%])` dispute accuracy** (`3.6% [2/55]` FPR vs `24.0%` in `v1`), **`32/39 (82.1%)` sufficient-evidence utility pass** (`12.5% [2/16]` low-hazard over-hedge), **`56/64 (87.5%)` within-1 source count** (`29/64 [45.3%]` exact, `MAE = 0.72`), **`55/64 (85.9%)` safe hazard** | [`real_web_v2_report.json`](./logs/test_reports/wo46/real_web_v2_report.json), [`r21_hazard_holdout_report.json`](./logs/test_reports/wo45/r21_hazard_holdout_report.json), [`r33_sybil_dedup_report.json`](./logs/test_reports/wo45/r33_sybil_dedup_report.json), [`r32_real_web_v1_report.json`](./logs/test_reports/wo45/r32_real_web_v1_report.json) |
+| **OpenVINO CPU NLI Cross-Encoder (`N=120` Hard Paraphrase Holdout & `N=100` `pairs_v1`)** | `DeBERTa-v3-xsmall` vs `MiniLM-L6` (`0 MB` VRAM, `20.47 ms` p50 / `26.70 ms` p95) | **Out-of-sample `nli_holdout_v2_120`:** **`82/120 (68.3% [59.6%, 76.0%])`** vs `67/120 (55.8%)` `MiniLM-L6` ($p = 0.0107$; `40.0% [16/40]` entailment recall at `100.0%` precision); **`pairs_v1`:** **`91/100 (91.0% [83.8%, 95.2%])`** | [`nli_verifier_v2_report.json`](./logs/test_reports/nli_verifier_v2_report.json) |
+| **LongMemEval Temporal Memory (`N=30`), Live Rule Induction (`52` Turns), & Symbolic/Coding Suites** | `LongMemEval` (`12B`), organic `IN-D` Z3 rule induction (`12B`), Sealed Parametric Neurosymbolic Suite (`v139`), Docker `HumanEval`/`HumanEval+` (`N=164`), `GSM-Symbolic` (`N=100`), `MATH-500` (`N=500`) | • **`LongMemEval`:** **`21/30 (70.0% [52.1%, 83.3%])`** vs `7/30 (23.3%)` context truncation ($p = 0.000122$, `8.1 ms` retrieval)<br>• **Z3 Rule Induction:** **`8/8` held-out recall (`0.14 ms`)**, **`0/8` misfires**<br>• **Sealed Neurosymbolic (`v139`):** **`15/15 (100.0%)`** on `26B`/`12B`/`E4B` (`14/15` on `E2B`)<br>• **Coding & Math (`12B`):** **`155/164 (94.5%)` HumanEval**, **`150/164 (91.5%)` HumanEval+**, **`94/100 (94.0%)` GSM-Symbolic**, **`429/500 (85.8%)` strict / `451/500 (90.2%)` lenient MATH-500 Fresh** | [`longmemeval_pipeline_12B_1791794644.json`](./logs/test_reports/longmemeval_pipeline_12B_1791794644.json), [`in_d_live_baseline_wo39.json`](./logs/test_reports/in_d_live_baseline_wo39.json), [`RESULTS.md`](./RESULTS.md) |
+| **Static Architecture & Hygiene Gates** | Zero-`Any` in public APIs, LOC ceilings, NLI fail-closed enforcement, 100% module reachability, anti-contamination, zero `ruff`/`mypy` errors | **`40/40` static gates passed**, **`8/8` Import-Linter contracts kept** | [`tests/test_static_gates.py`](./tests/test_static_gates.py), [`.importlinter`](./.importlinter) |
+
+---
+
+## Research Preprints & Technical Documentation
+
+- **Foundational Preprint:** [*Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents*](./docs/paper.pdf) — Zenodo DOI: [`10.5281/zenodo.23649049`](https://doi.org/10.5281/zenodo.23649049)
+- **Paper 1 (Memory Poisoning Ablation):** [*Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents*](./docs/papers/01_memory_poisoning_ablation.pdf) ([LaTeX](./papers/01_memory_poisoning_ablation/main.tex)) — Zenodo DOI: [`10.5281/zenodo.23901452`](https://doi.org/10.5281/zenodo.23901452)
+- **Paper 2 (Action Supervision & SOAC):** [*Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation*](./docs/papers/02_deontic_supervision_evasion.pdf) ([LaTeX](./papers/02_deontic_supervision_evasion/main.tex)) — Zenodo DOI: [`10.5281/zenodo.23901605`](https://doi.org/10.5281/zenodo.23901605)
+- **Paper 3 (Five-Layer Epistemic & Procedural Memory):** [*Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction*](./docs/papers/03_provenance_gated_five_layer_memory.pdf) ([LaTeX](./papers/03_provenance_gated_five_layer_memory/main.tex)) — Zenodo DOI: [`10.5281/zenodo.23901683`](https://doi.org/10.5281/zenodo.23901683)
+- **Paper 4 (Clause-Level NPU Supervision & 2D Evidentiary Burden):** [*Breaking the Lexical Supervision Ceiling: Clause-Level MiniLM-L6 Verification and Task-Priority Intent Routing on a Zero-VRAM Edge NPU*](./docs/papers/04_clause_level_npu_supervision.pdf) ([LaTeX](./papers/04_clause_level_npu_supervision/main.tex))
+- **Engineering Guides & Provenance Ledger:**
+  - [`REPRODUCING.md`](./REPRODUCING.md) — Dataset SHA-256 pins, OpenTimestamps verification, and one-command benchmark runners.
+  - [`RESULTS.md`](./RESULTS.md) — Full chronological experimental ledger across all work orders.
+  - [`logs/test_reports/wo45/AUDIT_AND_RETRACTION_HISTORY.md`](./logs/test_reports/wo45/AUDIT_AND_RETRACTION_HISTORY.md) — Complete scientific audit disclosures, superseded `WO-44` / `G4 v2` baselines, and historical corrections.
+  - [`SECURITY.md`](./SECURITY.md) & [`luccadocs/security/THREAT_MODEL.md`](./luccadocs/security/THREAT_MODEL.md) — Threat model, sandbox boundaries, and vulnerability reporting.
+  - [`luccadocs/GLOSSARY.md`](./luccadocs/GLOSSARY.md), [`CONTRIBUTING.md`](./CONTRIBUTING.md), & [`THIRD_PARTY_NOTICES.md`](./THIRD_PARTY_NOTICES.md).
+
+---
+
+## Scope & Residual Engineering Boundaries
+
+- **Single-workstation empirical baselines:** All latency, VRAM, and accuracy metrics in this repository are author-measured on a single local workstation (`RTX 5080 Laptop GPU`, `Core Ultra 9 275HX`, Windows 11). Full harness scripts, frozen `.html.gz` corpora, and detached `.ots` proofs are provided in [`REPRODUCING.md`](./REPRODUCING.md) for external replication.
+- **Empirical guardrail error bounds:** Neural supervision and open-web corroboration reduce hallucinated tool claims and uncorroborated web assertions substantially, while remaining empirical runtime classifiers rather than formal completeness proofs:
+  - *Action-claim supervision (`wo42_large_sample_2020_report.json`):* `6/471 (1.3%)` false negatives on zero-verb indirect state-consequence phrasing and `9/1,551 (0.6%)` false positives on un-fenced first-person walkthrough prose.
+  - *Fail-closed NLI clustering (`nli_verifier_v2_report.json`):* All NLI consumers fail closed on `UNCERTAIN`/`NEUTRAL` verdicts (`100%` entailment precision, `40.0% [16/40]` recall on low-lexical-overlap paraphrases), conservatively withholding ambiguous paraphrases rather than merging unverified claims.
+  - *Unfiltered open-web retrieval (`real_web_v2_report.json`):* Upgrading query simplification, eTLD+1 candidate diversity, OpenVINO passage-relevance filtering, and prohibitive consensus normalization raised single-shot live Scrapling burden accuracy from `39/64 (60.9%)` (`v1`) to `46/64 (71.9%)` (`v2`), dispute accuracy from `42/64 (65.6%)` to `56/64 (87.5%)`, and within-1 source count from `45/64 (70.3%)` to `56/64 (87.5%)`. Residual errors (`18/64`: `11` false burden passes and `7` conservative over-hedges) arise primarily when a scientific debate is summarized implicitly without explicit controversy markers (`3/9` live dispute recall) or when a borderline technical query classifies 1 tier below `HIGH` (`46/64` strict 3-class vs `55/64` conservative safe hazard).
+- **Platform footprint:** The 4-process voice/UI/Docker desktop stack requires Windows 11 + WSL2, whereas [`lucca-epistemic`](./packages/lucca-epistemic/README.md) provides the standalone verification gates on Linux, macOS, and Windows CPU/NPU.
 
 ---
 
 ## License
 
-GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later). See [LICENSE](./LICENSE). Upstream components retain their original licenses per [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`). See [LICENSE](./LICENSE). Upstream runtimes, libraries, and foundation models retain their original licenses as documented in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
