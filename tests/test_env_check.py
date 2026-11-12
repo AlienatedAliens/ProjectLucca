@@ -14,6 +14,7 @@ from lucca.core.env_check import (
     check_audio_ring,
     check_lucca_home,
     check_models_manifest,
+    check_openvino_npu,
     check_system_ram,
     check_wsl_status,
 )
@@ -205,3 +206,32 @@ def test_check_wsl_status_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
     ok, msg = check_wsl_status()
     assert ok is False
     assert "timed out" in msg
+
+
+def test_check_openvino_npu_passes_with_cpu_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """OpenVINO check passes when Intel NPU is absent if CPU device fallback is available."""
+    import openvino as ov
+
+    class _FakeCoreCPU:
+        available_devices = ["CPU"]
+
+    class _FakeCoreNPU:
+        available_devices = ["CPU", "NPU"]
+
+    class _FakeCoreEmpty:
+        available_devices: list[str] = []
+
+    monkeypatch.setattr(ov, "Core", _FakeCoreCPU)
+    ok_cpu, msg_cpu = check_openvino_npu()
+    assert ok_cpu is True
+    assert "CPU fallback active" in msg_cpu
+
+    monkeypatch.setattr(ov, "Core", _FakeCoreNPU)
+    ok_npu, msg_npu = check_openvino_npu()
+    assert ok_npu is True
+    assert "Intel NPU detected" in msg_npu
+
+    monkeypatch.setattr(ov, "Core", _FakeCoreEmpty)
+    ok_empty, msg_empty = check_openvino_npu()
+    assert ok_empty is False
+    assert "No OpenVINO NPU or CPU device detected" in msg_empty

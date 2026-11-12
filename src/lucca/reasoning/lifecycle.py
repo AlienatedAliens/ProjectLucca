@@ -405,11 +405,10 @@ class RuleLifecycleManager:
     ) -> ExecutionTriple:
         """Emits an S1 execution triple for active executions per Spec §5 and S1.3.
 
-        Note on `signal="operator_correct"`:
-        Emitting `operator_correct` records an S1 outcome row in `execution_triples`
-        for analytics and contrastive reliability scoring (`get_contrastive_summary`),
-        but does NOT automatically demote an `ACTIVE` rule. First-strike demotion
-        (`ACTIVE -> QUARANTINE`) is triggered by calling `record_shadow(rule_id, matched=False)`.
+        When `signal="operator_correct"`, records the S1 outcome row in `execution_triples`
+        AND atomically invokes `record_shadow(rule_id, matched=False)` so an `ACTIVE` rule
+        undergoes immediate 1-strike demotion (`ACTIVE -> QUARANTINE` on 1st strike,
+        `RETIRED` on 2nd strike).
         """
         raw_actions = plan.actions if isinstance(plan, Plan) else list(plan)
         actions: list[ToolCall | Say] = [a for a in raw_actions if isinstance(a, (ToolCall, Say))]
@@ -438,6 +437,8 @@ class RuleLifecycleManager:
         self.latest_triples.append(triple)
         if self.db is not None:
             self.db.record_execution_triple(triple)
+        if signal == "operator_correct" and rule_id in self.rules:
+            self.record_shadow(rule_id, matched=False, cluster_id="operator_correct")
         return triple
 
     def record_shadow(

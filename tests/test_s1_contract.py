@@ -248,3 +248,69 @@ def test_proposal_plan_coercion() -> None:
     p2 = Proposal(rule_id="r2", plan=[tool_act])
     assert len(p2.plan) == 1
     assert p2.plan[0] == tool_act
+
+
+def test_operator_correct_triple_demotes_active_rule_atomically(tmp_path: Path) -> None:
+    """Emitting signal='operator_correct' logs the triple AND triggers 1-strike demotion."""
+    db = DatabaseManager(tmp_path / "test_demote.sqlite")
+    db.migrate()
+
+    mgr = RuleLifecycleManager(db=db)
+    rule_src = """
+    (rule "demote-on-correct-v1"
+      :when (intent= "read_file")
+      :plan (list (tool "read_file" :rel_path "notes.txt"))
+      :priority 5)
+    """
+    mgr.register_rule(rule_src)
+    state = RuleState(intent="read_file", transcript="read notes.txt")
+    plan = Plan(actions=[ToolCall(tool="read_file", args={"rel_path": "notes.txt"}, call_id="c1")])
+
+    for i in range(5):
+        mgr.record_shadow(
+            "demote-on-correct-v1",
+            matched=True,
+            cluster_id=f"c-{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+    mgr.promote_if_eligible("demote-on-correct-v1")
+    assert mgr.approve_rule("demote-on-correct-v1").promoted is True
+    assert mgr.rules["demote-on-correct-v1"].status == "ACTIVE"
+
+    # 1st operator_correct strike -> atomic demotion to QUARANTINE + persisted triple
+    t1 = mgr.emit_execution_triple(
+        rule_id="demote-on-correct-v1",
+        plan=plan,
+        verdict="overridden",
+        reason_code="explicit_negation",
+        signal="operator_correct",
+        detail="User negated rule execution",
+    )
+    assert mgr.rules["demote-on-correct-v1"].status == "QUARANTINE"
+    assert mgr.rules["demote-on-correct-v1"].demotion_count == 1
+    assert db.get_execution_triple(t1.triple_id) is not None
+
+    # Re-promote and verify 2nd operator_correct strike retires the rule permanently
+    for i in range(5):
+        mgr.record_shadow(
+            "demote-on-correct-v1",
+            matched=True,
+            cluster_id=f"c2-{i}",
+            state_snapshot=state,
+            plan_snapshot=plan,
+        )
+    mgr.promote_if_eligible("demote-on-correct-v1")
+    assert mgr.approve_rule("demote-on-correct-v1").promoted is True
+    assert mgr.rules["demote-on-correct-v1"].status == "ACTIVE"
+
+    mgr.emit_execution_triple(
+        rule_id="demote-on-correct-v1",
+        plan=plan,
+        verdict="overridden",
+        reason_code="rule_wrong",
+        signal="operator_correct",
+        detail="User re-asked within 30s",
+    )
+    assert mgr.rules["demote-on-correct-v1"].status == "RETIRED"
+    assert mgr.rules["demote-on-correct-v1"].demotion_count == 2

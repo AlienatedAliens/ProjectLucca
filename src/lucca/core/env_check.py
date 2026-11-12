@@ -90,13 +90,13 @@ def check_mshybrid_vram() -> tuple[bool, str]:
             if used_mb > budget_mb:
                 return (
                     False,
-                    f"dGPU VRAM used is {
-                        used_mb:.1f} MB (Exceeds resident budget of {budget_mb:.0f} MB).",
+                    f"dGPU VRAM used is {used_mb:.1f} MB (Exceeds resident budget of {
+                        budget_mb:.0f} MB).",
                 )
             return (
                 True,
-                f"dGPU VRAM used: {
-                    used_mb:.1f} MB ({workload_desc}, within {budget_mb:.0f} MB budget)",
+                f"dGPU VRAM used: {used_mb:.1f} MB ({workload_desc}, within {
+                    budget_mb:.0f} MB budget)",
             )
 
         if used_mb > 1500:
@@ -112,30 +112,35 @@ def check_mshybrid_vram() -> tuple[bool, str]:
 
 
 def check_openvino_npu() -> tuple[bool, str]:
-    """Checks if OpenVINO detects the Intel NPU natively on Windows."""
+    """Checks OpenVINO runtime readiness (Intel NPU preferred; CPU fallback supported)."""
     try:
         import openvino as ov
 
         core = ov.Core()
         devices = core.available_devices
-        if "NPU" in devices:
-            repo_models = Path(__file__).resolve().parents[3] / "models"
-            npu_classifiers = [
-                d
-                for d in (
-                    "action_claim_verifier_ov",
-                    "proof_policy_hazard_ov",
-                    "router_intent_ov",
-                )
-                if (repo_models / d / "openvino_model.xml").exists()
-            ]
-            cls_note = (
-                f", {len(npu_classifiers)}/3 WO-42 NPU classifiers ready"
-                if npu_classifiers
-                else ""
+        repo_models = Path(__file__).resolve().parents[3] / "models"
+        npu_classifiers = [
+            d
+            for d in (
+                "action_claim_verifier_ov",
+                "proof_policy_hazard_ov",
+                "router_intent_ov",
             )
+            if (repo_models / d / "openvino_model.xml").exists()
+        ]
+        cls_note = (
+            f", {len(npu_classifiers)}/3 WO-42 OpenVINO classifiers ready"
+            if npu_classifiers
+            else ""
+        )
+        if "NPU" in devices:
             return True, f"Intel NPU detected by OpenVINO (devices: {devices}{cls_note})"
-        return False, f"Intel NPU not detected. Available devices: {devices}"
+        if "CPU" in devices:
+            return (
+                True,
+                f"OpenVINO CPU fallback active — Intel NPU optional (devices: {devices}{cls_note})",
+            )
+        return False, f"No OpenVINO NPU or CPU device detected. Available devices: {devices}"
     except ImportError as e:
         logger.debug("check_openvino_npu_import_error: %s", e)
         return False, "OpenVINO python package not installed."
@@ -381,8 +386,11 @@ def check_wsl_status() -> tuple[bool, str]:
             check=False,
         )
         if res.returncode == 0:
-            raw_stdout = res.stdout if isinstance(res.stdout, str) else res.stdout.decode("utf-16",
-                errors="replace")
+            raw_stdout = (
+                res.stdout
+                if isinstance(res.stdout, str)
+                else res.stdout.decode("utf-16", errors="replace")
+            )
             # Filter null bytes if captured via text=True
             clean_text = raw_stdout.replace("\x00", "")
             lines = [ln.strip() for ln in clean_text.splitlines() if ln.strip()]
@@ -391,8 +399,11 @@ def check_wsl_status() -> tuple[bool, str]:
             ]
             summary = " | ".join(summary_parts) if summary_parts else "Ubuntu (WSL2)"
             return True, f"WSL is responsive: {summary}"
-        raw_err = res.stderr if isinstance(res.stderr, str) else res.stderr.decode("utf-16",
-            errors="replace")
+        raw_err = (
+            res.stderr
+            if isinstance(res.stderr, str)
+            else res.stderr.decode("utf-16", errors="replace")
+        )
         err_msg = (raw_err.strip() or "").replace("\x00", "")
         return False, f"WSL status check failed (exit {res.returncode}): {err_msg[:100]}"
     except subprocess.TimeoutExpired as e:
@@ -414,7 +425,7 @@ def run_env_check() -> int:
     checks = [
         ("System RAM Budget", check_system_ram),
         ("MSHybrid dGPU VRAM", check_mshybrid_vram),
-        ("Intel NPU (OpenVINO)", check_openvino_npu),
+        ("OpenVINO (NPU / CPU)", check_openvino_npu),
         ("SQLite + sqlite-vec", check_sqlite_vec),
         ("WSL2 .wslconfig Clamp", check_wslconfig),
         ("Docker CE in WSL2", check_docker_wsl),

@@ -43,9 +43,12 @@ from lucca.core.sanity_guard import SanityCheckGuard
 from lucca.core.schemas import (
     AssertFact,
     ChatMessage,
+    DecisionLabel,
+    DecisionLabelReason,
     ExecutionTier,
     InferenceStep,
     PendingRatification,
+    Plan,
     RouteAction,
     RouteDecision,
     RuleOutcome,
@@ -562,6 +565,7 @@ class TurnPipeline:
         self.sanity_guard = SanityCheckGuard()
         self.difficulty_estimator = DifficultyEstimator()
         self._closed_trace_ids: set[str] = set()
+        self._prev_active_rule: tuple[str, Plan] | None = None
 
     @property
     def working_memory(self) -> WorkingMemory | None:
@@ -666,6 +670,7 @@ class TurnPipeline:
                     signal="tool_exit_zero",
                     detail="REFLEX execution",
                 )
+                self._prev_active_rule = (winning_outcome.rule_id, winning_outcome.plan)
 
                 user_msg = user_text or "[Voice audio]"
                 spoken_msg = " ".join(
@@ -788,6 +793,7 @@ class TurnPipeline:
                     signal=signal,
                     detail="ACT_THEN_NARRATE execution",
                 )
+                self._prev_active_rule = (winning_outcome.rule_id, winning_outcome.plan)
 
             mem_hits = self.orch._search_memories(user_text) if user_text else []
             eff_user_text = user_text
@@ -1243,7 +1249,9 @@ class TurnPipeline:
         eval_user_text = eff_user_text or user_text
 
         # Phase 2: Prior Turn Latching & Outcome Labeling
-        if self.orch.prev_decision_record and self.orch.db is not None:
+        latched_prev_rule = self._prev_active_rule
+        self._prev_active_rule = None
+        if self.orch.prev_decision_record:
             try:
                 next_intent, next_conf, _ = self.orch.router.classify_intent(eval_user_text)
                 time_to_next = (
@@ -1256,12 +1264,34 @@ class TurnPipeline:
                     next_intent_conf=next_conf,
                     time_to_next_turn_s=time_to_next,
                 )
-                persist_decision_label(
-                    self.orch.db,
-                    self.orch.prev_decision_record.decision_id,
-                    label,
-                    reason,
-                )
+                if self.orch.db is not None:
+                    persist_decision_label(
+                        self.orch.db,
+                        self.orch.prev_decision_record.decision_id,
+                        label,
+                        reason,
+                    )
+                if (
+                    latched_prev_rule is not None
+                    and not isinstance(
+                        getattr(self.orch, "_pending_ratification", None), PendingRatification
+                    )
+                    and label == DecisionLabel.NEG
+                    and reason
+                    in (
+                        DecisionLabelReason.EXPLICIT_NEGATION,
+                        DecisionLabelReason.EARLY_BARGEIN,
+                    )
+                ):
+                    prev_rule_id, prev_plan = latched_prev_rule
+                    self.orch.rule_engine.emit_execution_triple(
+                        rule_id=prev_rule_id,
+                        plan=prev_plan,
+                        verdict="overridden",
+                        reason_code=str(reason.value),
+                        signal="operator_correct",
+                        detail=f"Operator correction ({reason.value}) on subsequent turn",
+                    )
             except Exception as e:  # noqa: BLE001
                 logger.debug("prev_decision_label_error", error=str(e))
 

@@ -281,3 +281,39 @@ def test_f20_follow_up_patterns_config_in_voice_path(orchestrator):
     assert tools2 is not None and len(tools2) > 0, (
         "Tools should not be suppressed for follow-up query"
     )
+
+
+def test_operator_negation_turn_demotes_prev_active_rule(orchestrator: Orchestrator) -> None:
+    """Explicit negation on Turn 2 emits operator_correct and demotes Turn 1's active rule."""
+    rule_src = """
+    (rule "calc-reflex-v1"
+      :when (intent= "launch_app")
+      :plan (list (say "Opening Calculator."))
+      :priority 10)
+    """
+    orchestrator.rule_engine = RuleLifecycleManager(db=orchestrator.db)
+    managed = orchestrator.rule_engine.register_rule(rule_src)
+    managed.status = "ACTIVE"
+    orchestrator.router.classify_intent = lambda text, **_kw: (
+        ("launch_app", 0.95, {"app": ["calc"]})
+        if "calculator" in text.lower()
+        else ("chit_chat", 0.80, {})
+    )
+
+    # Turn 1: active REFLEX rule fires
+    trace1 = TurnTrace(trace_id="neg-turn-1", mode="transcript")
+    orchestrator._run_text_turn(trace1, "open calculator")
+    assert orchestrator.rule_engine.rules["calc-reflex-v1"].status == "ACTIVE"
+
+    # Turn 2: user explicitly negates ("no, wrong app") -> 1-strike demotion to QUARANTINE
+    orchestrator.llm = FakeLLM(
+        script=[
+            TokenDelta(delta="Sorry, which app did you want?"),
+            Done(usage=LLMUsage(prompt_tokens=10, completion_tokens=6)),
+        ]
+    )
+    trace2 = TurnTrace(trace_id="neg-turn-2", mode="transcript")
+    orchestrator._run_text_turn(trace2, "no, wrong app")
+
+    assert orchestrator.rule_engine.rules["calc-reflex-v1"].status == "QUARANTINE"
+    assert orchestrator.rule_engine.rules["calc-reflex-v1"].demotion_count == 1
