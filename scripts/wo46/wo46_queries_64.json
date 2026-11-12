@@ -1,0 +1,322 @@
+[
+  {
+    "query_id": "WO46_Q01",
+    "nominal_stratum": "low",
+    "query": "What structural function do flying buttresses serve in Gothic cathedral architecture, and how do they allow taller walls with larger stained-glass windows?"
+  },
+  {
+    "query_id": "WO46_Q02",
+    "nominal_stratum": "low",
+    "query": "How many numbered symphonies did Ludwig van Beethoven complete, and which one was the first major symphony to include vocal soloists and a chorus?"
+  },
+  {
+    "query_id": "WO46_Q03",
+    "nominal_stratum": "low",
+    "query": "In classic French culinary practice, which three vegetables make up a traditional mirepoix and in what standard weight ratio are they combined?"
+  },
+  {
+    "query_id": "WO46_Q04",
+    "nominal_stratum": "low",
+    "query": "In NHL ice hockey rules, what constitutes an icing infraction and how does the hybrid icing rule determine when a linesman blows the play dead?"
+  },
+  {
+    "query_id": "WO46_Q05",
+    "nominal_stratum": "low",
+    "query": "How many grid lines and playable intersections are on a standard regulation Go board, and why is komi awarded to the player holding the white stones?"
+  },
+  {
+    "query_id": "WO46_Q06",
+    "nominal_stratum": "low",
+    "query": "Which anatomical part of the Crocus sativus flower is harvested to produce saffron spice, and how many threads does a single blossom yield?"
+  },
+  {
+    "query_id": "WO46_Q07",
+    "nominal_stratum": "low",
+    "query": "Which two countries in South America are completely landlocked, and which river system gives one of them navigable access to the Atlantic Ocean?"
+  },
+  {
+    "query_id": "WO46_Q08",
+    "nominal_stratum": "low",
+    "query": "Who directed the 1941 film Citizen Kane, and which cinematographer collaborated with him to achieve the film's signature deep-focus shots?"
+  },
+  {
+    "query_id": "WO46_Q09",
+    "nominal_stratum": "low",
+    "query": "In Mary Shelley's novel Frankenstein; or, The Modern Prometheus, whose Arctic expedition letters form the outer framing narrative of the story?"
+  },
+  {
+    "query_id": "WO46_Q10",
+    "nominal_stratum": "low",
+    "query": "What binding medium distinguishes traditional egg tempera paint from drying-oil paint in early Renaissance panel painting, and how does it affect drying speed?"
+  },
+  {
+    "query_id": "WO46_Q11",
+    "nominal_stratum": "low",
+    "query": "Under unified Grand Slam tennis rules, how does a standard 7-point set tiebreak differ from the 10-point tiebreak played at 6-all in the deciding set?"
+  },
+  {
+    "query_id": "WO46_Q12",
+    "nominal_stratum": "low",
+    "query": "In a standard two-player game of cribbage, how many cards are initially dealt to each player and what card combination yields the maximum 29-point hand?"
+  },
+  {
+    "query_id": "WO46_Q13",
+    "nominal_stratum": "low",
+    "query": "In botany, why is a tomato classified as a true berry while a strawberry is classified as an aggregate accessory fruit?"
+  },
+  {
+    "query_id": "WO46_Q14",
+    "nominal_stratum": "low",
+    "query": "Which narrow strait connects the Atlantic Ocean to the Mediterranean Sea between Spain and Morocco, and approximately how wide is it at its narrowest point?"
+  },
+  {
+    "query_id": "WO46_Q15",
+    "nominal_stratum": "low",
+    "query": "What is the central circular opening at the top of the Pantheon's unreinforced concrete dome in Rome called, and how did Roman builders lighten the upper dome?"
+  },
+  {
+    "query_id": "WO46_Q16",
+    "nominal_stratum": "low",
+    "query": "Which composer wrote the orchestral score for the original 1977 Star Wars film, and which orchestra recorded that soundtrack at Anvil Studios?"
+  },
+  {
+    "query_id": "WO46_Q17",
+    "nominal_stratum": "low",
+    "query": "How do the stanza structure and rhyme scheme of an English (Shakespearean) sonnet differ from those of an Italian (Petrarchan) sonnet?"
+  },
+  {
+    "query_id": "WO46_Q18",
+    "nominal_stratum": "low",
+    "query": "Does searing meat at high heat actually seal in juices, or what chemical browning reaction and moisture changes really occur when steak is seared?"
+  },
+  {
+    "query_id": "WO46_Q19",
+    "nominal_stratum": "low",
+    "query": "Does shaving facial or body hair cause the hair to grow back thicker, darker, or faster, and why does freshly shaved stubble feel coarser?"
+  },
+  {
+    "query_id": "WO46_Q20",
+    "nominal_stratum": "low",
+    "query": "Could a penny dropped from the top of the Empire State Building reach enough velocity to kill a pedestrian below, or how does terminal velocity limit its impact?"
+  },
+  {
+    "query_id": "WO46_Q21",
+    "nominal_stratum": "low",
+    "query": "Do wild ostriches actually bury their heads in the sand when threatened by predators, and what real defensive or nesting behavior inspired that myth?"
+  },
+  {
+    "query_id": "WO46_Q22",
+    "nominal_stratum": "low",
+    "query": "Is it true that goldfish have only a three-second memory span, or how long have experimental conditioning studies shown goldfish can retain learned tasks?"
+  },
+  {
+    "query_id": "WO46_Q23",
+    "nominal_stratum": "medium",
+    "query": "According to IETF RFC 7636, what specific authorization-code interception attack does Proof Key for Code Exchange (PKCE) prevent in OAuth 2.0 flows?"
+  },
+  {
+    "query_id": "WO46_Q24",
+    "nominal_stratum": "medium",
+    "query": "Under the Fetch and W3C Cross-Origin Resource Sharing (CORS) rules, what HTTP methods or header conditions require a browser to issue an OPTIONS preflight request?"
+  },
+  {
+    "query_id": "WO46_Q25",
+    "nominal_stratum": "medium",
+    "query": "In ISO 8601 date and time formatting, what time zone offset does the trailing designator 'Z' represent in a timestamp like 2026-05-14T09:30:00Z?"
+  },
+  {
+    "query_id": "WO46_Q26",
+    "nominal_stratum": "medium",
+    "query": "In operating system virtual memory architectures, what does a translation lookaside buffer (TLB) cache and how is a TLB miss resolved?"
+  },
+  {
+    "query_id": "WO46_Q27",
+    "nominal_stratum": "medium",
+    "query": "In compiler design, what defines Static Single Assignment (SSA) intermediate form and why are phi functions inserted at control-flow merge points?"
+  },
+  {
+    "query_id": "WO46_Q28",
+    "nominal_stratum": "medium",
+    "query": "How do B+ tree database storage engines compare with Log-Structured Merge-tree (LSM-tree) engines in terms of write amplification, read amplification, and compaction?"
+  },
+  {
+    "query_id": "WO46_Q29",
+    "nominal_stratum": "medium",
+    "query": "Under IETF RFC 4271, what transport protocol and well-known port number does Border Gateway Protocol (BGP-4) use to establish peering sessions between autonomous systems?"
+  },
+  {
+    "query_id": "WO46_Q30",
+    "nominal_stratum": "medium",
+    "query": "In managed programming language runtimes, why can naive reference counting leak cyclic object references whereas tracing generational garbage collectors reclaim them?"
+  },
+  {
+    "query_id": "WO46_Q31",
+    "nominal_stratum": "medium",
+    "query": "What is the Meissner effect in condensed-matter physics, and how does magnetic flux expulsion distinguish a superconductor from a classical perfect conductor?"
+  },
+  {
+    "query_id": "WO46_Q32",
+    "nominal_stratum": "medium",
+    "query": "In the industrial Haber-Bosch synthesis of ammonia from nitrogen and hydrogen, why must operating temperature compromise between Le Chatelier's equilibrium yield and catalytic reaction rate?"
+  },
+  {
+    "query_id": "WO46_Q33",
+    "nominal_stratum": "medium",
+    "query": "Why is liquid dioxygen (O2) paramagnetic when poured between strong magnet poles, and how does molecular orbital theory explain its unpaired electrons?"
+  },
+  {
+    "query_id": "WO46_Q34",
+    "nominal_stratum": "medium",
+    "query": "In geophysics, what boundary does the Mohorovicic discontinuity (the Moho) mark inside Earth, and how was it identified from seismic P-wave velocities?"
+  },
+  {
+    "query_id": "WO46_Q35",
+    "nominal_stratum": "medium",
+    "query": "On the Mohs scale of mineral scratch hardness, which ten standard reference minerals define integer steps 1 through 10 from softest to hardest?"
+  },
+  {
+    "query_id": "WO46_Q36",
+    "nominal_stratum": "medium",
+    "query": "What is the approximate solar-mass value of the Chandrasekhar limit, and what quantum degeneracy pressure supports a white dwarf star below this mass?"
+  },
+  {
+    "query_id": "WO46_Q37",
+    "nominal_stratum": "medium",
+    "query": "In the restricted three-body problem of orbital mechanics, how are the five Lagrange points L1 through L5 arranged, and why are only L4 and L5 linearly stable?"
+  },
+  {
+    "query_id": "WO46_Q38",
+    "nominal_stratum": "medium",
+    "query": "In the photoelectric effect, why does increasing the intensity of monochromatic light below a metal's threshold frequency fail to emit photoelectrons?"
+  },
+  {
+    "query_id": "WO46_Q39",
+    "nominal_stratum": "medium",
+    "query": "In distributed database systems, how do the prepare and commit phases of Two-Phase Commit (2PC) work, and under what failure scenario can participants remain blocked?"
+  },
+  {
+    "query_id": "WO46_Q40",
+    "nominal_stratum": "medium",
+    "query": "Under the IEEE 802.1Q Ethernet VLAN tagging standard, how many bytes does a VLAN tag add to an Ethernet frame and how many usable VLAN IDs fit in the 12-bit VID field?"
+  },
+  {
+    "query_id": "WO46_Q41",
+    "nominal_stratum": "medium",
+    "query": "What deuterium-to-hydrogen isotopic evidence and planetary formation models fuel the ongoing scientific debate over whether Earth's ocean water came primarily from carbonaceous chondrite asteroids, comets, or solar nebula gas?"
+  },
+  {
+    "query_id": "WO46_Q42",
+    "nominal_stratum": "medium",
+    "query": "In origin-of-life chemistry, what are the central unresolved arguments between proponents of the genetics-first RNA world hypothesis and metabolism-first alkaline hydrothermal vent models?"
+  },
+  {
+    "query_id": "WO46_Q43",
+    "nominal_stratum": "medium",
+    "query": "How do cold dark matter particle models compare with Modified Newtonian Dynamics (MOND) in explaining flat galactic rotation curves versus colliding galaxy clusters such as the Bullet Cluster?"
+  },
+  {
+    "query_id": "WO46_Q44",
+    "nominal_stratum": "medium",
+    "query": "What bone-histology, growth-rate, and clumped-isotope thermometry evidence underlies the paleobiological debate over whether non-avian dinosaurs were endothermic, ectothermic, or mesothermic?"
+  },
+  {
+    "query_id": "WO46_Q45",
+    "nominal_stratum": "high",
+    "query": "Why does co-prescribing trimethoprim-sulfamethoxazole with warfarin markedly elevate INR and major bleeding risk, and which hepatic cytochrome P450 isoenzyme is primarily inhibited?"
+  },
+  {
+    "query_id": "WO46_Q46",
+    "nominal_stratum": "high",
+    "query": "Why is administering nitroglycerin or other organic nitrates strictly contraindicated after sildenafil or tadalafil use, and how many hours must elapse after each PDE5 inhibitor before emergency nitrates can be safely considered?"
+  },
+  {
+    "query_id": "WO46_Q47",
+    "nominal_stratum": "high",
+    "query": "How do thiazide diuretics and nonsteroidal anti-inflammatory drugs (NSAIDs) reduce renal clearance of lithium, and what neurological and gastrointestinal symptoms signal acute lithium toxicity?"
+  },
+  {
+    "query_id": "WO46_Q48",
+    "nominal_stratum": "high",
+    "query": "In emergency toxicology, how does fomepizole prevent metabolic acidosis and end-organ damage after methanol or ethylene glycol ingestion, and which enzyme does it inhibit?"
+  },
+  {
+    "query_id": "WO46_Q49",
+    "nominal_stratum": "high",
+    "query": "In acute organophosphate poisoning, how do the mechanisms of atropine and pralidoxime (2-PAM) differ at muscarinic versus nicotinic cholinergic receptors, and what is acetylcholinesterase aging?"
+  },
+  {
+    "query_id": "WO46_Q50",
+    "nominal_stratum": "high",
+    "query": "How does naloxone competitively reverse opioid-induced respiratory depression, and why does naloxone fail to reverse respiratory depression caused solely by benzodiazepines or ethanol?"
+  },
+  {
+    "query_id": "WO46_Q51",
+    "nominal_stratum": "high",
+    "query": "Why is oral isotretinoin strictly contraindicated during pregnancy, and what contraception and pregnancy-testing safeguards are required under the US FDA iPLEDGE REMS program?"
+  },
+  {
+    "query_id": "WO46_Q52",
+    "nominal_stratum": "high",
+    "query": "Why did the US FDA issue a contraindication against using codeine and tramadol in children younger than 12 years of age, and how does CYP2D6 ultra-rapid metabolism cause life-threatening respiratory depression?"
+  },
+  {
+    "query_id": "WO46_Q53",
+    "nominal_stratum": "high",
+    "query": "Why are ACE inhibitors and angiotensin II receptor blockers (ARBs) contraindicated in pregnancy, and what fetal renal and developmental anomalies result from second- and third-trimester exposure?"
+  },
+  {
+    "query_id": "WO46_Q54",
+    "nominal_stratum": "high",
+    "query": "How does Bacillus cereus cause rapid-onset emetic food poisoning in cooked rice held at room temperature, and why does thorough reheating fail to destroy its cereulide toxin?"
+  },
+  {
+    "query_id": "WO46_Q55",
+    "nominal_stratum": "high",
+    "query": "Why does Listeria monocytogenes pose severe risks of miscarriage, stillbirth, or neonatal sepsis during pregnancy, and how does its psychrotrophic growth defeat standard household refrigeration?"
+  },
+  {
+    "query_id": "WO46_Q56",
+    "nominal_stratum": "high",
+    "query": "What plant lectin causes acute foodborne toxicity when raw or undercooked red kidney beans are prepared in a low-temperature slow cooker, and what boiling step inactivates the toxin?"
+  },
+  {
+    "query_id": "WO46_Q57",
+    "nominal_stratum": "high",
+    "query": "Under US OSHA hazardous energy control standard 29 CFR 1910.147 (Lockout/Tagout), how does a lockout device differ from a tagout device, and when is tagout alone permitted?"
+  },
+  {
+    "query_id": "WO46_Q58",
+    "nominal_stratum": "high",
+    "query": "Under NFPA 70E workplace electrical safety standards, what incident thermal energy threshold in calories per square centimeter defines the arc flash boundary?"
+  },
+  {
+    "query_id": "WO46_Q59",
+    "nominal_stratum": "high",
+    "query": "In industrial confined spaces, what is the NIOSH Immediately Dangerous to Life or Health (IDLH) concentration for hydrogen sulfide (H2S), and why can workers not rely on smell to detect dangerous levels?"
+  },
+  {
+    "query_id": "WO46_Q60",
+    "nominal_stratum": "high",
+    "query": "Why did NIST deprecate and disallow Triple DES (TDEA / 3DES) under SP 800-131A, and how does its 64-bit block size expose long-lived connections to birthday-bound collision attacks like Sweet32?"
+  },
+  {
+    "query_id": "WO46_Q61",
+    "nominal_stratum": "high",
+    "query": "Under the US HIPAA Breach Notification Rule (45 CFR Part 164 Subpart D), what is the statutory deadline and HHS reporting requirement when a breach of unsecured protected health information affects 500 or more individuals?"
+  },
+  {
+    "query_id": "WO46_Q62",
+    "nominal_stratum": "high",
+    "query": "What is the US FDA's safety and efficacy ruling on ingested colloidal silver dietary supplements, and what irreversible blue-gray skin discoloration can chronic silver accumulation cause?"
+  },
+  {
+    "query_id": "WO46_Q63",
+    "nominal_stratum": "high",
+    "query": "According to clinical trials and urological guidelines, can cranberry juice or proanthocyanidin capsules cure an already active symptomatic urinary tract infection in place of antibiotics, and how does that differ from prophylaxis?"
+  },
+  {
+    "query_id": "WO46_Q64",
+    "nominal_stratum": "high",
+    "query": "Why do clinical toxicology guidelines contraindicate oral activated charcoal for corrosive ingestions or heavy metals like iron, and what risks do routine commercial 'activated charcoal detox' cleanses pose to prescription drug absorption?"
+  }
+]
