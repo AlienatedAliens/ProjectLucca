@@ -40,10 +40,15 @@ _HIGH_HAZARD_CUE_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:rm\s+-rf|mkfs|diskpart|format\s+[a-z]:|dd\s+if=|drop\s+(?:database|table|schema)|"
     r"truncate\s+table|blkdiscard|lvremove|chmod\s+(?:-r\s+)?777|"
     r"secret_access_key|private_key|id_rsa|seed\s+phrase|mnemonic\s+phrase|"
+    r"unsalted\s+(?:sha|md5)|credential\s+hashing|password\s+storage|"
+    r"deprecat\w+\s+(?:sha[- ]?1|md5|rc4|des)|(?:deprecated|forbidden)\s+in\s+tls|"
     r"bleach|ammonia|chloramine|hydrofluoric|phosgene|ricin|sarin|"
+    r"usda\s+fsis|salmonella|botulism|listeria|trichinella|"
     r"milligrams?|\d+\s*mg\b|dosage|overdose|warfarin|insulin|epinephrine|maoi|"
+    r"acetaminophen|paracetamol|ibuprofen|aspirin|"
     r"benzodiazepine|opioid|fentanyl|methotrexate|digoxin|anticoagulant|"
     r"anaphylaxis|chest\s+pain|stroke\s+symptoms|tourniquet|"
+    r"gdpr\s+article|hipaa\s+breach|personal\s+data\s+breach|"
     r"fiduciary\s+duty|statute\s+of\s+limitations|subpoena|perjury|binding\s+arbitration|"
     r"wire\s+transfer|tax\s+evasion|margin\s+call|insider\s+trading)\b",
     re.IGNORECASE,
@@ -143,6 +148,9 @@ class OpenVINOHazardClassifier:
         if env_dir:
             return Path(env_dir)
         for cand in (
+            Path.cwd() / "models" / "proof_policy_hazard_v3_ov",
+            Path(__file__).resolve().parents[4] / "models" / "proof_policy_hazard_v3_ov",
+            Path(r"C:\ProjectLucca\models\proof_policy_hazard_v3_ov"),
             Path.cwd() / "models" / "proof_policy_hazard_ov",
             Path(__file__).resolve().parents[4] / "models" / "proof_policy_hazard_ov",
             Path(r"C:\ProjectLucca\models\proof_policy_hazard_ov"),

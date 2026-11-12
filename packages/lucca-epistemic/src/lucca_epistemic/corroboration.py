@@ -70,6 +70,29 @@ _STOPWORDS: Final[frozenset[str]] = frozenset(
     }
 )
 
+_STUB_MARKER_RE: Final[re.Pattern[str]] = re.compile(
+    r"(?:temporarily\s+unavailable|just\s+a\s+moment\.{2,}|checking\s+your\s+browser|"
+    r"enable\s+javascript\s+and\s+cookies|access\s+denied|403\s+forbidden|404\s+not\s+found)",
+    re.IGNORECASE,
+)
+
+_CONTROVERSY_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:is\s+a\s+(?:persistent\s+|common\s+|popular\s+)?myth\b|myth\s+(?:comes\s+from|that\b)|"
+    r"(?:popular|common|widespread)\s+misconception\w*|debunk\w+|hoax\w*|untrue|"
+    r"false\s+claim\w*|disput\w+|refut\w+|contradict\w+|"
+    r"(?:is|remains?)\s+(?:widely\s+|still\s+)?(?:controversial|debated|contested)|"
+    r"scientific\s+(?:debate|controversy|disagreement)|"
+    r"(?:scientists?|researchers?|experts?)\s+(?:still\s+)?(?:disagree|debate)|"
+    r"competing\s+(?:hypotheses|theories)|conflicting\s+(?:clinical\s+|scientific\s+)?(?:evidence|studies|trials))\b",
+    re.IGNORECASE,
+)
+
+_PROHIBITIVE_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:not|no|never|cannot|can't|can\u2019t|shouldn't|shouldn\u2019t|don't|don\u2019t|"
+    r"contraindicat\w*|forbid\w*|avoid\w*|insecure|deprecat\w*)\b",
+    re.IGNORECASE,
+)
+
 _DISPUTE_RE: Final[re.Pattern[str]] = re.compile(
     r"\b(?:disput\w*|refut\w*|contradict\w*|debunk\w*|false|untrue|hoax|myth|"
     r"invalid\w*|forbidden|contraindicated|insecure|"
@@ -181,16 +204,25 @@ def evaluate_web_evidence_burden(
 
     t0 = time.perf_counter()
     raw_pairs: list[tuple[str, str]] = []
+    has_scraped = False
     for idx, row in enumerate(search_results, 1):
         url = str(row.get("url", "") or row.get("source_url", "") or "")
         raw_dom = str(row.get("domain", "") or row.get("source", "") or url)
         dom = extract_registrable_domain(raw_dom, idx)
         title = str(row.get("title", "") or "").strip()
-        snippet = str(row.get("snippet", "") or row.get("content", "") or "").strip()
+        snippet = str(row.get("snippet", "") or "").strip()
+        preview = str(row.get("content_preview", "") or row.get("content", "") or "").strip()
+        if preview:
+            has_scraped = True
+        body = (
+            f"{snippet}. {preview}".strip(". ")
+            if (snippet and preview and snippet not in preview)
+            else (preview or snippet)
+        )
+        if _STUB_MARKER_RE.search(body) and len(body) < 180:
+            continue
         combined = (
-            f"{title}. {snippet}".strip(". ")
-            if title and title not in snippet
-            else (snippet or title)
+            f"{title}. {body}".strip(". ") if title and title not in body else (body or title)
         )
         if combined:
             raw_pairs.append((dom, combined))
@@ -223,22 +255,38 @@ def evaluate_web_evidence_burden(
     q_content_tokens = {t for t in _word_tokens(query_text) if t not in _STOPWORDS}
     primary_dom, primary_text = dedup_pairs[0]
     primary_tokens = {t for t in _word_tokens(primary_text) if t not in _STOPWORDS}
+    prohibitive_ctx = bool(
+        _PROHIBITIVE_RE.search(query_text) or _PROHIBITIVE_RE.search(primary_text)
+    )
 
     corroborating_domains: list[str] = [primary_dom]
     dispute_domains: list[str] = []
+
+    if has_scraped:
+        for dom, text in dedup_pairs:
+            if _CONTROVERSY_RE.search(text) and dom not in dispute_domains:
+                dispute_domains.append(dom)
 
     for dom, text in dedup_pairs[1:]:
         toks = {t for t in _word_tokens(text) if t not in _STOPWORDS}
         overlap = len((q_content_tokens | primary_tokens) & toks)
         if overlap == 0:
             continue
-        if _DISPUTE_RE.search(text) and not _DISPUTE_RE.search(primary_text):
-            dispute_domains.append(dom)
+        if has_scraped and len(q_content_tokens & toks) == 0:
+            continue
+        is_disp = bool(_CONTROVERSY_RE.search(text)) or (
+            not prohibitive_ctx
+            and bool(_DISPUTE_RE.search(text))
+            and not bool(_DISPUTE_RE.search(primary_text))
+        )
+        if is_disp:
+            if dom not in dispute_domains:
+                dispute_domains.append(dom)
         elif not _SYBIL_DOMAIN_CUE_RE.search(dom):
             corroborating_domains.append(dom)
 
     # Also detect dispute when primary source is low-quality/sybil and a later source refutes it
-    if not dispute_domains:
+    if not dispute_domains and not prohibitive_ctx:
         for dom, text in raw_pairs[1:]:
             if (
                 dom != primary_dom

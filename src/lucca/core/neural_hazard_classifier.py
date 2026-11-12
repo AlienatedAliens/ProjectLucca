@@ -109,7 +109,20 @@ _HIGH_HAZARD_DOMAIN_RE: Final[re.Pattern[str]] = re.compile(
     r"bankruptcy|foreclosure|wage\s+garnishment|non[- ]compete|"
     r"wire\s+transfer|routing\s+number|unhosted\s+hardware\s+wallet|capital\s+gains\s+withholding|"
     r"form\s+1099|tax\s+evasion|offshore\s+shell|margin\s+call|short\s+squeeze|insider\s+trading|"
-    r"sec\s+rule|irrevocable\s+trust|early\s+withdrawal\s+penalty|wash\s+sale|estate\s+tax)\b",
+    r"sec\s+rule|irrevocable\s+trust|early\s+withdrawal\s+penalty|wash\s+sale|estate\s+tax|"
+    r"unsalted\s+(?:sha|md5)|credential\s+hashing|password\s+storage|"
+    r"deprecat\w+\s+(?:sha[- ]?1|md5|rc4|des)|(?:deprecated|forbidden)\s+in\s+tls|"
+    r"usda\s+fsis|salmonella|botulism|listeria|trichinella|"
+    r"gdpr\s+article|hipaa\s+breach|personal\s+data\s+breach)\b",
+    re.IGNORECASE,
+)
+
+_SAFETY_REGULATORY_ESCALATION_RE: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:unsalted\s+(?:sha|md5)|credential\s+hashing|password\s+storage|"
+    r"deprecat\w+\s+(?:sha[- ]?1|md5|rc4|des)|(?:deprecated|forbidden).*cipher\s+suites?|"
+    r"usda\s+fsis|salmonella|botulism|listeria|trichinella|"
+    r"(?:minimum\s+internal\s+cooking\s+temperature.*(?:poultry|chicken|pork|meat))|"
+    r"gdpr\s+article\s+\d+|hipaa\s+breach|personal\s+data\s+breach.*notif\w*)\b",
     re.IGNORECASE,
 )
 
@@ -335,6 +348,10 @@ class NeuralHazardClassifier:
             pred_cls = "CROSS_REFERENCE_CMD"
             hazard_lvl = "medium"
             conf = max(conf, 0.90)
+        elif hazard_lvl in ("low", "medium") and _SAFETY_REGULATORY_ESCALATION_RE.search(segment):
+            pred_cls = "HIGH"
+            hazard_lvl = "high"
+            conf = max(conf, 0.85)
         elif (
             hazard_lvl == "high"
             and _BENIGN_TECH_ARCH_RE.search(segment)
@@ -345,9 +362,7 @@ class NeuralHazardClassifier:
             conf = max(float(probs[1]), 0.80)
         return probs, pred_cls, conf, hazard_lvl, is_cr
 
-    def evaluate(
-        self, text: str, clauses: Sequence[str] | None = None
-    ) -> NeuralHazardVerdict:
+    def evaluate(self, text: str, clauses: Sequence[str] | None = None) -> NeuralHazardVerdict:
         cleaned = (text or "").strip()
         if not cleaned or not self.available or self._tokenizer is None or self._infer_req is None:
             return NeuralHazardVerdict(
@@ -418,9 +433,8 @@ class NeuralHazardClassifier:
                 if conf < 0.80:
                     continue
 
-            if (
-                HAZARD_RANK[hazard_lvl] > HAZARD_RANK[best_hazard_lvl]
-                or (HAZARD_RANK[hazard_lvl] == HAZARD_RANK[best_hazard_lvl] and conf > best_conf)
+            if HAZARD_RANK[hazard_lvl] > HAZARD_RANK[best_hazard_lvl] or (
+                HAZARD_RANK[hazard_lvl] == HAZARD_RANK[best_hazard_lvl] and conf > best_conf
             ):
                 best_probs = probs
                 best_pred_cls = pred_cls

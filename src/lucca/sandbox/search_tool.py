@@ -108,20 +108,75 @@ SEARXNG_DEFAULT_URL: str = "http://127.0.0.1:8888/search"
 
 
 def _simplify_search_query(q: str) -> str:
-    """Extract key substantive terms if a query has conversational filler."""
+    """Extract key substantive terms without truncating tail subject nouns."""
     words = [w.strip("?,.:;\"'()") for w in q.split() if w.strip("?,.:;\"'()")]
-    if len(words) <= 4:
+    if len(words) <= 5:
         return " ".join(words)
     stopwords = {
-        "what", "was", "were", "the", "a", "an", "in", "on", "at", "for", "of", "and", "or",
-        "to", "who", "did", "does", "do", "is", "are", "about", "how", "why", "can", "you",
-        "tell", "me", "please", "could", "would", "where", "which", "when", "under",
-        "between", "compared", "with", "according", "by", "from", "its", "many",
+        "what",
+        "was",
+        "were",
+        "the",
+        "a",
+        "an",
+        "in",
+        "on",
+        "at",
+        "for",
+        "of",
+        "and",
+        "or",
+        "to",
+        "who",
+        "did",
+        "does",
+        "do",
+        "is",
+        "are",
+        "about",
+        "how",
+        "why",
+        "can",
+        "you",
+        "tell",
+        "me",
+        "please",
+        "could",
+        "would",
+        "where",
+        "which",
+        "when",
+        "under",
+        "between",
+        "compared",
+        "with",
+        "according",
+        "by",
+        "from",
+        "its",
+        "many",
+        "much",
+        "used",
+        "use",
+        "gives",
+        "give",
+        "causes",
+        "cause",
+        "traditionally",
+        "officially",
+        "distinctive",
+        "actually",
+        "briefly",
+        "noticeably",
+        "unusually",
     }
     filtered = [w for w in words if w.lower() not in stopwords]
-    if len(filtered) >= 2:
-        return " ".join(filtered[:7])
-    return " ".join(words[:7])
+    if len(filtered) <= 11:
+        return " ".join(filtered) if len(filtered) >= 2 else " ".join(words[:10])
+    # Preserve named/capitalized tokens + head and tail nouns rather than slicing off the tail
+    head = filtered[:5]
+    tail = [w for w in filtered[-6:] if w not in head]
+    return " ".join((head + tail)[:11])
 
 
 def _probe_searxng_endpoint(candidate_url: str, timeout: float = 0.5) -> bool:
@@ -189,11 +244,15 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
     if _os.environ.get("LUCCA_PROBE_WSL_SEARXNG", "0") == "1":
         try:
             wsl_exe = shutil.which("wsl.exe") or "wsl.exe"
-            wsl_out = subprocess.check_output(
-                [wsl_exe, "-e", "sh", "-c", "hostname -I"],
-                text=True,
-                timeout=1.5,
-            ).strip().split()
+            wsl_out = (
+                subprocess.check_output(
+                    [wsl_exe, "-e", "sh", "-c", "hostname -I"],
+                    text=True,
+                    timeout=1.5,
+                )
+                .strip()
+                .split()
+            )
             for ip in wsl_out:
                 candidates.append(f"http://{ip}:8888/search")
         except Exception as exc:  # noqa: BLE001
@@ -298,8 +357,16 @@ def _resolve_rfc_standards(query: str, max_results: int = 5) -> list[dict[str, s
                         for w in query.split()
                         if len(w) > 2
                         and w.lower()
-                        not in ("rfc", rfc_num, "what", "is", "the", "between", "difference",
-                            "according")
+                        not in (
+                            "rfc",
+                            rfc_num,
+                            "what",
+                            "is",
+                            "the",
+                            "between",
+                            "difference",
+                            "according",
+                        )
                     ]
                     paras = text.split("\n\n")
                     matching: list[str] = []
@@ -611,9 +678,11 @@ def search_web(
             res_dict["entity_absent_in_results"] = True
             msg += (
                 f"\n[WARNING: Target entity '{
-                    target_str}' was NOT found in retrieved search results. "
+                    target_str
+                }' was NOT found in retrieved search results. "
                 f"Do not extrapolate or fabricate details about '{
-                    target_str}' from adjacent entities.]"
+                    target_str
+                }' from adjacent entities.]"
             )
         return res_dict, msg
 
@@ -669,9 +738,11 @@ def search_web(
         if entity_absent:
             formatted_lines.append(
                 f"[WARNING: Target entity '{
-                    target_str}' was NOT found in retrieved search results. "
+                    target_str
+                }' was NOT found in retrieved search results. "
                 f"Do not extrapolate or fabricate details about '{
-                    target_str}' from adjacent entities.]"
+                    target_str
+                }' from adjacent entities.]"
             )
 
     content_str = "\n".join(formatted_lines).strip()

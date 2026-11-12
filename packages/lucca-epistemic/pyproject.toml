@@ -1,6 +1,6 @@
 [project]
 name = "lucca-epistemic"
-version = "0.1.0"
+version = "0.2.0"
 description = "Standalone cross-platform epistemic verification, RFC 8032 Ed25519 provenance envelopes, 2D hazard-scaled Walton corroboration, and OpenVINO CPU/NPU receipt supervision"
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }

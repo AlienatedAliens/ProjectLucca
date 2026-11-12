@@ -150,3 +150,51 @@ def test_clause_level_receipt_supervisor_cpu() -> None:
         receipts=receipts,
     )
     assert good.is_valid is True
+
+
+def test_open_web_scraped_prohibitive_consensus_and_myth_detection() -> None:
+    # Agreeing prohibitive safety warnings across scraped pages must NOT trigger a false dispute
+    honey_burden = evaluate_web_evidence_burden(
+        "Why should honey never be fed to infants younger than twelve months?",
+        [
+            {
+                "url": "https://www.cdc.gov/botulism/infant-honey.html",
+                "title": "Infant Botulism Prevention",
+                "content_preview": "Honey should never be fed to infants younger than 12 months because Clostridium botulinum spores cause infant botulism.",
+            },
+            {
+                "url": "https://www.nhs.uk/baby/weaning/foods-to-avoid/",
+                "title": "Foods to Avoid Giving Babies",
+                "content_preview": "Babies under 1 year old must not eat honey due to the risk of infant botulism toxin.",
+            },
+            {
+                "url": "https://www.mayoclinic.org/infant-health/honey",
+                "title": "Infant Honey Safety",
+                "content_preview": "Avoid giving honey to infants under twelve months; Clostridium spores can cause infant botulism.",
+            },
+        ],
+        device="CPU",
+    )
+    assert honey_burden.disputed is False
+    assert honey_burden.independent_sources_count == 3
+    assert honey_burden.meets_casual_burden is True
+
+    # Myth-refutation at rank 1 + off-topic stub filtering on scraped open-web items
+    myth_burden = evaluate_web_evidence_burden(
+        "Does the human tongue have exclusive taste zones?",
+        [
+            {
+                "url": "https://www.ncbi.nlm.nih.gov/books/NBK279408/",
+                "title": "How does our sense of taste work?",
+                "content_preview": "The tongue map showing exclusive sweet, sour, salty, and bitter zones is a persistent myth; all taste buds detect all qualities.",
+            },
+            {
+                "url": "https://blocked.example.com/tongue",
+                "title": "Just a moment...",
+                "content_preview": "Just a moment... Enable JavaScript and cookies to continue.",
+            },
+        ],
+        device="CPU",
+    )
+    assert myth_burden.disputed is True
+    assert myth_burden.meets_casual_burden is False

@@ -288,15 +288,12 @@ class _CoreOpenVINONLI:
             if Tokenizer is None:
                 return
             env_dir = os.environ.get("LUCCA_VERIFIER_MODEL_DIR")
-            candidates = (
-                ([Path(env_dir)] if env_dir else [])
-                + [
-                    _REPO_ROOT / "models" / "verifier_deberta_v3_xsmall_ov",
-                    Path(r"C:\ProjectLucca\models\verifier_deberta_v3_xsmall_ov"),
-                    _REPO_ROOT / "models" / "verifier_minilm",
-                    Path(r"C:\ProjectLucca\models\verifier_minilm"),
-                ]
-            )
+            candidates = ([Path(env_dir)] if env_dir else []) + [
+                _REPO_ROOT / "models" / "verifier_deberta_v3_xsmall_ov",
+                Path(r"C:\ProjectLucca\models\verifier_deberta_v3_xsmall_ov"),
+                _REPO_ROOT / "models" / "verifier_minilm",
+                Path(r"C:\ProjectLucca\models\verifier_minilm"),
+            ]
             model_dir = next(
                 (p for p in candidates if (p / "openvino_model.xml").exists()),
                 None,
@@ -330,35 +327,51 @@ class _CoreOpenVINONLI:
                 self._infer_req = None
                 self._tokenizer = None
 
-    def max_contradiction_prob(self, text_a: str, text_b: str) -> float:
-        """Return max directional contradiction probability across (A->B, B->A)."""
+    def infer_pair_probs(self, premise: str, hypothesis: str) -> tuple[float, float, float]:
+        """Return `(p_contradiction, p_entailment, p_neutral)` for `premise -> hypothesis`."""
         self._ensure_loaded()
         if self._compiled is None or self._tokenizer is None or self._infer_req is None:
-            return 0.0
-        a_clean = unicodedata.normalize("NFC", strip_wire_boilerplate(text_a))[:512]
-        b_clean = unicodedata.normalize("NFC", strip_wire_boilerplate(text_b))[:512]
-        if not a_clean or not b_clean:
-            return 0.0
-        best = 0.0
-        for prem, hyp in ((a_clean, b_clean), (b_clean, a_clean)):
-            try:
-                enc = self._tokenizer.encode(prem, hyp)
-                feed: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
-                if "input_ids" in self._input_names:
-                    feed["input_ids"] = np.array([enc.ids], dtype=np.int64)
-                if "attention_mask" in self._input_names:
-                    feed["attention_mask"] = np.array([enc.attention_mask], dtype=np.int64)
-                if "token_type_ids" in self._input_names:
-                    feed["token_type_ids"] = np.array([enc.type_ids], dtype=np.int64)
-                with self._lock:
-                    outputs = self._infer_req.infer(feed)
-                    logits = np.squeeze(list(outputs.values())[0]).copy()
-                exp_l = np.exp(logits - np.max(logits))
-                probs = exp_l / np.sum(exp_l)
-                best = max(best, float(probs[self._con_idx]))
-            except Exception as exc:  # noqa: BLE001
-                logger.debug("core_nli_infer_failed", error=str(exc))
-        return best
+            return (0.0, 0.0, 1.0)
+        p_clean = unicodedata.normalize("NFC", strip_wire_boilerplate(premise))[:512]
+        h_clean = unicodedata.normalize("NFC", strip_wire_boilerplate(hypothesis))[:512]
+        if not p_clean or not h_clean:
+            return (0.0, 0.0, 1.0)
+        try:
+            enc = self._tokenizer.encode(p_clean, h_clean)
+            feed: dict[str, np.ndarray[tuple[int, ...], np.dtype[np.int64]]] = {}
+            if "input_ids" in self._input_names:
+                feed["input_ids"] = np.array([enc.ids], dtype=np.int64)
+            if "attention_mask" in self._input_names:
+                feed["attention_mask"] = np.array([enc.attention_mask], dtype=np.int64)
+            if "token_type_ids" in self._input_names:
+                feed["token_type_ids"] = np.array([enc.type_ids], dtype=np.int64)
+            with self._lock:
+                outputs = self._infer_req.infer(feed)
+                logits = np.squeeze(list(outputs.values())[0]).copy()
+            exp_l = np.exp(logits - np.max(logits))
+            probs = exp_l / np.sum(exp_l)
+            con_p = float(probs[self._con_idx])
+            ent_p = float(probs[self._ent_idx])
+            neu_idx = next(
+                (i for i in range(len(probs)) if i not in (self._con_idx, self._ent_idx)), 2
+            )
+            neu_p = float(probs[neu_idx]) if neu_idx < len(probs) else max(0.0, 1.0 - con_p - ent_p)
+            return (con_p, ent_p, neu_p)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("core_nli_infer_failed", error=str(exc))
+            return (0.0, 0.0, 1.0)
+
+    def max_contradiction_prob(self, text_a: str, text_b: str) -> float:
+        """Return max directional contradiction probability across (A->B, B->A)."""
+        con_ab, _, _ = self.infer_pair_probs(text_a, text_b)
+        con_ba, _, _ = self.infer_pair_probs(text_b, text_a)
+        return max(con_ab, con_ba)
+
+    def bidirectional_nli_summary(self, text_a: str, text_b: str) -> tuple[float, float]:
+        """Return `(max_contradiction_prob, max_entailment_prob)` across (A->B, B->A)."""
+        con_ab, ent_ab, _ = self.infer_pair_probs(text_a, text_b)
+        con_ba, ent_ba, _ = self.infer_pair_probs(text_b, text_a)
+        return (max(con_ab, con_ba), max(ent_ab, ent_ba))
 
 
 _CORE_NLI_SINGLETON = _CoreOpenVINONLI()

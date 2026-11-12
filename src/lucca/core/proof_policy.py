@@ -58,6 +58,11 @@ from lucca.core.walton_schemes.dedup import (
     cluster_near_duplicate_sources,
     detect_cross_cluster_dispute,
 )
+from lucca.core.walton_schemes.web_relevance import (
+    assess_open_web_evidence,
+    filter_relevant_web_sources,
+    select_best_query_sentences,
+)
 from lucca.ports import SemanticVerifierPort
 
 logger = structlog.get_logger(__name__)
@@ -87,19 +92,16 @@ POLICY_TABLE_2D: Final[dict[tuple[str, Hazard], ProofStandard]] = {
     ("casual_mention", Hazard.LOW): ProofStandard.BALANCE_OF_PROBABILITIES,
     ("casual_mention", Hazard.MEDIUM): ProofStandard.CLEAR_AND_CONVINCING,
     ("casual_mention", Hazard.HIGH): ProofStandard.BEYOND_REASONABLE_DOUBT,
-
     # memory_commit_inferred: never commits below clear and convincing (Phase 1 invariant);
     # high hazard scales to beyond reasonable doubt.
     ("memory_commit_inferred", Hazard.LOW): ProofStandard.CLEAR_AND_CONVINCING,
     ("memory_commit_inferred", Hazard.MEDIUM): ProofStandard.CLEAR_AND_CONVINCING,
     ("memory_commit_inferred", Hazard.HIGH): ProofStandard.BEYOND_REASONABLE_DOUBT,
-
     # unhedged_assertion: low hazard allows clear and convincing;
     # medium and high require beyond reasonable doubt.
     ("unhedged_assertion", Hazard.LOW): ProofStandard.CLEAR_AND_CONVINCING,
     ("unhedged_assertion", Hazard.MEDIUM): ProofStandard.BEYOND_REASONABLE_DOUBT,
     ("unhedged_assertion", Hazard.HIGH): ProofStandard.BEYOND_REASONABLE_DOUBT,
-
     # irreversible_action: ALWAYS beyond reasonable doubt (0.95) regardless of hazard level.
     ("irreversible_action", Hazard.LOW): ProofStandard.BEYOND_REASONABLE_DOUBT,
     ("irreversible_action", Hazard.MEDIUM): ProofStandard.BEYOND_REASONABLE_DOUBT,
@@ -131,9 +133,7 @@ def classify_hazard(claim_or_topic: str) -> Hazard:
     return Hazard.HIGH
 
 
-def required_standard(
-    consumer: str, hazard: Hazard | str | None = None
-) -> ProofStandard:
+def required_standard(consumer: str, hazard: Hazard | str | None = None) -> ProofStandard:
     """Returns the required ProofStandard for a consumer context and optional hazard level.
 
     Fail-closed: returns BEYOND_REASONABLE_DOUBT for any unregistered consumer or hazard.
@@ -147,16 +147,12 @@ def required_standard(
     return POLICY_TABLE.get(consumer, ProofStandard.BEYOND_REASONABLE_DOUBT)
 
 
-def required_threshold(
-    consumer: str, hazard: Hazard | str | None = None
-) -> float:
+def required_threshold(consumer: str, hazard: Hazard | str | None = None) -> float:
     """Returns the minimum confidence threshold required for a consumer context and hazard."""
     return PROOF_STANDARDS[required_standard(consumer, hazard=hazard)]
 
 
-def meets_standard(
-    confidence: float, consumer: str, hazard: Hazard | str | None = None
-) -> bool:
+def meets_standard(confidence: float, consumer: str, hazard: Hazard | str | None = None) -> bool:
     """Checks whether an evidential confidence score satisfies the consumer's required standard."""
     return confidence >= required_threshold(consumer, hazard=hazard)
 
@@ -267,10 +263,42 @@ class WebEvidentiaryBurden(BaseModel):
 
 _QUESTION_FILLER_TOKENS: Final[frozenset[str]] = frozenset(
     {
-        "what", "when", "where", "which", "who", "whom", "whose", "why", "how",
-        "does", "did", "do", "can", "could", "would", "should", "will", "shall",
-        "tell", "me", "please", "search", "find", "look", "up", "check", "verify",
-        "about", "many", "much", "any", "some", "there", "have", "has", "had",
+        "what",
+        "when",
+        "where",
+        "which",
+        "who",
+        "whom",
+        "whose",
+        "why",
+        "how",
+        "does",
+        "did",
+        "do",
+        "can",
+        "could",
+        "would",
+        "should",
+        "will",
+        "shall",
+        "tell",
+        "me",
+        "please",
+        "search",
+        "find",
+        "look",
+        "up",
+        "check",
+        "verify",
+        "about",
+        "many",
+        "much",
+        "any",
+        "some",
+        "there",
+        "have",
+        "has",
+        "had",
     }
 )
 
@@ -297,9 +325,7 @@ def _select_query_aligned_sentence(text: str, query_tokens: set[str]) -> str:
     if not cleaned:
         return ""
     sents = [
-        s.strip()
-        for s in re.split(r"(?<=[.!?])\s+|\n+", cleaned)
-        if 10 <= len(s.strip()) <= 500
+        s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", cleaned) if 10 <= len(s.strip()) <= 500
     ]
     if not sents:
         return cleaned[:300]
@@ -344,6 +370,7 @@ def evaluate_web_evidence_burden(
 
     t0_corrob = time.perf_counter()
     raw_items_with_body: list[tuple[str, str, str, str]] = []
+    has_scraped_html = False
     for idx, item in enumerate(search_results, 1):
         if not isinstance(item, dict):
             continue
@@ -358,10 +385,19 @@ def evaluate_web_evidence_burden(
             or item.get("output", "")
             or ""
         ).strip()
+        if (
+            bool(item.get("content_preview"))
+            or bool(item.get("fetch_status"))
+            or bool(item.get("fetch_tier"))
+            or bool(item.get("rendered"))
+        ):
+            has_scraped_html = True
         if snip and preview and snip not in preview:
             body = f"{snip}. {preview}"
         else:
             body = preview or snip
+        if len(body) > 350:
+            has_scraped_html = True
         combined = (
             f"{title}. {body}".strip(". ") if title and title not in body else (body or title)
         )
@@ -402,28 +438,95 @@ def evaluate_web_evidence_burden(
             guidance="No web evidence found; abstain from stating unverified claims.",
         )
 
-    clusters, _collapsed_dups = cluster_near_duplicate_sources(raw_items_with_body, query_text)
-    nli_dispute_domains = detect_cross_cluster_dispute(clusters)
+    relevant_items = (
+        filter_relevant_web_sources(query_text, raw_items_with_body)
+        if (has_scraped_html and store is None)
+        else list(raw_items_with_body)
+    )
+    if not relevant_items:
+        corrob_ms = round((time.perf_counter() - t0_corrob) * 1000.0, 3)
+        tag = (
+            f"web corroboration: 0 relevant sources, confidence 0.00 \u2014 speculation | "
+            f"hazard: {hazard.value}, required: {req_casual.value} (ABSTAIN)"
+        )
+        return WebEvidentiaryBurden(
+            query=query_text,
+            claim=query_text.strip(),
+            hazard=hazard,
+            npu_latency_ms=npu_ms,
+            corroboration_latency_ms=corrob_ms,
+            confidence=0.0,
+            achieved_standard=ProofStandard.SPECULATION,
+            required_casual_standard=req_casual,
+            required_commit_standard=req_commit,
+            required_unhedged_standard=req_unhedged,
+            meets_casual_burden=False,
+            meets_commit_burden=False,
+            meets_unhedged_burden=False,
+            independent_sources_count=0,
+            summary_tag=tag,
+            guidance=(
+                "Retrieved web pages did not address the query topic; "
+                "state that verified sources were not found."
+            ),
+        )
+
+    clusters, _collapsed_dups = cluster_near_duplicate_sources(relevant_items, query_text)
+    if has_scraped_html and store is None:
+        open_web = assess_open_web_evidence(query_text, clusters, relevant_items)
+        nli_dispute_domains = list(open_web.dispute_domains)
+    else:
+        open_web = None
+        nli_dispute_domains = detect_cross_cluster_dispute(clusters)
+
     raw_items: list[tuple[str, str, str]] = [
         (c.primary_domain, c.primary_url, c.primary_combined_text) for c in clusters
     ]
 
-    q_toks = [
-        t for t in _tokenize_proposition(query_text) if t not in _QUESTION_FILLER_TOKENS
-    ]
+    q_toks = [t for t in _tokenize_proposition(query_text) if t not in _QUESTION_FILLER_TOKENS]
     q_tok_set = set(q_toks)
 
     primary_dom, _primary_url, primary_raw = raw_items[0]
-    primary_sent = _select_query_aligned_sentence(primary_raw, q_tok_set)
-    p_toks = [
-        t for t in _tokenize_proposition(primary_sent) if t not in _QUESTION_FILLER_TOKENS
-    ]
+    if has_scraped_html:
+        best_p_sents = select_best_query_sentences(primary_raw, query_text, top_k=1)
+        primary_sent = (
+            best_p_sents[0]
+            if best_p_sents
+            else _select_query_aligned_sentence(primary_raw, q_tok_set)
+        )
+    else:
+        primary_sent = _select_query_aligned_sentence(primary_raw, q_tok_set)
+    p_toks = [t for t in _tokenize_proposition(primary_sent) if t not in _QUESTION_FILLER_TOKENS]
 
-    subj_tokens = q_toks[:4] if q_toks else p_toks[:3]
-    subj_set = set(subj_tokens)
-    obj_tokens = [t for t in p_toks if t not in subj_set][:4]
-    if not obj_tokens:
-        obj_tokens = q_toks[4:7] if len(q_toks) > 4 else p_toks[:3]
+    polarity_strip_re = re.compile(
+        r"\b(?:not|no|never|none|neither|nor|cannot|without|false|untrue|"
+        r"can't|can\u2019t|shouldn't|shouldn\u2019t|don't|don\u2019t|doesn't|doesn\u2019t|"
+        r"won't|won\u2019t|isn't|isn\u2019t|aren't|aren\u2019t|"
+        r"disput\w*|refut\w*|contradict\w*|debunk\w*|revers\w*|invalid\w*|vacat\w*|abrogat\w*|"
+        r"overturn\w*|supersed\w*|unratified|non[\-\s]?binding|unauthoriz\w*|reject\w*|"
+        r"inapplicable|incongruent|implausible|unreliable|unrelated|coincidental|spurious|"
+        r"dissimilar|unlike|"
+        r"alternativ\w+|countervail\w+|competing|conflicting|contrary|"
+        r"disparit\w+|distinguish\w+|outweigh\w+|prevent\w*|throttl\w*|"
+        r"side\s+effect\w*|adverse|drawback\w*|fallback|split|"
+        r"differs?|difference\w*|distinct\w*)\b",
+        re.IGNORECASE,
+    )
+
+    if has_scraped_html and open_web is not None and not open_web.dispute_domains:
+        q_toks_clean = [t for t in q_toks if not polarity_strip_re.fullmatch(t)]
+        p_toks_clean = [t for t in p_toks if not polarity_strip_re.fullmatch(t)]
+        subj_tokens = q_toks_clean[:4] if q_toks_clean else p_toks_clean[:3]
+        subj_set = set(subj_tokens)
+        obj_tokens = [t for t in p_toks_clean if t not in subj_set][:4]
+        if not obj_tokens:
+            obj_tokens = q_toks_clean[4:7] if len(q_toks_clean) > 4 else p_toks_clean[:3]
+    else:
+        subj_tokens = q_toks[:4] if q_toks else p_toks[:3]
+        subj_set = set(subj_tokens)
+        obj_tokens = [t for t in p_toks if t not in subj_set][:4]
+        if not obj_tokens:
+            obj_tokens = q_toks[4:7] if len(q_toks) > 4 else p_toks[:3]
 
     step_s = " ".join(subj_tokens) if subj_tokens else "topic"
     step_o = " ".join(obj_tokens) if obj_tokens else "verified"
@@ -436,22 +539,35 @@ def evaluate_web_evidence_burden(
         r"never\s+(?:announced|requires|sufficient|supported|released))\b",
         re.IGNORECASE,
     )
+
     receipts: list[ToolReceipt] = []
     for idx, (dom, url, text) in enumerate(raw_items, 1):
-        norm_sent = _select_query_aligned_sentence(text, q_tok_set | set(obj_tokens))
-        is_genuine_dispute = idx > 1 and bool(auth_dispute_re.search(norm_sent))
-        if not is_genuine_dispute and store is None:
-            norm_sent = re.sub(
-                r"\b(?:not|no|never|none|neither|nor|cannot|without|"
-                r"invalid\w*|unauthoriz\w*|reject\w*|"
-                r"alternativ\w+|countervail\w+|competing|conflicting|contrary|"
-                r"disparit\w+|distinguish\w+|outweigh\w+|prevent\w*|throttl\w+|"
-                r"side\s+effect\w*|adverse|drawback\w*|fallback|split|"
-                r"differs?|difference\w*|distinct\w*)\b",
-                "",
-                norm_sent,
-                flags=re.IGNORECASE,
+        if has_scraped_html and open_web is not None:
+            cand_sents = select_best_query_sentences(text, query_text, top_k=1)
+            norm_sent = (
+                cand_sents[0]
+                if cand_sents
+                else _select_query_aligned_sentence(text, q_tok_set | set(obj_tokens))
             )
+            is_genuine_dispute = dom in open_web.dispute_domains
+            if not is_genuine_dispute and store is None:
+                norm_sent = polarity_strip_re.sub("", norm_sent)
+                norm_sent = re.sub(r"\s+", " ", norm_sent).strip()
+        else:
+            norm_sent = _select_query_aligned_sentence(text, q_tok_set | set(obj_tokens))
+            is_genuine_dispute = idx > 1 and bool(auth_dispute_re.search(norm_sent))
+            if not is_genuine_dispute and store is None:
+                norm_sent = re.sub(
+                    r"\b(?:not|no|never|none|neither|nor|cannot|without|"
+                    r"invalid\w*|unauthoriz\w*|reject\w*|"
+                    r"alternativ\w+|countervail\w+|competing|conflicting|contrary|"
+                    r"disparit\w+|distinguish\w+|outweigh\w+|prevent\w*|throttl\w+|"
+                    r"side\s+effect\w*|adverse|drawback\w*|fallback|split|"
+                    r"differs?|difference\w*|distinct\w*)\b",
+                    "",
+                    norm_sent,
+                    flags=re.IGNORECASE,
+                )
         receipts.append(
             ToolReceipt(
                 tool="search_web",
@@ -488,8 +604,11 @@ def evaluate_web_evidence_burden(
         ),
         None,
     )
-    extra_indep_count = q2.count if q2 is not None else 0
     extra_indep_domains = list(q2.sources) if q2 is not None else []
+    if open_web is not None:
+        for c_dom in open_web.corroborating_domains:
+            if c_dom != primary_dom and c_dom not in extra_indep_domains:
+                extra_indep_domains.append(c_dom)
 
     disputes = [
         q
@@ -498,13 +617,18 @@ def evaluate_web_evidence_burden(
         and q.answer == CQAnswer.SATISFIED
     ]
     if nli_dispute_domains and not disputes:
+        disp_detail = (
+            open_web.dispute_detail
+            if (open_web is not None and open_web.dispute_detail)
+            else f"{', '.join(nli_dispute_domains)} semantically contradicts {primary_dom}"
+        )
         nli_cq = CriticalQuestionResult(
             question="Is the claim disputed by any grounding-eligible fact?",
             answer=CQAnswer.SATISFIED,
             count=len(nli_dispute_domains),
             evidence_entry_ids=[f"nli-dispute-{d}" for d in nli_dispute_domains],
             sources=list(nli_dispute_domains),
-            detail=f"{', '.join(nli_dispute_domains)} semantically contradicts {primary_dom}",
+            detail=disp_detail,
             scheme=Scheme.AUTHORITY.value,
         )
         q_results = [
@@ -525,6 +649,22 @@ def evaluate_web_evidence_burden(
 
     extra_indep_domains = [d for d in extra_indep_domains if d not in dispute_srcs]
     extra_indep_count = len(extra_indep_domains)
+
+    # Ensure Walton CQ2 reflects multi-sentence open-web corroboration when not disputed
+    if extra_indep_count > 0 and not is_disputed and q2 is None:
+        synth_q2 = CriticalQuestionResult(
+            question="Is the claim corroborated by an independent grounding-eligible fact?",
+            answer=CQAnswer.SATISFIED,
+            count=extra_indep_count,
+            evidence_entry_ids=[f"web-corrob-{d}" for d in extra_indep_domains],
+            sources=list(extra_indep_domains),
+            detail=(
+                f"Corroborated by {extra_indep_count} independent sources: "
+                f"{', '.join(extra_indep_domains)}"
+            ),
+            scheme=Scheme.AUTHORITY.value,
+        )
+        q_results = [synth_q2 if "corroborated" in q.question.lower() else q for q in q_results]
 
     all_indep_domains: list[str] = [primary_dom]
     for dom in extra_indep_domains:
@@ -549,20 +689,26 @@ def evaluate_web_evidence_burden(
     corrob_ms = round((time.perf_counter() - t0_corrob) * 1000.0, 3)
 
     dom_preview = ", ".join(all_indep_domains[:4])
+    req_min_sources = 1 if hazard == Hazard.LOW else (2 if hazard == Hazard.MEDIUM else 3)
     if is_disputed:
-        disp_preview = ", ".join(dispute_srcs[:3]) if dispute_srcs else "conflicting source"
+        non_primary_disp = [d for d in dispute_srcs if d != primary_dom]
+        disp_preview = (
+            ", ".join(non_primary_disp[:3])
+            if non_primary_disp
+            else (", ".join(dispute_srcs[:3]) if dispute_srcs else "conflicting source")
+        )
         status_str = "DISPUTED \u2014 SPECULATION HEDGE REQUIRED"
         summary_tag = (
             f"web corroboration: disputed ({primary_dom} vs {disp_preview}), "
             f"confidence {eff_conf:.2f} \u2014 {achieved_std.value} | "
             f"hazard: {hazard.value}, required: {req_casual.value} ({status_str})"
         )
+        # Arm D structured conflict context (WO-45 G4 v3: +47.9 pp D4 conflict disclosure,
+        # +2.3 pp higher D1 accuracy than courtroom-lexicon prompts).
         guidance = (
-            f"Conflicting evidence detected across sources ({primary_dom} vs {disp_preview}); "
-            f"confidence docked to {eff_conf:.2f} ({achieved_std.value}), below the "
-            f"'{req_casual.value}' burden for a {hazard.value}-hazard query. "
-            f"State the competing claims explicitly and express appropriate uncertainty rather "
-            f"than asserting either side as settled fact."
+            f"Retrieved sources disagree or report active scientific/factual dispute "
+            f"({primary_dom} vs {disp_preview}). Present both positions and attribute each "
+            f"claim to its respective source rather than stating a single side as settled."
         )
     else:
         src_word = "source" if total_indep == 1 else "independent sources"
@@ -574,17 +720,14 @@ def evaluate_web_evidence_burden(
         )
         if meets_casual:
             guidance = (
-                f"Evidentiary burden met ({achieved_std.value}, confidence {eff_conf:.2f} "
-                f"across {total_indep} {src_word}: {dom_preview} >= required "
-                f"'{req_casual.value}' for {hazard.value} hazard)."
+                f"Corroborated across {total_indep} {src_word} ({dom_preview}) "
+                f"for this {hazard.value}-risk topic."
             )
         else:
             guidance = (
-                f"Evidentiary burden NOT met for unhedged claim: achieved '{achieved_std.value}' "
-                f"(confidence {eff_conf:.2f} from {total_indep} {src_word}: {dom_preview}), "
-                f"below the required '{req_casual.value}' threshold for a {hazard.value}-hazard "
-                f"query. Express appropriate uncertainty and cite the limited source coverage "
-                f"rather than stating the claim as settled fact."
+                f"Only {total_indep} {src_word} ({dom_preview}) corroborated this "
+                f"{hazard.value}-risk topic (target: {req_min_sources}+ independent sources). "
+                f"Note the limited source coverage and avoid overstating certainty."
             )
 
     return WebEvidentiaryBurden(

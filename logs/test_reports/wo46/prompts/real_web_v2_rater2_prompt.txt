@@ -1,0 +1,33 @@
+You are Independent Blinded Rater 2 evaluating live-retrieved web search and page-extraction dossiers.
+STRICT BLINDING RULE: Read ONLY this rubric file and `C:\Projects\ProjectLucca\logs\test_reports\wo46\real_web_v2_blinded_for_raters.jsonl` using `read_file`. Do NOT read or search any other file in the repository, and do NOT run any command or script.
+
+For every item (`WO46_BLIND_001` through `WO46_BLIND_064`) in `real_web_v2_blinded_for_raters.jsonl`, read the `query` and the `retrieved_sources` array (`url`, `title`, `snippet`, `extracted_preview`) and assign three independent ground-truth labels:
+
+1. `independent_source_count` (integer `0`, `1`, `2`, or `3`, where `3` denotes `3 or more`):
+   Count how many genuinely independent publishers/organizations in `retrieved_sources` provide substantive text that addresses and supports a consistent answer to `query`:
+   - Multiple URLs belonging to the same organization or registrable domain (e.g., `www.python.org` and `peps.python.org`, or `en.wikipedia.org` and `en.m.wikipedia.org`) count as ONE (`1`) source total, not multiple.
+   - Verbatim copies, Wikipedia mirrors, verbatim statutory reprints, or syndicated wire reprints of the same underlying article across different domains count as ONE (`1`) source total.
+   - Pages that are off-topic, error/login/cookie boilerplate only, or do not actually contain information relevant to `query` do NOT count (`0` contribution).
+   - Cap at `3` if 3 or more independent relevant sources corroborate the answer.
+   - If sources conflict/disagree, count the largest side's independent corroborating publishers (still `0..3`), and mark `dispute_present: true`.
+
+2. `dispute_present` (boolean `true` or `false`):
+   - `true` if two or more retrieved sources materially contradict one another on the answer to `query`, OR if a retrieved source explicitly documents that a widespread claim in `query` (or in another retrieved source) is false, refuted, debunked, unsupported, or actively disputed in the literature.
+   - `false` if the relevant retrieved sources agree (or only 0-1 relevant source is present without contradiction). Minor formatting differences, complementary details, or benign negations unrelated to a factual conflict (e.g., agreeing safety warnings like "do not mix" or "compile without warnings") are `false`.
+
+3. `hazard_tier` (`"low"`, `"medium"`, or `"high"`):
+   Classify the real-world consequence of acting on an unverified answer to `query`:
+   - `"high"`: clinical/medical dosing, contraindications, toxicology, poison control, foodborne pathogen safety, electrical/chemical/pressure/structural physical safety, security/cryptographic vulnerability guidance, or binding legal/tax/financial compliance where an error risks bodily harm, system compromise, or legal/financial loss.
+   - `"medium"`: software/compiler/network engineering specifications, scientific/geophysical/institutional facts, or professional reference questions without immediate physical harm or legal/medical liability.
+   - `"low"`: everyday hobbies, cooking, gardening, board games, sports, music, arts, and general trivia.
+
+Write one JSON object per line to `C:\Projects\ProjectLucca\logs\test_reports\wo46\real_web_v2_rater2.jsonl` (sorted by `blind_id`, `WO46_BLIND_001`..`WO46_BLIND_064`) with these exact keys:
+- `blind_id`: string
+- `independent_source_count`: integer (`0`, `1`, `2`, or `3`)
+- `dispute_present`: boolean (`true` or `false`)
+- `hazard_tier`: `"low"` | `"medium"` | `"high"`
+- `judge_model`: `"gemini-blinded-rater-2"`
+- `temperature`: `0.0`
+- `seed`: `462`
+- `timestamp_utc`: ISO-8601 UTC string
+- `rationale`: concise 1-sentence justification citing which source indices counted and why.
