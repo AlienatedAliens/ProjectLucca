@@ -1,0 +1,36 @@
+{
+  "preregistration_id": "WO45-R32-REAL-WEB-SCRAPLING-v1",
+  "locked_at_utc": "2026-11-12T17:33:55.799570+00:00",
+  "sample_size": 64,
+  "nominal_strata": {
+    "low": 22,
+    "medium": 22,
+    "high": 20
+  },
+  "retrieval_stack": "lucca.sandbox.research_tool.research_topic(max_sources=4, include_raw_html=True) -> search_web + web_tool.fetch_url (Scrapling/Trafilatura + DOM injection sanitizer)",
+  "ground_truth_protocol": ">=2 independent blinded raters labeling independent_source_count (0..3), dispute_present (bool), and hazard_tier (low/medium/high), with 3rd blinded adjudicator resolving any disagreements or if kappa < 0.70",
+  "primary_endpoint": "burden_decision_accuracy (evaluate_web_evidence_burden.meets_casual_burden vs adjudicated rater ground truth)",
+  "locked_files_sha256": {
+    "src/lucca/core/proof_policy.py": "345512c11d0f6d6c390c93b7fc05803c2b70d6eb308b54aecf27221ddfd14dda",
+    "src/lucca/core/corroboration.py": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+    "src/lucca/core/walton_schemes/__init__.py": "83e4a4a511e2e78e5a903bc4455b7ddac31d273d6f38789a24f84befc1e3da04",
+    "src/lucca/core/walton_schemes/evaluators.py": "a4f0f1e326467bf0c7cb8a917225f10937444969eb2b594059da9fd9feff486b",
+    "src/lucca/core/walton_schemes/dedup.py": "1fa88ea5255152f3d0795f8476bdb25631f7b09a6c7b3816a902bfa12ae4e1ba",
+    "src/lucca/core/neural_hazard_classifier.py": "d8990684d43daecb7ab3ca94ea8acf1801e996ab3b7a271cd100afcfe5aa31b9",
+    "src/lucca/sandbox/research_tool.py": "108f1ee5b5a15d774076e71772e70e6d2d298a58e762e876de0ac328ce3cb590",
+    "src/lucca/sandbox/search_tool.py": "52bc8b1d5220ff16deab2b6e6b6fd7ab13fb1cb7d5fe78a47b3ed37d4b301663",
+    "src/lucca/sandbox/web_tool.py": "97d66f6df7a21b471c040abeafefeb073c7ba9568cfd4c0a3d903d0036a9e55a",
+    "models/proof_policy_hazard_v3_ov/openvino_model.xml": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "models/proof_policy_hazard_v3_ov/openvino_model.bin": "6df49ddf0e8c80dde1f722218ce5fcaa7e81758029477bd6fe3462fc63069dc4",
+    "models/proof_policy_hazard_v3_ov/tokenizer.json": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.xml": "8a064814c9689c9efb1087eeab13f959ea52d3bf61af106f2ae104ab5b6f9d4a",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.bin": "202fdb1199136ccfa848c1d846ac1a1593d564c9578375a8cde359951de96bb5",
+    "models/verifier_deberta_v3_xsmall_ov/tokenizer.json": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf",
+    "scripts/wo45/r32_queries_64.json": "3d056cbc5bd05c57262156f7b82c4c4ad633ddb6f888b15bdc2efd8b2aacb5be",
+    "scripts/wo45/collect_r32_real_web.py": "b9c783f9924f876e866fa6ce588e4d1ec2403651a46192f5fe25e6c2cc53cf12",
+    "scripts/wo45/eval_r32_real_web.py": "abbb46e34e7cb2fb71a0bface7176e98ddac8a2344131ae9fd335087f6b5b6fc",
+    "logs/test_reports/wo45/prompts/r32_rater1_prompt.txt": "7fbc1dbf3c4a502f040476e8568075e00334ff6fc2da79653ccddf87e794b6ac",
+    "logs/test_reports/wo45/prompts/r32_rater2_prompt.txt": "fa3289f56949ebda603a5f252c5154dce7b6145e1f2237cd1e2855f1b924e8de",
+    "logs/test_reports/wo45/prompts/r32_adjudicator_prompt.txt": "eed3c00c381f5dc8b5e112641f0a7ad8bddf012b1ba8ced05f9c65a183a679b9"
+  }
+}

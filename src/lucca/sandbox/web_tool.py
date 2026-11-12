@@ -373,6 +373,7 @@ def fetch_url(
     render: bool = False,
     max_chars: int = DEFAULT_MAX_CHARS,
     allow_render: bool = False,
+    include_raw_html: bool = False,
 ) -> tuple[dict[str, JsonValue], str]:
     if render:
         if not allow_render:
@@ -534,7 +535,8 @@ def fetch_url(
     embedded_raw = re.findall(r'href=["\'](https?://[^"\'\s<>]+)["\']', html_str, re.IGNORECASE)
     embedded_links = [u.rstrip(".,;:!?'\")>]") for u in set(embedded_raw) if len(u) < 512][:100]
 
-    return {
+    san_json: dict[str, JsonValue] = {k: int(v) for k, v in sanitization_stats.items()}
+    out_meta: dict[str, JsonValue] = {
         "url": final_url,
         "status_code": status_code,
         "content_type": content_type,
@@ -542,6 +544,9 @@ def fetch_url(
         "redirects": redirects_followed,
         "rendered": False,
         "fetch_tier": fetch_tier,
-        "prompt_injection_sanitized": sanitization_stats,
-        "embedded_links": embedded_links,
-    }, text
+        "prompt_injection_sanitized": san_json,
+        "embedded_links": [str(u) for u in embedded_links],
+    }
+    if include_raw_html:
+        out_meta["raw_html"] = html_str
+    return out_meta, text

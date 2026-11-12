@@ -166,28 +166,35 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
     except Exception as exc:  # noqa: BLE001
         logger.debug("searxng_config_read_error", error=str(exc))
 
-    # Candidate endpoints in order of preference
-    candidates: list[str] = [
-        SEARXNG_DEFAULT_URL,
-        "http://localhost:8888/search",
-    ]
+    # Fast probe loopback candidates first before spawning any subprocess
+    for local_cand in (SEARXNG_DEFAULT_URL, "http://localhost:8888/search"):
+        if _probe_searxng_endpoint(local_cand, timeout=0.35):
+            _RESOLVED_SEARXNG_URL = local_cand
+            return local_cand
 
-    # Dynamically discover WSL NAT IP if on Windows
-    try:
-        wsl_exe = shutil.which("wsl.exe") or "wsl.exe"
-        wsl_out = subprocess.check_output(
-            [wsl_exe, "-e", "sh", "-c", "hostname -I"],
-            text=True,
-            timeout=2.0,
-        ).strip().split()
-        for ip in wsl_out:
-            candidates.append(f"http://{ip}:8888/search")
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("searxng_wsl_hostname_resolution_failed", error=str(exc))
+    candidates: list[str] = []
+
+    # Dynamically discover WSL NAT IP on Windows only when explicitly enabled or WSL is running
+    import os as _os  # noqa: PLC0415
+
+    if _os.environ.get("LUCCA_PROBE_WSL_SEARXNG", "0") == "1":
+        try:
+            wsl_exe = shutil.which("wsl.exe") or "wsl.exe"
+            wsl_out = subprocess.check_output(
+                [wsl_exe, "-e", "sh", "-c", "hostname -I"],
+                text=True,
+                timeout=1.5,
+            ).strip().split()
+            for ip in wsl_out:
+                candidates.append(f"http://{ip}:8888/search")
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("searxng_wsl_hostname_resolution_failed", error=str(exc))
 
     try:
         arp_exe = shutil.which("arp") or "arp"
-        out = subprocess.check_output([arp_exe, "-a"], text=True, timeout=1.0)
+        out = subprocess.check_output(
+            [arp_exe, "-a"], text=True, timeout=1.0, stdin=subprocess.DEVNULL
+        )
         for line in out.splitlines():
             if "00-15-5d" in line.lower() and "dynamic" in line.lower():
                 parts = line.split()
@@ -197,12 +204,12 @@ def _resolve_searxng_url(force_refresh: bool = False) -> str:
         logger.debug("searxng_arp_resolution_failed", error=str(exc))
 
     for cand in candidates:
-        if _probe_searxng_endpoint(cand, timeout=0.4):
+        if _probe_searxng_endpoint(cand, timeout=0.35):
             _RESOLVED_SEARXNG_URL = cand
             return cand
 
-    _RESOLVED_SEARXNG_URL = SEARXNG_DEFAULT_URL
-    return SEARXNG_DEFAULT_URL
+    _RESOLVED_SEARXNG_URL = None
+    return ""
 
 
 def _search_searxng(
@@ -212,6 +219,8 @@ def _search_searxng(
 ) -> list[dict[str, str]]:
     """Primary search via local SearXNG aggregator with privacy and multiple upstream engines."""
     url = searxng_url or _resolve_searxng_url()
+    if not url:
+        return []
 
     results: list[dict[str, str]] = []
     for retry in range(2):

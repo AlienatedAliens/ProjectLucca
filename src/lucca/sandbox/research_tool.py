@@ -62,6 +62,7 @@ def _generate_sub_queries(query: str) -> list[str]:
 def _fetch_single_candidate_source(
     idx: int,
     source: dict[str, JsonValue],
+    include_raw_html: bool = False,
 ) -> tuple[int, dict[str, JsonValue], list[str]]:
     url = str(source.get("url", ""))
     title = str(source.get("title", f"Source {idx}")).strip()
@@ -75,6 +76,7 @@ def _fetch_single_candidate_source(
                 url=url,
                 render=False,
                 max_chars=DEFAULT_SOURCE_MAX_CHARS,
+                include_raw_html=include_raw_html,
             )
             if (
                 fetched_text
@@ -100,6 +102,10 @@ def _fetch_single_candidate_source(
         "fetch_status": fetch_meta.get("status_code", 200 if final_text else 0),
         "rendered": bool(fetch_meta.get("rendered", False)),
     }
+    if include_raw_html and "raw_html" in fetch_meta:
+        fetched_record["raw_html"] = fetch_meta["raw_html"]
+        fetched_record["fetch_tier"] = fetch_meta.get("fetch_tier", "")
+        fetched_record["final_url"] = fetch_meta.get("url", url)
 
     section_lines: list[str] = [f"### {idx}. [{title}]({url})"]
     if snippet and snippet != final_text:
@@ -113,6 +119,7 @@ def research_topic(
     query: str,
     max_sources: int = DEFAULT_MAX_SOURCES,
     target_entity: str | None = None,
+    include_raw_html: bool = False,
 ) -> tuple[dict[str, JsonValue], str]:
     """
     Executes an autonomous research workflow:
@@ -177,7 +184,7 @@ def research_topic(
     workers = max(1, min(MAX_CONCURRENT_SOURCE_FETCHES, len(selected_sources)))
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [
-            pool.submit(_fetch_single_candidate_source, idx, src)
+            pool.submit(_fetch_single_candidate_source, idx, src, include_raw_html)
             for idx, src in enumerate(selected_sources, 1)
         ]
         ordered_results = sorted(
