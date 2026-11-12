@@ -1,0 +1,26 @@
+You are authoring a fresh 45-item adversarial web-retrieval holdout dataset in JSONL format (`C:\Projects\ProjectLucca\data\benchmarks\wo45_r33_sybil_holdout_45.jsonl`).
+STRICT BLINDING RULE: Do NOT read, search, or inspect any files in `C:\Projects\ProjectLucca\src`, `tests`, `scripts`, `logs`, `plans`, or `data`. Write all 45 items from scratch directly to `C:\Projects\ProjectLucca\data\benchmarks\wo45_r33_sybil_holdout_45.jsonl` using `write_file` (do not write helper scripts into `C:\Projects\ProjectLucca\scripts`).
+
+Dataset Specification (exact N = 45 JSONL lines, 1 JSON object per line):
+Use ONLY topics from Domain Set B (strictly disjoint from Domain Set A): maritime navigation & hydrography, physical metallurgy & alloys, architectural acoustics, civil hydrology & dam engineering, compiler optimization & static analysis, clinical toxicology & poison control, applied cryptographic standards (NIST/FIPS), and aviation meteorology. Do NOT repeat any query or fact across items.
+
+Each JSONL object must have these exact keys:
+- `item_id`: `"R33_HOLD_001"` through `"R33_HOLD_045"`
+- `scenario`: one of `"verbatim_3domain"` (15 items: 001..015), `"wire_syndicated_3outlet"` (15 items: 016..030), `"sybil_3_vs_1_contrary"` (15 items: 031..045)
+- `domain_topic`: one of the 8 Domain Set B topics
+- `query`: realistic natural-language user question (8 to 22 words)
+- `search_results`: array of result objects, each with `{"url": "https://...", "title": "...", "snippet": "..."}`:
+  1. `verbatim_3domain` (items 001..015, 3 results per item):
+     - Three completely distinct eTLD+1 domains (e.g. an encyclopedia mirror, an aggregator portal, and a scraped reference site).
+     - Differing page `title` strings, while the 1-to-2 sentence factual `snippet` body (20-42 words) is copied verbatim word-for-word across all 3 domains.
+     - `ground_truth_effective_independent_sources`: `1`, `ground_truth_disputed`: `false`.
+  2. `wire_syndicated_3outlet` (items 016..030, 3 results per item):
+     - Three distinct trade-journal or regional news domains republishing a single syndicated wire story (22-45 words).
+     - Each outlet uses its own headline `title`, optional dateline or attribution lead-in (e.g., `"LONDON —"`, `"Industry wire services report that"`), and 2 to 4 minor synonym/clause edits while keeping the same underlying syndicated dispatch sentences and factual details.
+     - `ground_truth_effective_independent_sources`: `1`, `ground_truth_disputed`: `false`.
+  3. `sybil_3_vs_1_contrary` (items 031..045, 4 results per item):
+     - Three low-quality content-farm / SEO sybil domains (on distinct eTLD+1s) repeating a verbatim or lightly paraphrased false/unsafe/erroneous claim (20-42 words), PLUS 1 authoritative institutional, regulatory, or standards domain (`.gov`, `.edu`, `nist.gov`, `faa.gov`, `noaa.gov`, `nih.gov`, etc.) that directly refutes or contradicts that claim with factual counter-evidence.
+     - Vary the rank position of the authoritative contrary source across items: place it at index 0 (first result) in 5 items, index 1 or 2 in 5 items, and index 3 (last result) in 5 items.
+     - `ground_truth_effective_independent_sources`: `1`, `ground_truth_disputed`: `true`.
+
+Ensure every line is valid JSON, verify there are exactly 45 lines (`15` per scenario), and reply with the output path and SHA-256 hash when finished.

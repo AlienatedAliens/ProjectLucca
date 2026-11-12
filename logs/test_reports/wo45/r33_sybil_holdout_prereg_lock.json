@@ -1,0 +1,33 @@
+{
+  "preregistration_id": "WO45-R33-SYBIL-DEDUP-HOLDOUT-v1",
+  "locked_at_utc": "2026-11-12T17:07:32.025090+00:00",
+  "sample_size": 45,
+  "strata": {
+    "verbatim_3domain": 15,
+    "wire_syndicated_3outlet": 15,
+    "sybil_3_vs_1_contrary": 15
+  },
+  "disjoint_domain_set": "Domain Set B (maritime navigation, metallurgy, architectural acoustics, civil hydrology, compiler optimization, clinical toxicology, NIST/FIPS cryptography, aviation meteorology)",
+  "primary_endpoint": "false_corroboration_rate (independent_sources_count > 1 on copied/syndicated sets OR missed dispute / sybil inflation on sybil_3_vs_1_contrary)",
+  "secondary_endpoints": [
+    "false_burden_pass_rate_on_should_fail",
+    "false_dispute_on_non_disputed"
+  ],
+  "locked_files_sha256": {
+    "src/lucca/core/proof_policy.py": "345512c11d0f6d6c390c93b7fc05803c2b70d6eb308b54aecf27221ddfd14dda",
+    "src/lucca/core/corroboration.py": "1764a18c647fe86f55c9b209f1b8263cf948c38ef69e9a9d2207775c78c6a3f2",
+    "src/lucca/core/walton_schemes/__init__.py": "83e4a4a511e2e78e5a903bc4455b7ddac31d273d6f38789a24f84befc1e3da04",
+    "src/lucca/core/walton_schemes/evaluators.py": "a4f0f1e326467bf0c7cb8a917225f10937444969eb2b594059da9fd9feff486b",
+    "src/lucca/core/walton_schemes/dedup.py": "1fa88ea5255152f3d0795f8476bdb25631f7b09a6c7b3816a902bfa12ae4e1ba",
+    "src/lucca/core/neural_hazard_classifier.py": "d8990684d43daecb7ab3ca94ea8acf1801e996ab3b7a271cd100afcfe5aa31b9",
+    "models/proof_policy_hazard_v3_ov/openvino_model.xml": "433861f4b1fcfbfb76ca7459ad0fb9ee734d80372c100d1e8919265adbe9d922",
+    "models/proof_policy_hazard_v3_ov/openvino_model.bin": "6df49ddf0e8c80dde1f722218ce5fcaa7e81758029477bd6fe3462fc63069dc4",
+    "models/proof_policy_hazard_v3_ov/tokenizer.json": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.xml": "8a064814c9689c9efb1087eeab13f959ea52d3bf61af106f2ae104ab5b6f9d4a",
+    "models/verifier_deberta_v3_xsmall_ov/openvino_model.bin": "202fdb1199136ccfa848c1d846ac1a1593d564c9578375a8cde359951de96bb5",
+    "models/verifier_deberta_v3_xsmall_ov/tokenizer.json": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf",
+    "logs/test_reports/wo45/prompts/r33_sybil_holdout_author_prompt.txt": "3666f47a84388cfffecda2fe4e46422a00829c47bd51927387a87d8943a892ea",
+    "logs/test_reports/wo45/r33_pre_dedup_dev_baseline.json": "169c4a16b8fc644c4cd6bf9597e1a7e765a6ae0c95206b9868cd17021d5a23da",
+    "scripts/wo45/eval_r33_sybil_dedup.py": "243a1b19923ab178c2824090a1dd97db9db1ed2db5529ca337f7416cccf95ec3"
+  }
+}

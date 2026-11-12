@@ -262,3 +262,94 @@ def test_ratification_skips_speculation_grade_receipts() -> None:
     offer = orch._check_and_offer_ratification(trace)
     assert offer is None
     assert orch._pending_ratification is None
+
+
+def test_r33_syndicated_wire_copy_across_distinct_domains_collapses_to_single_source() -> None:
+    """R-33: Lightly edited wire copy republished across 3 distinct eTLD+1 domains must collapse
+    into 1 effective source rather than laundering confidence to 0.95.
+    """
+    b_wire = evaluate_web_evidence_burden(
+        query_text="What caused the July 2024 CrowdStrike Falcon Windows kernel crash?",
+        search_results=[
+            {
+                "url": "https://metro-tech-wire.com/2024/07/crowdstrike-channel-291",
+                "title": "Defective Channel File 291 Crashes Windows Systems",
+                "snippet": (
+                    "AUSTIN, Texas \u2014 A defective Channel File 291 configuration update pushed "
+                    "by CrowdStrike on July 19, 2024 triggered an out-of-bounds memory read in "
+                    "the Windows kernel driver, crashing millions of machines worldwide."
+                ),
+            },
+            {
+                "url": "https://pacific-it-gazette.net/news/crowdstrike-bsod-update",
+                "title": "Wire Dispatch: Faulty Configuration File Triggers Outage",
+                "snippet": (
+                    "According to wire reports, a defective Channel File 291 configuration update "
+                    "deployed by CrowdStrike on July 19, 2024 triggered an out-of-bounds memory "
+                    "read in the Windows kernel driver, crashing millions of systems globally."
+                ),
+            },
+            {
+                "url": "https://euro-enterprise-digest.org/briefs/falcon-sensor-crash",
+                "title": "CrowdStrike Kernel Driver Out-of-Bounds Read Explained",
+                "snippet": (
+                    "(Tech Wire) \u2014 A faulty Channel File 291 configuration update pushed by "
+                    "CrowdStrike on July 19, 2024 triggered an out-of-bounds memory read inside "
+                    "the Windows kernel driver, crashing millions of machines worldwide."
+                ),
+            },
+        ],
+    )
+    assert b_wire.independent_sources_count == 1
+    assert b_wire.disputed is False
+    assert b_wire.confidence == 0.70
+    assert b_wire.achieved_standard == ProofStandard.BALANCE_OF_PROBABILITIES
+
+
+def test_r33_sybil_ring_vs_authoritative_contrary_flags_dispute_at_any_rank() -> None:
+    """R-33: Three sybil domains repeating a false claim vs 1 authoritative .gov/.edu contrary
+    source must flag disputed=True and collapse sybil source count to 1 regardless of rank order.
+    """
+    sybil_1 = {
+        "url": "https://fast-socket-tips.com/port-443-auto-tls",
+        "title": "Port 443 Encrypts Plain TCP Automatically",
+        "snippet": (
+            "Binding any raw plaintext TCP socket to destination port 443 instructs network "
+            "switches and OS kernels to encrypt payloads automatically without TLS certificates."
+        ),
+    }
+    sybil_2 = {
+        "url": "https://server-hack-buzz.net/magic-port-443-cipher",
+        "title": "Skip SSL Setup by Using Port 443",
+        "snippet": (
+            "Binding any raw plaintext TCP socket to destination port 443 instructs network "
+            "switches and OS kernels to encrypt payloads automatically without TLS certificates."
+        ),
+    }
+    sybil_3 = {
+        "url": "https://dev-shortcut-daily.info/tcp-443-encryption",
+        "title": "Why Port 443 Encrypts Raw Streams",
+        "snippet": (
+            "Sending raw plaintext TCP streams over port 443 triggers automatic transport-layer "
+            "payload encryption inside routers and OS stacks with no TLS handshake needed."
+        ),
+    }
+    nist = {
+        "url": "https://csrc.nist.gov/pubs/sp/800/52/r2/final",
+        "title": "NIST SP 800-52 Rev. 2 TLS Guidelines",
+        "snippet": (
+            "TCP port 443 is merely the IANA-designated port for HTTPS; TCP performs zero "
+            "encryption on any port, and payloads travel in cleartext without a TLS handshake."
+        ),
+    }
+
+    for ordered in ([sybil_1, sybil_2, sybil_3, nist], [nist, sybil_1, sybil_2, sybil_3]):
+        res = evaluate_web_evidence_burden(
+            query_text="Does sending raw plaintext TCP over port 443 automatically encrypt data?",
+            search_results=ordered,
+        )
+        assert res.disputed is True
+        assert res.independent_sources_count == 1
+        assert res.confidence == 0.40
+        assert res.meets_casual_burden is False
+

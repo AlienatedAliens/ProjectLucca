@@ -36,6 +36,7 @@ from lucca.core.coherence import ToolReceipt
 from lucca.core.config import get_resource_path
 from lucca.core.corroboration import (
     CQAnswer,
+    CriticalQuestionResult,
     Scheme,
     _tokenize_proposition,
     adjust_confidence,
@@ -52,6 +53,10 @@ from lucca.core.schemas import (
     InferenceStep,
     ProofStandard,
     standard_for_confidence,
+)
+from lucca.core.walton_schemes.dedup import (
+    cluster_near_duplicate_sources,
+    detect_cross_cluster_dispute,
 )
 from lucca.ports import SemanticVerifierPort
 
@@ -338,7 +343,7 @@ def evaluate_web_evidence_burden(
     req_unhedged = required_standard("unhedged_assertion", hazard)
 
     t0_corrob = time.perf_counter()
-    raw_items: list[tuple[str, str, str]] = []
+    raw_items_with_body: list[tuple[str, str, str, str]] = []
     for idx, item in enumerate(search_results, 1):
         if not isinstance(item, dict):
             continue
@@ -361,16 +366,18 @@ def evaluate_web_evidence_burden(
             f"{title}. {body}".strip(". ") if title and title not in body else (body or title)
         )
         if combined:
-            raw_items.append((dom, url or f"https://{dom}", combined))
+            raw_items_with_body.append((dom, url or f"https://{dom}", combined, body or combined))
 
-    if not raw_items and fallback_content.strip():
+    if not raw_items_with_body and fallback_content.strip():
         fb_clean = fallback_content[:600].strip()
         if not fb_clean.lower().startswith(
             ("no results found", "search failed", "error:", "no web results", "0 results")
         ):
-            raw_items.append(("web.search.local", "https://web.search.local", fb_clean))
+            raw_items_with_body.append(
+                ("web.search.local", "https://web.search.local", fb_clean, fb_clean)
+            )
 
-    if not raw_items:
+    if not raw_items_with_body:
         corrob_ms = round((time.perf_counter() - t0_corrob) * 1000.0, 3)
         tag = (
             f"web corroboration: 0 sources, confidence 0.00 \u2014 speculation | "
@@ -394,6 +401,12 @@ def evaluate_web_evidence_burden(
             summary_tag=tag,
             guidance="No web evidence found; abstain from stating unverified claims.",
         )
+
+    clusters, _collapsed_dups = cluster_near_duplicate_sources(raw_items_with_body, query_text)
+    nli_dispute_domains = detect_cross_cluster_dispute(clusters)
+    raw_items: list[tuple[str, str, str]] = [
+        (c.primary_domain, c.primary_url, c.primary_combined_text) for c in clusters
+    ]
 
     q_toks = [
         t for t in _tokenize_proposition(query_text) if t not in _QUESTION_FILLER_TOKENS
@@ -430,6 +443,7 @@ def evaluate_web_evidence_burden(
         if not is_genuine_dispute and store is None:
             norm_sent = re.sub(
                 r"\b(?:not|no|never|none|neither|nor|cannot|without|"
+                r"invalid\w*|unauthoriz\w*|reject\w*|"
                 r"alternativ\w+|countervail\w+|competing|conflicting|contrary|"
                 r"disparit\w+|distinguish\w+|outweigh\w+|prevent\w*|throttl\w+|"
                 r"side\s+effect\w*|adverse|drawback\w*|fallback|split|"
@@ -483,12 +497,34 @@ def evaluate_web_evidence_burden(
         if ("dispute" in q.question.lower() or "disputed" in q.question.lower())
         and q.answer == CQAnswer.SATISFIED
     ]
-    is_disputed = len(disputes) > 0
+    if nli_dispute_domains and not disputes:
+        nli_cq = CriticalQuestionResult(
+            question="Is the claim disputed by any grounding-eligible fact?",
+            answer=CQAnswer.SATISFIED,
+            count=len(nli_dispute_domains),
+            evidence_entry_ids=[f"nli-dispute-{d}" for d in nli_dispute_domains],
+            sources=list(nli_dispute_domains),
+            detail=f"{', '.join(nli_dispute_domains)} semantically contradicts {primary_dom}",
+            scheme=Scheme.AUTHORITY.value,
+        )
+        q_results = [
+            nli_cq if ("dispute" in q.question.lower() or "disputed" in q.question.lower()) else q
+            for q in q_results
+        ]
+        disputes = [nli_cq]
+
+    is_disputed = len(disputes) > 0 or len(nli_dispute_domains) > 0
     dispute_srcs: list[str] = []
     for d in disputes:
         for s in d.sources:
             if s not in dispute_srcs:
                 dispute_srcs.append(s)
+    for s in nli_dispute_domains:
+        if s not in dispute_srcs:
+            dispute_srcs.append(s)
+
+    extra_indep_domains = [d for d in extra_indep_domains if d not in dispute_srcs]
+    extra_indep_count = len(extra_indep_domains)
 
     all_indep_domains: list[str] = [primary_dom]
     for dom in extra_indep_domains:

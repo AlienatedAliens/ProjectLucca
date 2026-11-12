@@ -173,6 +173,11 @@ def collect_independent_corroboration(
                         corrob_entry_ids.append(str(eid))
         except Exception as exc:  # noqa: BLE001
             logger.debug("corroboration_db_lookup_failed", error=str(exc))
+    from lucca.core.walton_schemes.dedup import are_texts_near_duplicate  # noqa: PLC0415
+    seen_texts: list[str] = [
+        extract_normalized_receipt_text(r0) for r0 in receipts
+        if any(cb.is_same_source(cb.extract_receipt_source(r0).strip(), s) for s in seen_sources)
+    ]
     match_fn = receipt_match_fn or (lambda r_txt, aligned: claim_lower in r_txt or aligned)
     for r in receipts:
         r_text = extract_normalized_receipt_text(r)
@@ -180,13 +185,15 @@ def collect_independent_corroboration(
         if (not r_source or r_source.lower() in ("fetch_url", "web_search", "search_web", "tool")
             or not all(cb.verify_source_independence(r_source, s, r_signer,
                     seen_signer_types[i] if i < len(seen_signer_types) else "",)
-                for i, s in enumerate(seen_sources))):
+                for i, s in enumerate(seen_sources))
+            or any(are_texts_near_duplicate(r_text, pt, claim) for pt in seen_texts)):
             continue
         is_aligned, _, has_conflict = cb.compute_proposition_alignment(
             claim, r_text, step=step, verifier=verifier)
         if match_fn(r_text, is_aligned) and not has_conflict:
             seen_sources.append(r_source)
             seen_signer_types.append(r_signer)
+            seen_texts.append(r_text)
             independent_sources.append(r_source)
             corrob_entry_ids.append(_receipt_cid(r))
     return (independent_sources, corrob_entry_ids)
