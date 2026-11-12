@@ -1,0 +1,27 @@
+name: lucca-epistemic Clean Venv CI
+
+on:
+  push:
+    paths:
+      - "packages/lucca-epistemic/**"
+      - ".github/workflows/lucca-epistemic-ci.yml"
+  pull_request:
+    paths:
+      - "packages/lucca-epistemic/**"
+      - ".github/workflows/lucca-epistemic-ci.yml"
+
+jobs:
+  wheel-clean-venv-linux-x86:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Build lucca-epistemic wheel
+        working-directory: packages/lucca-epistemic
+        run: uv build --wheel --out-dir dist
+      - name: Install wheel in isolated clean venv and run tests + import-linter
+        run: |
+          uv venv /tmp/clean-epistemic-venv --python 3.12
+          uv pip install --python /tmp/clean-epistemic-venv/bin/python packages/lucca-epistemic/dist/lucca_epistemic-*.whl pytest import-linter
+          /tmp/clean-epistemic-venv/bin/pytest packages/lucca-epistemic/tests -v
+          cd packages/lucca-epistemic && /tmp/clean-epistemic-venv/bin/lint-imports

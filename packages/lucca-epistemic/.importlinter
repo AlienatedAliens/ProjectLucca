@@ -1,0 +1,16 @@
+[importlinter]
+root_packages =
+    lucca_epistemic
+include_external_packages = True
+
+[importlinter:contract:1]
+name = lucca_epistemic must not import lucca monolith or UI/audio packages
+type = forbidden
+source_modules =
+    lucca_epistemic
+forbidden_modules =
+    lucca
+    PyQt6
+    sounddevice
+    faster_whisper
+    kokoro_onnx

@@ -1,0 +1,61 @@
+{
+  "task_id": "WO-45 R-52",
+  "target_priority_1": "NLnet Foundation — NGI Zero Commons Fund",
+  "milestones": [
+    "M1 (R-51): Standalone cross-platform lucca-epistemic wheel with zero UI/audio/Docker dependencies and OpenVINO CPU fallback",
+    "M2 (R-32/R-33): Real-web Scrapling corpus evaluation and near-duplicate syndication/sybil source deduplication",
+    "M3: Drop-in middleware adapters for OpenAI-compatible, LangChain, and LlamaIndex agent pipelines"
+  ],
+  "retracted_wo44_grant_claims": [
+    {
+      "old_claim": "LTFF '58.3% failure on unguarded frontier/local models' (derived from circular WO-44 _HEDGE_OR_CONFLICT_RE 30/72 = 41.7% pass rate)",
+      "status": "RETRACTED",
+      "replacement_claim": "In pre-registered WO-45 G4 v3 (2,640 live turns at ctx=32768 across 5 Gemma-4 checkpoints, 3 non-Google judge families, normalized text), Arm D (structured conflict contract + generic prompt, zero MUST/legal vocabulary) raises cross-source conflict disclosure D4 from 85/165 (51.52%) under generic-tip Arm C and 61/165 (36.97%) under plain Arm A to 164/165 (99.39%, +47.88 pp vs Arm C, p = 0.0001, min kappa = 0.6983).",
+      "artifact": "logs/test_reports/wo45/g4_live_v3_report.json"
+    },
+    {
+      "old_claim": "'<6 ms on any CPU' gate latency estimate",
+      "status": "RETRACTED",
+      "replacement_claim": "6.575 ms mean / 14.274 ms p95 on Intel AI Boost NPU and 16.923 ms mean / 38.101 ms p95 on Intel Core Ultra 9 275HX CPU across N=360 (14.078 ms mean / 16.835 ms p95 on CPU in clean-venv lucca-epistemic wheel, n=100).",
+      "artifact": "logs/test_reports/wo45/r06_gate_latency_npu_vs_cpu.json"
+    }
+  ],
+  "grant_claim_to_artifact_map": [
+    {
+      "grant_section": "Part C Row 1 (NLnet VRAM footprint at ctx=32768)",
+      "claim_value": "2,732 MiB (E2B) to 11,452 MiB (26B-A4B --cpu-moe) at ctx=32768",
+      "artifact_path": "logs/test_reports/wo45/q1_vram_nvidia_smi_evidence.json",
+      "json_key": "profiles.ctx_32768"
+    },
+    {
+      "grant_section": "Part C Row 1 (NLnet NPU vs CPU gate latency)",
+      "claim_value": "NPU: 6.575 ms mean / 5.632 ms p50 / 14.274 ms p95; CPU: 16.923 ms mean / 16.348 ms p50 / 38.101 ms p95",
+      "artifact_path": "logs/test_reports/wo45/r06_gate_latency_npu_vs_cpu.json",
+      "json_key": "npu_summary, cpu_summary"
+    },
+    {
+      "grant_section": "Part A & Part C Row 1 (NLnet M1 lucca-epistemic clean-venv CPU latency)",
+      "claim_value": "14.078 ms mean / 15.097 ms p50 / 16.835 ms p95 / 20.140 ms p99 (n=100, device='CPU')",
+      "artifact_path": "logs/test_reports/wo45/r51_lucca_epistemic_wheel_report.json",
+      "json_key": "cpu_only_latency_emulated_device_cpu"
+    },
+    {
+      "grant_section": "Part C Row 2 (LTFF D4 conflict disclosure Arm D vs Arm C)",
+      "claim_value": "164/165 (99.39%) Arm D vs 85/165 (51.52%) Arm C (+47.88 pp [+36.36, +60.00], p = 0.0001, discordant 79:0, min kappa = 0.6983)",
+      "artifact_path": "logs/test_reports/wo45/g4_live_v3_report.json",
+      "json_key": "primary_normalized_analysis.coprimary_1_D4_conflict_disclosure_disputed.pooled_5models_majority"
+    },
+    {
+      "grant_section": "Part C Row 2 (LTFF B vs D mandate/legal-vocabulary contrast)",
+      "claim_value": "D4 B vs D = +0.61 pp (165/165 vs 164/165, p = 0.7214, null); D1 B vs D = -2.27 pp (628/660 [95.15%] vs 643/660 [97.42%], p = 0.0108)",
+      "artifact_path": "logs/test_reports/wo45/g4_live_v3_report.json",
+      "json_key": "primary_normalized_analysis.coprimary_3_D1_accurate_all.pooled_5models_majority.B_vs_D"
+    },
+    {
+      "grant_section": "Part C Row 2 (Normalizer blindness check)",
+      "claim_value": "0 forbidden lexicon hits; 36.67% 3-way arm-guess accuracy (<= 60%)",
+      "artifact_path": "logs/test_reports/wo45/g4v3_normalizer_verification.json",
+      "json_key": "forbidden_lexicon_hits_total, arm_guess_accuracy_3way"
+    }
+  ]
+}

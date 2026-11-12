@@ -57,3 +57,18 @@ source_modules =
     lucca.brain
 forbidden_modules =
     lucca.memory.signers
+
+[importlinter:contract:8]
+name = Epistemic and Provenance Core must not import UI or Senses
+type = forbidden
+source_modules =
+    lucca.core.proof_policy
+    lucca.core.corroboration
+    lucca.core.neural_hazard_classifier
+    lucca.core.walton_schemes
+    lucca.memory.gate
+    lucca.memory.signers
+    lucca.memory.tokens
+forbidden_modules =
+    lucca.ui
+    lucca.senses

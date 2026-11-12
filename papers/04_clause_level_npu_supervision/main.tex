@@ -355,6 +355,41 @@ Upgrading the three NPU classifiers, adding 3-tier anti-bot web extraction (\tex
     \item \textbf{NLI Entailment Wiring in Offline Skill Induction (\texttt{src/lucca/reasoning/induction.py:402--465}, \texttt{reflection.py:373}):} Passing \texttt{verifier: SemanticVerifierPort} from \texttt{DreamRetrospective} into \texttt{RuleInducer.mine\_patterns()} activates bidirectional NLI entailment clustering in \texttt{cluster\_phrasings()} for paraphrased multi-sentence tool arguments whose token-set Jaccard similarity falls below $0.60$.
 \end{enumerate}
 
+\section{Related Work}
+\label{sec:related_work}
+Project Lucca does not claim to invent a new verification primitive; rather, its contribution is a local, zero-VRAM edge integration combining clause-level OpenVINO NPU classification, deterministic tool-receipt set verification, two-dimensional hazard-scaled burden-of-proof policies, and defeasible Walton/Belnap conflict tracking. Table~\ref{tab:related_work_r50} compares Lucca against existing safety guardrails, factuality verifiers, conflict-aware RAG pipelines, computational argumentation frameworks, and commercial/open groundedness models from 2022--2026. Among recent systems, \textbf{ClashEval} \cite{wu2024clasheval}, \textbf{CrAM} \cite{deng2024cram}, \textbf{TrustRAG} \cite{zhou2025trustrag}, and \textbf{ArgLLMs} \cite{freedman2024argllms} address overlapping sub-problems (knowledge conflict, source credibility, retrieval poisoning, and argumentative verification), while \textbf{Vectara HHEM} \cite{vectara2024hhem} shares Lucca's sub-$50\text{ ms}$ cross-encoder design for pair consistency. None of these single frameworks jointly enforce deterministic local tool-receipt verification, query-hazard-scaled multi-domain corroboration counts, and cross-source conflict disclosure in a zero-VRAM NPU/CPU sidecar.
+
+\begin{table}[h]
+\centering
+\scriptsize
+\caption{Comparison of Runtime Safety, Factuality, Knowledge-Conflict RAG, Argumentation, and Groundedness Systems (\texttt{WO-45 R-50}).}
+\label{tab:related_work_r50}
+\begin{tabular}{p{2.7cm}p{2.9cm}p{8.8cm}}
+\toprule
+\textbf{System / Reference} & \textbf{Verified Identifier} & \textbf{Overlaps / Differs Relative to Project Lucca} \\
+\midrule
+Llama Guard 1--3 \cite{inan2023llamaguard,dubey2024llama3} & \href{https://arxiv.org/abs/2312.06674}{arXiv:2312.06674}; \href{https://arxiv.org/abs/2407.21783}{arXiv:2407.21783} & \emph{Overlaps:} Input/output safety classification. \emph{Differs:} 1B--8B LLM content-harm classifier on GPU; does not check \texttt{ToolReceipt} execution state or multi-domain web corroboration. \\
+ShieldGemma \cite{zeng2024shieldgemma} & \href{https://arxiv.org/abs/2407.21772}{arXiv:2407.21772} & \emph{Overlaps:} Gemma-aligned policy classifier. \emph{Differs:} Scores harmful/toxic content policies ($2\text{B}$--$27\text{B}$ GPU weights) rather than unexecuted tool-action claims or epistemic source conflict. \\
+NeMo Guardrails \cite{rebedea2023nemo} & \href{https://arxiv.org/abs/2310.10501}{arXiv:2310.10501} & \emph{Overlaps:} Programmable dialogue/fact-check rails around agent turns. \emph{Differs:} Relies on secondary LLM calls for self-check rails rather than $<15\text{ ms}$ NPU clause classifiers and deterministic receipt sets. \\
+FActScore \cite{min2023factscore} & \href{https://arxiv.org/abs/2305.14251}{arXiv:2305.14251} & \emph{Overlaps:} Decomposes prose into atomic claims verified against a source corpus. \emph{Differs:} Offline LLM evaluation metric against a single reference (Wikipedia), not an inline real-time speech/tool gate. \\
+RARR \cite{gao2023rarr} & \href{https://arxiv.org/abs/2210.08726}{arXiv:2210.08726} & \emph{Overlaps:} Post-generation evidence retrieval and claim revision. \emph{Differs:} Multi-call LLM query-generation and editing pipeline ($>1\text{ s}$ latency), without 2D query-hazard scaling. \\
+FacTool \cite{chern2023factool} & \href{https://arxiv.org/abs/2307.13528}{arXiv:2307.13528} & \emph{Overlaps:} Tool-augmented claim extraction (search, Python, scholar) for factuality verification. \emph{Differs:} Uses frontier LLM calls to extract claims rather than local NPU speech-act verification against live OS receipts. \\
+SAFE \cite{wei2024safe} & \href{https://arxiv.org/abs/2403.18802}{arXiv:2403.18802} & \emph{Overlaps:} Atomic fact decomposition + multi-step web search verification. \emph{Differs:} Offline long-form benchmark evaluator issuing multiple LLM/search rounds per response rather than single-turn runtime gating. \\
+Self-RAG \cite{asai2023selfrag} & \href{https://arxiv.org/abs/2310.11511}{arXiv:2310.11511} & \emph{Overlaps:} Adaptive retrieval and critique reflection tokens (\texttt{IsSup}, \texttt{IsUse}). \emph{Differs:} Requires custom fine-tuned generator weights; reflection tokens remain advisory neural logits rather than external deterministic gates. \\
+CRAG \cite{yan2024crag} & \href{https://arxiv.org/abs/2401.15884}{arXiv:2401.15884} & \emph{Overlaps:} Lightweight retrieval evaluator triggering web search fallback when local retrieval is ambiguous/incorrect. \emph{Differs:} Evaluates single-document relevance rather than registrable-domain count, syndication deduplication, or cross-domain dispute. \\
+RobustRAG \cite{xiang2024robustrag} & \href{https://arxiv.org/abs/2405.15556}{arXiv:2405.15556} & \emph{Overlaps:} Defends RAG against adversarial passage corruption. \emph{Differs:} Runs $k$ isolated LLM generations and aggregates tokens/keywords ($k\times$ LLM cost), whereas Lucca runs one LLM synthesis over a pre-computed conflict contract. \\
+TrustRAG \cite{zhou2025trustrag} & \href{https://arxiv.org/abs/2501.00879}{arXiv:2501.00879} & \emph{Overlaps:} Pre-generation malicious-document filtering (clustering + self-assessment) against RAG poisoning. \emph{Differs:} Filters outlier passages to converge on a single answer rather than surfacing legitimate inter-source factual disputes (\texttt{D4}). \\
+Knowledge-Conflict Survey \cite{xu2024conflicts} & \href{https://arxiv.org/abs/2403.08319}{arXiv:2403.08319} & \emph{Overlaps:} Formalizes context-memory and inter-context conflicts addressed by Lucca's \texttt{TIER\_4\_WEB} burden contract. \emph{Differs:} Taxonomy and survey paper rather than an executable local runtime or cryptographic memory store. \\
+ClashEval \cite{wu2024clasheval} & \href{https://arxiv.org/abs/2404.10198}{arXiv:2404.10198} & \emph{Overlaps:} Quantifies LLM override rates under conflicting retrieved documents and parametric priors. \emph{Differs:} Evaluation benchmark on static conflicting contexts; does not couple query hazard classification to multi-domain thresholds. \\
+CrAM (Credibility-Aware RAG) \cite{deng2024cram} & \href{https://arxiv.org/abs/2406.11497}{arXiv:2406.11497} & \emph{Overlaps:} Weights retrieved evidence by source credibility to resist misinformation. \emph{Differs:} Modifies internal transformer attention heads at white-box inference time rather than model-agnostic external burden contracts over GGUF servers. \\
+ArgLLMs \cite{freedman2024argllms} & \href{https://arxiv.org/abs/2405.02079}{arXiv:2405.02079} & \emph{Overlaps:} Combines LLM evidence with formal Quantitative Bipolar Argumentation Frameworks (QBAFs) for claim verification. \emph{Differs:} Prompts the LLM itself to generate pro/con arguments and base scores, whereas Lucca computes Walton \texttt{CQ1..CQ3} deterministically from external receipts. \\
+Vectara HHEM \cite{vectara2024hhem} & \href{https://huggingface.co/vectara/hallucination_evaluation_model}{HF:vectara/HHEM-2.1} & \emph{Overlaps:} Compact CPU-capable cross-encoder scoring premise-hypothesis factual consistency. \emph{Differs:} Pairwise summarization consistency scorer; lacks clause-level OS \texttt{ToolReceipt} matching, 2D hazard routing, or provenance envelopes. \\
+Patronus Lynx \cite{ravi2024lynx} & \href{https://arxiv.org/abs/2407.08488}{arXiv:2407.08488} & \emph{Overlaps:} High-accuracy RAG faithfulness evaluation (\texttt{PASS}/\texttt{FAIL} + rationale). \emph{Differs:} 8B/70B Llama-3 judge model requiring multi-GB GPU VRAM rather than a zero-VRAM OpenVINO NPU/CPU sidecar. \\
+Azure Groundedness \& AWS Bedrock \cite{azure2024groundedness,aws2024bedrock} & \href{https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/groundedness}{MS-Learn}; \href{https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-contextual-grounding-check.html}{AWS-Docs} & \emph{Overlaps:} Production runtime groundedness and relevance thresholds over retrieved context. \emph{Differs:} Proprietary cloud APIs incompatible with offline sovereign execution, local desktop receipts, or open OpenVINO weights. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Limitations and Residual Error Analysis}
 \label{sec:limitations}
 \begin{enumerate}
@@ -399,6 +434,106 @@ Dmitry Kobak, Rita González-Márquez, Emőke-Ágnes Horvát, and Jan Lause.
 Quinn McNemar.
 \newblock Note on the sampling error of the difference between correlated proportions or percentages.
 \newblock \emph{Psychometrika}, 12(2):153--157, 1947.
+
+\bibitem{inan2023llamaguard}
+Hakan Inan et al.
+\newblock Llama Guard: LLM-based Input-Output Safeguard for Human-AI Conversations.
+\newblock arXiv: \href{https://arxiv.org/abs/2312.06674}{2312.06674}, 2023.
+
+\bibitem{dubey2024llama3}
+Abhimanyu Dubey et al.
+\newblock The Llama 3 Herd of Models (Llama Guard 3).
+\newblock arXiv: \href{https://arxiv.org/abs/2407.21783}{2407.21783}, 2024.
+
+\bibitem{zeng2024shieldgemma}
+Wenjun Zeng et al.
+\newblock ShieldGemma: Generative AI Content Moderation Based on Gemma.
+\newblock arXiv: \href{https://arxiv.org/abs/2407.21772}{2407.21772}, 2024.
+
+\bibitem{rebedea2023nemo}
+Traian Rebedea, Razvan Dinu, Makesh Sreedhar, Christopher Parisien, and Jonathan Cohen.
+\newblock NeMo Guardrails: A Toolkit for Controllable and Safe LLM Applications with Programmable Rails.
+\newblock In \emph{EMNLP System Demonstrations}, arXiv: \href{https://arxiv.org/abs/2310.10501}{2310.10501}, 2023.
+
+\bibitem{min2023factscore}
+Sewon Min et al.
+\newblock FActScore: Fine-grained Atomic Evaluation of Factual Precision in Long Form Text Generation.
+\newblock In \emph{EMNLP}, arXiv: \href{https://arxiv.org/abs/2305.14251}{2305.14251}, 2023.
+
+\bibitem{gao2023rarr}
+Luyu Gao et al.
+\newblock RARR: Researching and Revising What Language Models Say, Using Language Models.
+\newblock In \emph{ACL}, arXiv: \href{https://arxiv.org/abs/2210.08726}{2210.08726}, 2023.
+
+\bibitem{chern2023factool}
+I-Chun Chern et al.
+\newblock FacTool: Factuality Detection in Generative AI --- A Tool Augmented Framework for Multi-Task and Multi-Domain Scenarios.
+\newblock arXiv: \href{https://arxiv.org/abs/2307.13528}{2307.13528}, 2023.
+
+\bibitem{wei2024safe}
+Jerry Wei et al.
+\newblock Long-form factuality in large language models (SAFE).
+\newblock \emph{NeurIPS}, arXiv: \href{https://arxiv.org/abs/2403.18802}{2403.18802}, 2024.
+
+\bibitem{asai2023selfrag}
+Akari Asai, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh Hajishirzi.
+\newblock Self-RAG: Learning to Retrieve, Generate, and Critique through Self-Reflection.
+\newblock In \emph{ICLR}, arXiv: \href{https://arxiv.org/abs/2310.11511}{2310.11511}, 2024.
+
+\bibitem{yan2024crag}
+Shi-Qi Yan, Jia-Chen Gu, Yun Zhu, and Zhen-Hua Ling.
+\newblock Corrective Retrieval Augmented Generation (CRAG).
+\newblock arXiv: \href{https://arxiv.org/abs/2401.15884}{2401.15884}, 2024.
+
+\bibitem{xiang2024robustrag}
+Chong Xiang, Tong Wu, Zexuan Zhong, David Wagner, Danqi Chen, and Prateek Mittal.
+\newblock Certifiably Robust RAG against Retrieval Corruption.
+\newblock arXiv: \href{https://arxiv.org/abs/2405.15556}{2405.15556}, 2024.
+
+\bibitem{zhou2025trustrag}
+Huichi Zhou et al.
+\newblock TrustRAG: Enhancing Robustness and Trustworthiness in Retrieval-Augmented Generation.
+\newblock arXiv: \href{https://arxiv.org/abs/2501.00879}{2501.00879}, 2025.
+
+\bibitem{xu2024conflicts}
+Rongwu Xu, Zehan Qi, Zhijiang Guo, Cunxiang Wang, Hongru Wang, Yue Zhang, and Wei Xu.
+\newblock Knowledge Conflicts for LLMs: A Survey.
+\newblock In \emph{EMNLP}, arXiv: \href{https://arxiv.org/abs/2403.08319}{2403.08319}, 2024.
+
+\bibitem{wu2024clasheval}
+Kevin Wu, Eric Wu, and James Zou.
+\newblock ClashEval: Quantifying the tug-of-war between an LLM's internal prior and external evidence.
+\newblock \emph{NeurIPS Datasets and Benchmarks}, arXiv: \href{https://arxiv.org/abs/2404.10198}{2404.10198}, 2024.
+
+\bibitem{deng2024cram}
+Boyi Deng, Wenjie Wang, Fengbin Zhu, Qifan Wang, and Fuli Feng.
+\newblock CrAM: Credibility-Aware Attention Modification in LLMs for Combating Misinformation in RAG.
+\newblock In \emph{AAAI}, arXiv: \href{https://arxiv.org/abs/2406.11497}{2406.11497}, 2025.
+
+\bibitem{freedman2024argllms}
+Gabriel Freedman, Adam Dejl, Deniz Gorur, Xiang Yin, Antonio Rago, and Francesca Toni.
+\newblock Argumentative Large Language Models for Explainable and Contestable Claim Verification.
+\newblock In \emph{AAAI}, arXiv: \href{https://arxiv.org/abs/2405.02079}{2405.02079}, 2025.
+
+\bibitem{vectara2024hhem}
+Vectara Research.
+\newblock Hughes Hallucination Evaluation Model (\texttt{vectara/hallucination\_evaluation\_model}, HHEM-2.1-Open).
+\newblock \url{https://huggingface.co/vectara/hallucination_evaluation_model}, 2024.
+
+\bibitem{ravi2024lynx}
+Selvan Sunitha Ravi et al.
+\newblock Lynx: An Open Source Hallucination Evaluation Model.
+\newblock arXiv: \href{https://arxiv.org/abs/2407.08488}{2407.08488}, 2024.
+
+\bibitem{azure2024groundedness}
+Microsoft Azure AI.
+\newblock Groundedness Detection in Azure AI Content Safety.
+\newblock \url{https://learn.microsoft.com/en-us/azure/ai-services/content-safety/concepts/groundedness}, 2024.
+
+\bibitem{aws2024bedrock}
+Amazon Web Services.
+\newblock Contextual Grounding Check in Amazon Bedrock Guardrails.
+\newblock \url{https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails-contextual-grounding-check.html}, 2024.
 \end{thebibliography}
 
 \end{document}
