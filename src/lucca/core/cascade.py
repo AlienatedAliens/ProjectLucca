@@ -558,11 +558,14 @@ class EpistemicSearchCascade(CascadeSubstrateAdapters):
         superseded_annotations.extend(intra_res)
         narration_contracts.extend(intra_contracts)
 
-        # Check Belnap value within highest active trust tier (excluding superseded records)
-        active_highest = [
-            e for e in highest_tier_evidence if not bool(e.metadata.get("is_superseded"))
+        # Check Belnap value within highest active trust tier (excluding expired/superseded)
+        non_expired_highest = [
+            e for e in highest_tier_evidence if not bool(e.metadata.get("is_expired"))
         ]
-        eval_tier_evidence = active_highest if active_highest else highest_tier_evidence
+        active_highest = [
+            e for e in non_expired_highest if not bool(e.metadata.get("is_superseded"))
+        ]
+        eval_tier_evidence = active_highest if active_highest else non_expired_highest
         highest_told_true = any(e.told_true for e in eval_tier_evidence)
         highest_told_false = any(e.told_false for e in eval_tier_evidence)
 

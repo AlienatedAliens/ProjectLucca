@@ -151,12 +151,21 @@ class MemoryStore:
 
                 # 2. Insert memories (valid_from = structured.valid_from or created_at)
                 valid_from = signed_payload.created_at
+                valid_until: float | None = None
                 importance = 0.5
                 if signed_payload.structured is not None:
                     if "valid_from" in signed_payload.structured:
                         vf_val = signed_payload.structured["valid_from"]
                         if isinstance(vf_val, (int, float)):
                             valid_from = float(vf_val)
+                    if "valid_until" in signed_payload.structured:
+                        vu_val = signed_payload.structured["valid_until"]
+                        if isinstance(vu_val, (int, float)):
+                            valid_until = float(vu_val)
+                    elif "ttl_seconds" in signed_payload.structured:
+                        ttl_val = signed_payload.structured["ttl_seconds"]
+                        if isinstance(ttl_val, (int, float)):
+                            valid_until = valid_from + float(ttl_val)
                     if "importance" in signed_payload.structured:
                         imp_val = signed_payload.structured["importance"]
                         if isinstance(imp_val, (int, float)):
@@ -167,9 +176,13 @@ class MemoryStore:
                 structured_parts: list[str] = []
                 if isinstance(signed_payload.structured, dict):
                     for sk, sv in signed_payload.structured.items():
-                        if sk not in ("valid_from", "importance", "ok") and isinstance(
-                            sv, (str, int, float)
-                        ):
+                        if sk not in (
+                            "valid_from",
+                            "valid_until",
+                            "ttl_seconds",
+                            "importance",
+                            "ok",
+                        ) and isinstance(sv, (str, int, float)):
                             structured_parts.append(str(sv))
                 structured_str = " ".join(structured_parts)
                 aux_tokens = (
@@ -180,8 +193,8 @@ class MemoryStore:
                     """
                     INSERT INTO memories(
                         entry_id, content, tokens_aux, kind, created_at, valid_from,
-                        valid_to, superseded_by, forgotten_at, importance, access_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?, 0)
+                        valid_to, valid_until, superseded_by, forgotten_at, importance, access_count
+                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, NULL, NULL, ?, 0)
                     """,
                     (
                         signed_payload.entry_id,
@@ -190,6 +203,7 @@ class MemoryStore:
                         signed_payload.kind,
                         signed_payload.created_at,
                         valid_from,
+                        valid_until,
                         importance,
                     ),
                 )
@@ -317,9 +331,9 @@ class MemoryStore:
                     cursor.execute(
                         """
                         INSERT INTO kg_edges(
-                            s, p, o, memory_id, valid_from, recorded_at, confidence
+                            s, p, o, memory_id, valid_from, valid_until, recorded_at, confidence
                         )
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         (
                             s_id,
@@ -327,6 +341,7 @@ class MemoryStore:
                             o_id,
                             memory_id,
                             valid_from,
+                            valid_until,
                             current_time,
                             signed_payload.confidence,
                         ),

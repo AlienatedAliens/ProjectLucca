@@ -23,14 +23,22 @@ from __future__ import annotations
 
 import ast
 import enum
+import json
 import re
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final, Literal
 
 from pydantic import BaseModel, Field, JsonValue
 
+from lucca.core.schemas import canonicalize_predicate
+from lucca.memory.entities import FIRST_PERSON_TERMS, canonicalise
+from lucca.memory.latent_probe import BelnapValue
 from lucca.sandbox.policy import TaintFlags
+
+if TYPE_CHECKING:
+    from lucca.memory.db import DatabaseManager
 
 try:
     import z3
@@ -46,6 +54,23 @@ class DeonticNorm(enum.StrEnum):
     OBLIGATORY = "obligatory"
 
 
+class InspectedPremiseRecord(BaseModel, frozen=True):
+    """Audit record of a grounded state premise checked before tool dispatch."""
+
+    subject: str
+    predicate: str
+    status: Literal["VALID", "EXPIRED", "MISSING", "CONFLICT"]
+    belnap_state: BelnapValue
+    entry_id: str | None = None
+    memory_id: int | None = None
+    object_value: str | None = None
+    valid_from: float | None = None
+    valid_until: float | None = None
+    valid_to: float | None = None
+    superseded_by: int | None = None
+    checked_at: float
+
+
 class BDIValidationResult(BaseModel):
     is_valid: bool = Field(description="Whether the candidate tool call is permitted to execute.")
     norm: DeonticNorm = Field(
@@ -56,6 +81,14 @@ class BDIValidationResult(BaseModel):
     )
     elapsed_us: float = Field(default=0.0, description="Validation latency in microseconds.")
     gas_used: int = Field(default=0, description="Gas consumed during evaluation.")
+    inspected_premises: list[InspectedPremiseRecord] = Field(
+        default_factory=list,
+        description="Per-premise freshness and Belnap valuation audit records.",
+    )
+    source_entry_ids: list[str] = Field(
+        default_factory=list,
+        description="Envelope entry_ids of all grounded premises inspected during validation.",
+    )
 
 
 FORBIDDEN_EXTENSIONS: Final[frozenset[str]] = frozenset(
@@ -150,17 +183,189 @@ class SpeculativeBDIValidator:
         self,
         workspace_root: Path | str = "C:/ProjectLucca/workspace",
         deontic_rules: list[str] | None = None,
+        db: DatabaseManager | None = None,
+        clock_fn: Callable[[], float] = time.time,
+        tool_premises: dict[str, list[tuple[str, str]]] | None = None,
     ) -> None:
         self.workspace_root = Path(workspace_root)
+        self.db: DatabaseManager | None = db
+        self._clock_fn: Callable[[], float] = clock_fn
+        self._tool_premises: dict[str, list[tuple[str, str]]] = (
+            {k: list(v) for k, v in tool_premises.items()} if tool_premises else {}
+        )
         self.deontic_sexprs: list[str] = (
             list(deontic_rules) if deontic_rules is not None else list(DEFAULT_DEONTIC_SEXPRS)
         )
         self._parsed_rules: list[SExprNode] = [_parse_sexpr(s) for s in self.deontic_sexprs]
 
+    def register_tool_premises(self, tool_name: str, premises: list[tuple[str, str]]) -> None:
+        """Registers mandatory (subject, predicate) freshness preconditions for a tool."""
+        self._tool_premises[tool_name] = list(premises)
+
     def add_deontic_rule(self, sexpr: str) -> None:
         """Registers an additional S-expression deontic precondition."""
         self.deontic_sexprs.append(sexpr)
         self._parsed_rules.append(_parse_sexpr(sexpr))
+
+    def inspect_premise(
+        self,
+        subject: str,
+        predicate: str,
+        now: float | None = None,
+    ) -> InspectedPremiseRecord:
+        """Inspects grounded SQLite state for (subject, predicate) freshness at wall-clock `now`.
+
+        Distinguishes:
+        - VALID (Belnap TRUE): >=1 grounded unretracted row with valid_until IS NULL or > now,
+          and all live rows agree on object value.
+        - CONFLICT (Belnap BOTH/TOP): >=2 live unretracted rows disagree on object value.
+        - EXPIRED (Belnap NEITHER/BOT): 0 live rows, >=1 unretracted row (superseded_by IS NULL)
+          whose valid_until <= now has lapsed with no replacement reading.
+        - MISSING (Belnap NEITHER/BOT): 0 live or expired unretracted rows exist.
+        """
+        checked_at = float(now if now is not None else self._clock_fn())
+        raw_s = canonicalise(subject)
+        s_norm = "user" if (not raw_s or raw_s in FIRST_PERSON_TERMS) else raw_s
+        p_norm = canonicalize_predicate(predicate)
+
+        if self.db is None:
+            return InspectedPremiseRecord(
+                subject=s_norm,
+                predicate=p_norm,
+                status="MISSING",
+                belnap_state=BelnapValue.NEITHER,
+                checked_at=checked_at,
+            )
+
+        matched: list[tuple[int, str, str, float, float | None, float | None, int | None]] = []
+        with self.db.read_cursor() as cur:
+            cur.execute(
+                """
+                SELECT m.memory_id, m.entry_id, m.valid_from, m.valid_to,
+                       m.valid_until, m.superseded_by, p.payload_json
+                FROM memories m
+                JOIN provenance_envelopes p ON m.entry_id = p.entry_id
+                WHERE m.forgotten_at IS NULL
+                  AND p.grounding_eligible = 1
+                  AND m.kind IN ('fact', 'tool_fact', 'rule_assertion')
+                  AND json_extract(p.payload_json, '$.structured.p') IS NOT NULL
+                ORDER BY m.valid_from DESC, m.memory_id DESC
+                """
+            )
+            for row in cur.fetchall():
+                payload_str = str(row["payload_json"] or "")
+                if not payload_str:
+                    continue
+                try:
+                    p_obj = json.loads(payload_str)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    continue
+                if not isinstance(p_obj, dict):
+                    continue
+                st = p_obj.get("structured")
+                if not isinstance(st, dict):
+                    continue
+                cand_raw_s = canonicalise(str(st.get("s", "")))
+                cand_s = (
+                    "user" if (not cand_raw_s or cand_raw_s in FIRST_PERSON_TERMS) else cand_raw_s
+                )
+                cand_p = canonicalize_predicate(str(st.get("p", "")))
+                if cand_s != s_norm or cand_p != p_norm:
+                    continue
+                cand_o = str(st.get("o", ""))
+                v_to = float(row["valid_to"]) if row["valid_to"] is not None else None
+                v_until = float(row["valid_until"]) if row["valid_until"] is not None else None
+                sup_by = int(row["superseded_by"]) if row["superseded_by"] is not None else None
+                matched.append(
+                    (
+                        int(row["memory_id"]),
+                        str(row["entry_id"]),
+                        cand_o,
+                        float(row["valid_from"]),
+                        v_to,
+                        v_until,
+                        sup_by,
+                    )
+                )
+
+        unretracted = [r for r in matched if r[4] is None and r[6] is None]
+        live = [r for r in unretracted if r[5] is None or r[5] > checked_at]
+        expired = [r for r in unretracted if r[5] is not None and r[5] <= checked_at]
+
+        if live:
+            distinct_vals = {r[2].strip().lower() for r in live}
+            top = live[0]
+            if len(distinct_vals) > 1:
+                return InspectedPremiseRecord(
+                    subject=s_norm,
+                    predicate=p_norm,
+                    status="CONFLICT",
+                    belnap_state=BelnapValue.BOTH,
+                    entry_id=top[1],
+                    memory_id=top[0],
+                    object_value=top[2],
+                    valid_from=top[3],
+                    valid_to=top[4],
+                    valid_until=top[5],
+                    superseded_by=top[6],
+                    checked_at=checked_at,
+                )
+            return InspectedPremiseRecord(
+                subject=s_norm,
+                predicate=p_norm,
+                status="VALID",
+                belnap_state=BelnapValue.TRUE,
+                entry_id=top[1],
+                memory_id=top[0],
+                object_value=top[2],
+                valid_from=top[3],
+                valid_to=top[4],
+                valid_until=top[5],
+                superseded_by=top[6],
+                checked_at=checked_at,
+            )
+
+        if expired:
+            exp = expired[0]
+            return InspectedPremiseRecord(
+                subject=s_norm,
+                predicate=p_norm,
+                status="EXPIRED",
+                belnap_state=BelnapValue.NEITHER,
+                entry_id=exp[1],
+                memory_id=exp[0],
+                object_value=exp[2],
+                valid_from=exp[3],
+                valid_to=exp[4],
+                valid_until=exp[5],
+                superseded_by=exp[6],
+                checked_at=checked_at,
+            )
+
+        if matched:
+            closed = matched[0]
+            return InspectedPremiseRecord(
+                subject=s_norm,
+                predicate=p_norm,
+                status="MISSING",
+                belnap_state=BelnapValue.NEITHER,
+                entry_id=closed[1],
+                memory_id=closed[0],
+                object_value=closed[2],
+                valid_from=closed[3],
+                valid_to=closed[4],
+                valid_until=closed[5],
+                superseded_by=closed[6],
+                checked_at=checked_at,
+            )
+
+        return InspectedPremiseRecord(
+            subject=s_norm,
+            predicate=p_norm,
+            status="MISSING",
+            belnap_state=BelnapValue.NEITHER,
+            checked_at=checked_at,
+        )
 
     def _eval_sexpr_node(
         self,
@@ -169,6 +374,8 @@ class SpeculativeBDIValidator:
         tool_args: dict[str, JsonValue],
         taint_flags: int,
         path_arg: str | None,
+        inspected: list[InspectedPremiseRecord] | None = None,
+        checked_at: float | None = None,
     ) -> tuple[bool | float | str, int]:
         """Evaluates a parsed S-expression AST node and returns (value, ast_steps_consumed)."""
         if isinstance(node, str):
@@ -183,28 +390,45 @@ class SpeculativeBDIValidator:
         steps = 1
 
         if head == "not" and len(node) >= 2:
-            val, s = self._eval_sexpr_node(node[1], tool_name, tool_args, taint_flags, path_arg)
+            val, s = self._eval_sexpr_node(
+                node[1], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+            )
             return (not bool(val)), steps + s
 
         if head == "and":
             result = True
             for child in node[1:]:
-                val, s = self._eval_sexpr_node(child, tool_name, tool_args, taint_flags, path_arg)
+                val, s = self._eval_sexpr_node(
+                    child, tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+                )
                 steps += s
                 if not bool(val):
                     result = False
-                    break
             return result, steps
 
         if head == "or":
             result = False
             for child in node[1:]:
-                val, s = self._eval_sexpr_node(child, tool_name, tool_args, taint_flags, path_arg)
+                val, s = self._eval_sexpr_node(
+                    child, tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+                )
                 steps += s
                 if bool(val):
                     result = True
                     break
             return result, steps
+
+        if head == "fresh-fact?" and len(node) >= 3:
+            subj_val, s1 = self._eval_sexpr_node(
+                node[1], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+            )
+            pred_val, s2 = self._eval_sexpr_node(
+                node[2], tool_name, tool_args, taint_flags, path_arg, inspected, checked_at
+            )
+            rec = self.inspect_premise(str(subj_val), str(pred_val), now=checked_at)
+            if inspected is not None:
+                inspected.append(rec)
+            return (rec.status == "VALID"), steps + s1 + s2 + 1
 
         if head == "tool=" and len(node) >= 2:
             target_tool, s = self._eval_sexpr_node(
@@ -465,6 +689,38 @@ class SpeculativeBDIValidator:
                         gas_used=gas_used,
                     )
 
+        checked_at = float(self._clock_fn())
+        inspected: list[InspectedPremiseRecord] = []
+
+        # 3b. Registered Tool & Call-Scoped Evidential Premise Freshness Gates
+        req_pairs: list[tuple[str, str]] = list(self._tool_premises.get(tool_name, []))
+        raw_req = tool_args.get("_required_premises")
+        if isinstance(raw_req, list):
+            for entry in raw_req:
+                if isinstance(entry, dict):
+                    s_val = entry.get("s") or entry.get("subject")
+                    p_val = entry.get("p") or entry.get("predicate")
+                    if isinstance(s_val, str) and isinstance(p_val, str) and s_val and p_val:
+                        req_pairs.append((s_val, p_val))
+
+        for subj_req, pred_req in req_pairs:
+            inspected.append(self.inspect_premise(subj_req, pred_req, now=checked_at))
+            gas_used += 2
+
+        failed_premises = [rec for rec in inspected if rec.status != "VALID"]
+        if failed_premises:
+            elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
+            src_ids = list(dict.fromkeys(r.entry_id for r in inspected if r.entry_id))
+            return BDIValidationResult(
+                is_valid=False,
+                norm=DeonticNorm.PROHIBITED,
+                reason=self._format_premise_failure_reason(failed_premises),
+                elapsed_us=elapsed_us,
+                gas_used=gas_used,
+                inspected_premises=inspected,
+                source_entry_ids=src_ids,
+            )
+
         # 4. MicroScheme S-Expression Deontic Preconditions
         extra_preconds = tool_args.get("_preconditions")
         rules_to_eval = list(self._parsed_rules)
@@ -477,12 +733,22 @@ class SpeculativeBDIValidator:
 
         for parsed_rule in rules_to_eval:
             ok_val, rule_steps = self._eval_sexpr_node(
-                parsed_rule, tool_name, tool_args, taint_flags, path_arg
+                parsed_rule,
+                tool_name,
+                tool_args,
+                taint_flags,
+                path_arg,
+                inspected,
+                checked_at,
             )
             gas_used += rule_steps
             if not bool(ok_val):
                 elapsed_us = (time.perf_counter() - t0) * 1_000_000.0
-                if tool_name == "fetch_url":
+                src_ids = list(dict.fromkeys(r.entry_id for r in inspected if r.entry_id))
+                sexpr_failed = [rec for rec in inspected if rec.status != "VALID"]
+                if sexpr_failed:
+                    reason_msg = self._format_premise_failure_reason(sexpr_failed)
+                elif tool_name == "fetch_url":
                     reason_msg = (
                         "Outbound network egress prohibited while session context "
                         "contains tainted memory or workspace data"
@@ -495,7 +761,11 @@ class SpeculativeBDIValidator:
                     reason=reason_msg,
                     elapsed_us=elapsed_us,
                     gas_used=gas_used,
+                    inspected_premises=inspected,
+                    source_entry_ids=src_ids,
                 )
+
+        src_ids = list(dict.fromkeys(r.entry_id for r in inspected if r.entry_id))
 
         # 5. Z3 SMT Resource-Bound & Deontic Verification
         z3_ok, z3_reason, z3_steps = self.verify_z3_constraints(
@@ -510,6 +780,8 @@ class SpeculativeBDIValidator:
                 reason=z3_reason,
                 elapsed_us=elapsed_us,
                 gas_used=gas_used,
+                inspected_premises=inspected,
+                source_entry_ids=src_ids,
             )
 
         # 6. Hardware Query Epistemic Obligation (Obligation)
@@ -528,6 +800,8 @@ class SpeculativeBDIValidator:
                     reason="Hardware state inquiry obligates querying live hardware telemetry",
                     elapsed_us=elapsed_us,
                     gas_used=gas_used,
+                    inspected_premises=inspected,
+                    source_entry_ids=src_ids,
                 )
 
         gas_used = max(1, gas_used)
@@ -538,7 +812,31 @@ class SpeculativeBDIValidator:
             reason="Tool call satisfies all speculative deontic invariants",
             elapsed_us=elapsed_us,
             gas_used=gas_used,
+            inspected_premises=inspected,
+            source_entry_ids=src_ids,
         )
+
+    @staticmethod
+    def _format_premise_failure_reason(failed: list[InspectedPremiseRecord]) -> str:
+        parts: list[str] = []
+        for rec in failed:
+            if rec.status == "EXPIRED":
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) EXPIRED [Belnap {rec.belnap_state.value}]: "
+                    f"entry_id={rec.entry_id} valid_until={rec.valid_until} <= "
+                    f"checked_at={rec.checked_at} (superseded_by={rec.superseded_by})"
+                )
+            elif rec.status == "CONFLICT":
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) CONFLICT [Belnap {rec.belnap_state.value}]: "
+                    f"conflicting active facts around entry_id={rec.entry_id}"
+                )
+            else:
+                parts.append(
+                    f"({rec.subject}, {rec.predicate}) MISSING [Belnap {rec.belnap_state.value}]: "
+                    f"no active grounded premise at checked_at={rec.checked_at}"
+                )
+        return "Evidential precondition violation: " + "; ".join(parts)
 
     def _extract_path_argument(self, tool_args: dict[str, JsonValue]) -> str | None:
         """Extracts the primary path or target argument from tool parameters."""

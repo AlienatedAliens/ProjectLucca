@@ -93,6 +93,8 @@ class ToolReceipt(BaseModel, frozen=True):
     output: str | None = None
     error: str | None = None
     timestamp: float = 0.0
+    source_entry_ids: list[str] = Field(default_factory=list)
+    precondition_audit: list[dict[str, JsonValue]] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod

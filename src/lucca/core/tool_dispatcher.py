@@ -72,6 +72,8 @@ class ToolDispatcher:
         ok: bool,
         output: str | None = None,
         error: str | None = None,
+        source_entry_ids: list[str] | None = None,
+        precondition_audit: list[dict[str, JsonValue]] | None = None,
     ) -> None:
         """Unified helper to sign and record a tool execution receipt via Orchestrator."""
         self._orch._record_tool_receipt(
@@ -81,6 +83,8 @@ class ToolDispatcher:
             ok=ok,
             output=output,
             error=error,
+            source_entry_ids=source_entry_ids,
+            precondition_audit=precondition_audit,
         )
 
     def _execute_and_record_sandbox_tool(
@@ -541,6 +545,8 @@ class ToolDispatcher:
             return None
 
         # Speculative BDI Invariant Validation (Milestone 4)
+        bdi_source_ids: list[str] = []
+        bdi_audit_dicts: list[dict[str, JsonValue]] = []
         bdi_validator = getattr(orch, "bdi_validator", None)
         if bdi_validator is not None:
             bdi_res = bdi_validator.validate_tool_call(
@@ -548,6 +554,8 @@ class ToolDispatcher:
                 args,
                 taint_flags=getattr(orch.sandbox, "taint_flags", 0),
             )
+            bdi_source_ids = list(bdi_res.source_entry_ids)
+            bdi_audit_dicts = [p.model_dump(mode="json") for p in bdi_res.inspected_premises]
             if not bdi_res.is_valid:
                 logger.warning(
                     "bdi_invariant_violation",
@@ -569,14 +577,27 @@ class ToolDispatcher:
                     ok=False,
                     output=None,
                     error=err_msg,
+                    source_entry_ids=bdi_source_ids,
+                    precondition_audit=bdi_audit_dicts,
                 )
                 return ToolResult(
                     call_id=call_id,
                     ok=False,
                     exit_code=-4,
                     stderr=err_msg,
+                    structured={
+                        "source_entry_ids": list(bdi_source_ids),
+                        "precondition_audit": [dict(d) for d in bdi_audit_dicts],
+                    }
+                    if bdi_audit_dicts
+                    else None,
                     elapsed_ms=bdi_res.elapsed_us / 1000.0,
                 )
+
+        if "_preconditions" in args or "_required_premises" in args:
+            args = {
+                k: v for k, v in args.items() if k not in ("_preconditions", "_required_premises")
+            }
 
         # invoke_skill dispatch tool (T1.2)
         if name == "invoke_skill":
@@ -941,6 +962,8 @@ class ToolDispatcher:
             ok=res.ok,
             output=res.content,
             error=err_val,
+            source_entry_ids=bdi_source_ids,
+            precondition_audit=bdi_audit_dicts,
         )
         logger.info("tool_executed", tool=name, ok=res.ok, exit_code=res.exit_code)
         spoken_msg_final: str | None = None

@@ -637,6 +637,10 @@ class CascadeSubstrateAdapters:
                     if hasattr(hit.provenance, "value")
                     else str(hit.provenance)
                 )
+                hit_valid_until = getattr(hit, "valid_until", None)
+                is_exp = isinstance(hit_valid_until, (int, float)) and (
+                    float(hit_valid_until) <= time.time()
+                )
                 is_sup = hit.valid_to is not None or bool(getattr(hit, "superseded_by", None))
                 told_true, told_false = self._evaluate_polarity(hit.content, query_text)
                 w_pos = 1 if told_true else 0
@@ -658,8 +662,10 @@ class CascadeSubstrateAdapters:
                             "created_at": hit.created_at,
                             "valid_from": getattr(hit, "valid_from", hit.created_at),
                             "valid_to": getattr(hit, "valid_to", None),
+                            "valid_until": hit_valid_until,
                             "superseded_by": getattr(hit, "superseded_by", None),
                             "is_superseded": is_sup,
+                            "is_expired": is_exp,
                             "confidence": getattr(hit, "confidence", None),
                         },
                     )

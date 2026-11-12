@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Final
 
 import structlog
 import ulid
+from pydantic import JsonValue
 
 from lucca.core.clock import SystemClock
 from lucca.core.schemas import Provenance, SignedPayload, UnsignedPayload, VerifierLabel
@@ -521,6 +522,17 @@ class MemoryCommitService:
                 content = f"{receipt.tool}({args_summary}) -> {status}"
                 if detail:
                     content = f"{content}: {detail}"
+                structured_data: dict[str, JsonValue] = {
+                    "importance": 0.2,
+                    "call_id": receipt.call_id,
+                    "tool": receipt.tool,
+                    "ok": receipt.ok,
+                    "error": str(receipt.error) if receipt.error else None,
+                    "valid_from": now,
+                }
+                if receipt.precondition_audit:
+                    audit_json: list[JsonValue] = [dict(p) for p in receipt.precondition_audit]
+                    structured_data["precondition_audit"] = audit_json
                 unsigned = UnsignedPayload(
                     content=content,
                     provenance=Provenance.ASSISTANT_ACTION,
@@ -529,14 +541,8 @@ class MemoryCommitService:
                     created_at=now,
                     trace_id=trace.trace_id,
                     confidence=1.0,
-                    structured={
-                        "importance": 0.2,
-                        "call_id": receipt.call_id,
-                        "tool": receipt.tool,
-                        "ok": receipt.ok,
-                        "error": str(receipt.error) if receipt.error else None,
-                        "valid_from": now,
-                    },
+                    source_entry_ids=list(receipt.source_entry_ids),
+                    structured=structured_data,
                 )
                 signed = action_signer.sign(unsigned)
                 self.memory_store.commit(signed, now=now)

@@ -471,6 +471,8 @@ class MemoryHit(BaseModel):
     created_at: float = 0.0
     valid_from: float = 0.0
     valid_to: float | None = None
+    valid_until: float | None = None
+    superseded_by: int | None = None
     grounding_eligible: bool = True
     confidence: float = 1.0
 

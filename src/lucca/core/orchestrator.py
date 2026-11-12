@@ -421,7 +421,9 @@ class Orchestrator:
         )
         if ws_root is None:
             ws_root = self.config.resolve_path("workspace")
-        self.bdi_validator = SpeculativeBDIValidator(workspace_root=ws_root)
+        self.bdi_validator = SpeculativeBDIValidator(
+            workspace_root=ws_root, db=self.db, clock_fn=self.clock.now_utc
+        )
 
         # Affect State Machine & 3D PAD ODE (Milestone 5)
         self.affect_tracker = affect_tracker or AffectTracker()
@@ -1655,30 +1657,21 @@ class Orchestrator:
             self._set_state("idle")
 
     def _record_tool_receipt(
-        self,
-        name: str,
-        call_id: str,
-        args: dict[str, JsonValue],
-        ok: bool,
-        output: str | None = None,
-        error: str | None = None,
+        self, name: str, call_id: str, args: dict[str, JsonValue], ok: bool,
+        output: str | None = None, error: str | None = None,
+        source_entry_ids: list[str] | None = None,
+        precondition_audit: list[dict[str, JsonValue]] | None = None,
     ) -> None:
         if not hasattr(self, "current_turn_receipts"):
             self.current_turn_receipts = []
         out_str = str(output) if output is not None and not isinstance(output, str) else output
         err_str = str(error) if error is not None and not isinstance(error, str) else error
-        self.current_turn_receipts.append(
-            ToolReceipt(
-                tool=name,
-                tool_name=name,
-                ok=ok,
-                call_id=call_id,
-                args=dict(args),
-                output=out_str,
-                error=err_str,
-                timestamp=time.time(),
-            )
-        )
+        self.current_turn_receipts.append(ToolReceipt(
+            tool=name, tool_name=name, ok=ok, call_id=call_id, args=dict(args),
+            output=out_str, error=err_str, timestamp=time.time(),
+            source_entry_ids=list(source_entry_ids) if source_entry_ids else [],
+            precondition_audit=list(precondition_audit) if precondition_audit else [],
+        ))
 
     # delegate — kept for test/back-compat
     def _maybe_form_belief(self, reply_text: str, trace: TurnTrace) -> None:
