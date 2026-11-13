@@ -1,16 +1,10 @@
 # Project Lucca — Documentation Master Index & System Truth
 
-**Version:** 2.4.0
-**Updated:** November 8, 2026 (`WO-43`)
-**Git Baseline:** Project Lucca v1.51.0-stable Production Release (`master`)
+**Version:** 2.5.0
+**Updated:** November 13, 2026 (`WO-46` / `epistemic-guard v0.3.0`)
+**Git Baseline:** Project Lucca v1.51.0 (`main`)
 
-> **Staleness note (2026-10-28):** This directory (`luccadocs/` inside the
-> `AlienatedAliens/ProjectLucca` monorepo) is the authoritative documentation tree.
-> The standalone GitHub repository `AlienatedAliens/Luccadocs` is a frozen mirror
-> (single commit, early October 2026) that has drifted from this tree. Where the
-> mirror conflicts with in-repo sources — e.g., NLI verifier rows superseded by
-> commit `224bc06` — the in-repo [`funding/EVIDENCE_LEDGER.md`](funding/EVIDENCE_LEDGER.md),
-> [`../RESULTS.md`](../RESULTS.md), and [`../papers/`](../papers/) govern.
+> **Repository note:** This directory (`luccadocs/` inside `AlienatedAliens/ProjectLucca`) is the single authoritative documentation tree. The historical standalone repository `AlienatedAliens/Luccadocs` is archived and redirects here.
 
 ---
 
@@ -23,7 +17,7 @@ To maintain strict truth-in-documentation and eliminate codebase drift, all Proj
 │                           DOCUMENTATION LIFECYCLE                             │
 ├───────────────────────────────────────────────────────────────────────────────┤
 │ 1. LIVING CANONICAL SPECS (Actively Maintained & Lint-Guarded)                 │
-│    • Location: Active files in luccadocs/*.md, AGENTS.md, GEMINI.md, README.md     │
+│    • Location: Active files in luccadocs/*.md, AGENTS.md, README.md           │
 │    • Rule: MUST reflect current working code truth in src/lucca/. Zero drift. │
 │    • Gate: test_active_docs_staleness_lint fails CI if stale terms linger.   │
 ├───────────────────────────────────────────────────────────────────────────────┤

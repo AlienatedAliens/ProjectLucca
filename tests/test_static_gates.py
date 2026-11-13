@@ -320,13 +320,12 @@ def test_orchestrator_turn_paths_unified_parity() -> None:
 
 def test_active_docs_staleness_lint() -> None:
     """
-    WO-11.6: Staleness lint on active docs (AGENTS.md, GEMINI.md, ARCHITECTURE.md, DECISIONS.md).
+    WO-11.6: Staleness lint on active docs (AGENTS.md, ARCHITECTURE.md, DECISIONS.md).
     Guarantees no known-superseded terms (M=3, NeMo as primary, Chroma as live) linger in docs.
     """
     repo_root = Path(__file__).parent.parent
     active_docs = [
         repo_root / "AGENTS.md",
-        repo_root / "GEMINI.md",
         repo_root / "README.md",
         repo_root / "luccadocs" / "README.md",
         repo_root / "luccadocs" / "ARCHITECTURE.md",

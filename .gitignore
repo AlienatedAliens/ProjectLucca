@@ -46,8 +46,11 @@ chroma_data/
 .coverage
 htmlcov/
 
-# User-specific & local IDE files
+# User-specific & local IDE / workspace assistant files
 .idea/
+.vscode/
+.agents/
+GEMINI.md
 .DS_Store
 *.swp
 *.bak
@@ -79,6 +82,7 @@ docs/*.pdf
 docs/**/*.pdf
 !docs/paper.pdf
 !docs/papers/*.pdf
+!docs/seed_paper/*.pdf
 !papers/**/*.pdf
 
 # Local logs

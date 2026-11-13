@@ -1,10 +1,10 @@
 # Project Lucca
 
-**Autonomous, local-first neurosymbolic desktop companion with Ed25519 provenance memory, clause-level receipt supervision, and hazard-scaled evidentiary gating.**
+**Ed25519 provenance memory, clause-level tool-receipt supervision, and hazard-scaled RAG corroboration — built inside a local-first Windows neurosymbolic agent testbed.**
 
-Project Lucca runs locally on workstation hardware, combining real-time voice interaction (Push-to-Talk and energy VAD), a four-process fault-isolated runtime (`UI`, `Core Orchestrator`, `Voice Senses`, and an isolated `Docker Sandbox` exposing 19 native tools), compiled symbolic reasoning (MicroScheme LISP, Z3 SMT, SymPy CAS, and CEGIS), and OpenVINO CPU/NPU epistemic guardrails (`0 MB` dGPU VRAM overhead).
-
-For cross-platform Python agents that do not need the Windows voice UI or Docker runtime, the core verification gates are packaged as a standalone **MIT-licensed** library in [`packages/epistemic-guard`](./packages/epistemic-guard/README.md) (`v0.3.0`).
+- **Reusable Python Library (MIT, Linux/macOS/Windows):** [`packages/epistemic-guard`](./packages/epistemic-guard/README.md) (`v0.3.0`) packages the standalone verification gates (`3–11 ms` on CPU/GPU/NPU, zero LLM API calls).
+- **Full Research Testbed & Desktop Runtime (AGPL-3.0, Windows 11 + WSL2):** `src/lucca/` runs the four-process local voice & tool companion (`UI`, `Core Orchestrator`, `Voice Senses`, and isolated `Docker Sandbox` with 19 native tools, MicroScheme/Z3/SymPy/CEGIS symbolic lobes, and `0 MB` VRAM OpenVINO guardrails).
+- **Zenodo Preprints & DOIs:** [Foundational (`10.5281/zenodo.23649049`)](https://doi.org/10.5281/zenodo.23649049) · [Paper 1: Memory Poisoning (`10.5281/zenodo.23901452`)](https://doi.org/10.5281/zenodo.23901452) · [Paper 2: Action Supervision (`10.5281/zenodo.23901605`)](https://doi.org/10.5281/zenodo.23901605) · [Paper 3: 5-Layer Memory (`10.5281/zenodo.23901683`)](https://doi.org/10.5281/zenodo.23901683) · [Paper 4: Clause-Level NPU Supervision](./docs/papers/04_clause_level_npu_supervision.pdf)
 
 ---
 
