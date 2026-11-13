@@ -5,6 +5,7 @@
 - **Reusable Python Library (MIT, Linux/macOS/Windows):** [`packages/epistemic-guard`](./packages/epistemic-guard/README.md) (`v0.3.0`) packages the standalone verification gates (`3–11 ms` on CPU/GPU/NPU, zero LLM API calls).
 - **Full Research Testbed & Desktop Runtime (AGPL-3.0, Windows 11 + WSL2):** `src/lucca/` runs the four-process local voice & tool companion (`UI`, `Core Orchestrator`, `Voice Senses`, and isolated `Docker Sandbox` with 19 native tools, MicroScheme/Z3/SymPy/CEGIS symbolic lobes, and `0 MB` VRAM OpenVINO guardrails).
 - **Zenodo Preprints & DOIs:** [Foundational (`10.5281/zenodo.23649049`)](https://doi.org/10.5281/zenodo.23649049) · [Paper 1: Memory Poisoning (`10.5281/zenodo.23901452`)](https://doi.org/10.5281/zenodo.23901452) · [Paper 2: Action Supervision (`10.5281/zenodo.23901605`)](https://doi.org/10.5281/zenodo.23901605) · [Paper 3: 5-Layer Memory (`10.5281/zenodo.23901683`)](https://doi.org/10.5281/zenodo.23901683) · [Paper 4: Clause-Level NPU Supervision](./docs/papers/04_clause_level_npu_supervision.pdf)
+- **Author & Citation:** Sean Maxwell ([ORCID `0009-0004-0133-0463`](https://orcid.org/0009-0004-0133-0463)) · [`CITATION.cff`](./CITATION.cff)
 
 ---
 

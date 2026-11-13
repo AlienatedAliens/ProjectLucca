@@ -155,5 +155,6 @@ Evaluated across `LOCKED_COH_50` (`50`), `BLIND42_COH_100` (`100`), and `Organic
 
 ## License
 
-- **Source Code:** [MIT License](https://github.com/AlienatedAliens/ProjectLucca/blob/main/packages/epistemic-guard/LICENSE) (`Copyright (c) 2026 Sean Maxwell`).
+- **Source Code:** [MIT License](https://github.com/AlienatedAliens/ProjectLucca/blob/main/packages/epistemic-guard/LICENSE) (`Copyright (c) 2026 Sean Maxwell` · [ORCID `0009-0004-0133-0463`](https://orcid.org/0009-0004-0133-0463)).
 - **INT8 Model Weights:** Derived from `Apache-2.0` / `MIT` upstream checkpoints (`cross-encoder/nli-MiniLM2-L6-H768`, `cross-encoder/ms-marco-MiniLM-L-6-v2`, and `cross-encoder/nli-deberta-v3-xsmall`); see [`MODEL_NOTICES.md`](https://github.com/AlienatedAliens/ProjectLucca/blob/main/packages/epistemic-guard/MODEL_NOTICES.md).
+- **Preprints & Citation:** [`CITATION.cff`](https://github.com/AlienatedAliens/ProjectLucca/blob/main/CITATION.cff) · Zenodo DOIs [`10.5281/zenodo.23649049`](https://doi.org/10.5281/zenodo.23649049), [`10.5281/zenodo.23901452`](https://doi.org/10.5281/zenodo.23901452), [`10.5281/zenodo.23901605`](https://doi.org/10.5281/zenodo.23901605), [`10.5281/zenodo.23901683`](https://doi.org/10.5281/zenodo.23901683).

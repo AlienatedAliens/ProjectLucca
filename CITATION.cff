@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+title: "Project Lucca & epistemic-guard: Cryptographic Provenance Memory and Clause-Level Tool-Receipt Supervision for Autonomous Agents"
+message: "If you use Project Lucca or epistemic-guard in your research or software, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: Maxwell
+    given-names: Sean
+    orcid: "https://orcid.org/0009-0004-0133-0463"
+repository-code: "https://github.com/AlienatedAliens/ProjectLucca"
+url: "https://pypi.org/project/epistemic-guard/"
+doi: 10.5281/zenodo.23649049
+version: "0.3.0"
+date-released: "2026-11-13"
+license: AGPL-3.0-or-later
+keywords:
+  - ai-agents
+  - mcp
+  - tool-calling
+  - ed25519
+  - provenance
+  - openvino
+  - guardrails
+  - rag
+references:
+  - type: article
+    title: "Provenance-Gated Memory and Deontic Output Supervision for Epistemically Grounded Autonomous Agents"
+    authors:
+      - family-names: Maxwell
+        given-names: Sean
+        orcid: "https://orcid.org/0009-0004-0133-0463"
+    doi: 10.5281/zenodo.23649049
+    year: 2026
+  - type: article
+    title: "Cryptographic Provenance Gates Mitigate Multi-Session Memory Poisoning in Autonomous Agents"
+    authors:
+      - family-names: Maxwell
+        given-names: Sean
+        orcid: "https://orcid.org/0009-0004-0133-0463"
+    doi: 10.5281/zenodo.23901452
+    year: 2026
+  - type: article
+    title: "Why Speech-Regex Action Supervisors Miss Live Output: An Empirical Evasion Taxonomy and Held-Out Structured Action Contract Evaluation"
+    authors:
+      - family-names: Maxwell
+        given-names: Sean
+        orcid: "https://orcid.org/0009-0004-0133-0463"
+    doi: 10.5281/zenodo.23901605
+    year: 2026
+  - type: article
+    title: "Closing the Epistemic Loop Across the Five Layers of Agent Memory: Cryptographic Provenance, Paraconsistent Bilattices, and Z3-Quarantined Procedural Induction"
+    authors:
+      - family-names: Maxwell
+        given-names: Sean
+        orcid: "https://orcid.org/0009-0004-0133-0463"
+    doi: 10.5281/zenodo.23901683
+    year: 2026

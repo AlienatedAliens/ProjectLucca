@@ -50,6 +50,7 @@ epistemic-guard = "epistemic_guard.cli:main"
 [project.urls]
 Repository = "https://github.com/AlienatedAliens/ProjectLucca/tree/main/packages/epistemic-guard"
 Issues = "https://github.com/AlienatedAliens/ProjectLucca/issues"
+"Author ORCID" = "https://orcid.org/0009-0004-0133-0463"
 
 [build-system]
 requires = ["hatchling"]
