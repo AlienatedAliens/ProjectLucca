@@ -1,0 +1,47 @@
+name: epistemic-guard Multi-OS Clean Venv CI
+
+on:
+  push:
+    paths:
+      - "packages/epistemic-guard/**"
+      - ".github/workflows/epistemic-guard-ci.yml"
+  pull_request:
+    paths:
+      - "packages/epistemic-guard/**"
+      - ".github/workflows/epistemic-guard-ci.yml"
+
+jobs:
+  verify-wheel:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Build epistemic-guard wheel
+        working-directory: packages/epistemic-guard
+        run: uv build --wheel
+      - name: Install into isolated clean venv and run pytest + import-linter + CLI demo
+        shell: bash
+        run: |
+          uv venv clean-eg-venv --python 3.12
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            PY_BIN="clean-eg-venv/Scripts/python.exe"
+            EG_BIN="clean-eg-venv/Scripts/epistemic-guard.exe"
+            LINT_BIN="clean-eg-venv/Scripts/lint-imports.exe"
+          else
+            PY_BIN="clean-eg-venv/bin/python"
+            EG_BIN="clean-eg-venv/bin/epistemic-guard"
+            LINT_BIN="clean-eg-venv/bin/lint-imports"
+          fi
+          uv pip install --python "$PY_BIN" packages/epistemic-guard/dist/epistemic_guard-*.whl pytest import-linter ruff mypy
+          "$PY_BIN" -m ruff check packages/epistemic-guard/src packages/epistemic-guard/tests
+          "$PY_BIN" -m mypy --strict packages/epistemic-guard/src/epistemic_guard
+          "$PY_BIN" -m pytest -c packages/epistemic-guard/pyproject.toml packages/epistemic-guard/tests -v
+          "$EG_BIN" demo
+          "$EG_BIN" doctor
+          cd packages/epistemic-guard && "../../$LINT_BIN"

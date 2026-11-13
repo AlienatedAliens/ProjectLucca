@@ -1,0 +1,124 @@
+{
+  "generated_at_utc": "2026-11-13T01:15:31.945733+00:00",
+  "pack_root": "models/epistemic_guard_int8",
+  "total_pack_size_mb": 188.37,
+  "models": {
+    "web_evidence_int8": {
+      "disjoint_verification": {
+        "checked_benchmark_rows": 638,
+        "checked_unique_generated_queries": 45,
+        "exact_query_overlaps": 0,
+        "six_token_shingle_overlaps": 0
+      },
+      "train_count": 538,
+      "unseen_topic_val_count": 128,
+      "fp_val_correct": 112,
+      "fp_val_accuracy_pct": 87.5,
+      "int8_val_correct": 113,
+      "int8_val_accuracy_pct": 88.28,
+      "fp_vs_int8_agreement_pct": 99.22,
+      "cpu_latency": {
+        "mean_ms": 3.406,
+        "p50_ms": 2.974,
+        "p95_ms": 5.983
+      },
+      "manifest": {
+        "upstream_base_model": "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        "upstream_license": "Apache-2.0",
+        "total_size_bytes": 24178044,
+        "total_size_mb": 23.06,
+        "files": {
+          "config.json": {
+            "size_bytes": 1067,
+            "sha256": "74894cc751049a4c6e995781e2cc1bedccb4101f99f2f7ab77657e08624126b2"
+          },
+          "openvino_model.bin": {
+            "size_bytes": 23088444,
+            "sha256": "ab4433633b523c4f93b17f9a69ad0cfb6311e61b589524c43c20f244730151a9"
+          },
+          "openvino_model.xml": {
+            "size_bytes": 376872,
+            "sha256": "1a433cbc4d6daa563e44a689715fb80342b1cba1f3dd7583c139bd0b4758ad8c"
+          },
+          "tokenizer.json": {
+            "size_bytes": 711661,
+            "sha256": "f83a7f24eee69f73e1a5cad5a09dac6e3c6731c461540cb3498b22285d3ca6ed"
+          }
+        }
+      }
+    },
+    "hazard_int8": {
+      "hzd50_fp_exact": "44/50",
+      "hzd50_int8_exact": "44/50",
+      "r21_fp_safe": "127/130 (97.69%)",
+      "r21_int8_safe": "128/130 (98.46%)",
+      "r21_fp_vs_int8_agreement_pct": 96.15,
+      "cpu_latency": {
+        "mean_ms": 3.305,
+        "p50_ms": 3.219,
+        "p95_ms": 4.1
+      },
+      "manifest": {
+        "upstream_base_model": "cross-encoder/nli-MiniLM2-L6-H768",
+        "upstream_license": "Apache-2.0",
+        "total_size_bytes": 86663746,
+        "total_size_mb": 82.65,
+        "files": {
+          "config.json": {
+            "size_bytes": 1047,
+            "sha256": "4dfb4f482675e6b2031e5dd3cfff40ea88d14faa34d9a57db78db49a27406535"
+          },
+          "openvino_model.bin": {
+            "size_bytes": 82696268,
+            "sha256": "07ed2ed3d4fafdc35a565951473beb910f37c83fc2531005f581f54c4d52dbf5"
+          },
+          "openvino_model.xml": {
+            "size_bytes": 407521,
+            "sha256": "491d9ed02a68e8583fad322a456557dfd44b822b051955a1fffb1f1503e0031e"
+          },
+          "tokenizer.json": {
+            "size_bytes": 3558910,
+            "sha256": "52bb0ea36f84a9b5440aaed69b35f9f7d3f895084f074b07fc21edb071015a92"
+          }
+        }
+      }
+    },
+    "action_claim_int8": {
+      "speech_act_300_fp_acc_pct": 99.33,
+      "speech_act_300_int8_acc_pct": 99.0,
+      "speech_act_300_fp_vs_int8_agreement_pct": 99.67,
+      "locked_coh_50_fp": "50/50",
+      "locked_coh_50_int8": "50/50",
+      "locked_coh_50_fp_vs_int8_agreement_pct": 100.0,
+      "cpu_latency": {
+        "mean_ms": 11.002,
+        "p50_ms": 10.903,
+        "p95_ms": 13.451
+      },
+      "manifest": {
+        "upstream_base_model": "cross-encoder/nli-MiniLM2-L6-H768",
+        "upstream_license": "Apache-2.0",
+        "total_size_bytes": 86682253,
+        "total_size_mb": 82.67,
+        "files": {
+          "config.json": {
+            "size_bytes": 762,
+            "sha256": "2bee00800915393a488790cf4f59a844456f3b6026789564649503e5fbb018a4"
+          },
+          "openvino_model.bin": {
+            "size_bytes": 82700154,
+            "sha256": "2a4b03c49961495270e4ded86144d52ab9b94f18653cbaf127f0be032676a7f0"
+          },
+          "openvino_model.xml": {
+            "size_bytes": 422425,
+            "sha256": "826b60f56148dbbd6daf0cde4d48074a7a9c7028dafe6425559fafefce9b25e5"
+          },
+          "tokenizer.json": {
+            "size_bytes": 3558912,
+            "sha256": "f7eb98e28291c70cc66f5e26c9598c0111e34be81517e48d4b8de84d125c70eb"
+          }
+        }
+      }
+    }
+  }
+}

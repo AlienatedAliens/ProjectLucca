@@ -1,0 +1,13 @@
+[importlinter]
+root_package = epistemic_guard
+
+[importlinter:contract:layered_architecture]
+name = Acyclic layered architecture for epistemic_guard
+type = layers
+layers =
+    epistemic_guard.cli
+    epistemic_guard.integrations
+    epistemic_guard.corroboration : epistemic_guard.supervision : epistemic_guard.store
+    epistemic_guard.hazard : epistemic_guard.provenance : epistemic_guard.models
+    epistemic_guard.schemas
+    epistemic_guard.exceptions

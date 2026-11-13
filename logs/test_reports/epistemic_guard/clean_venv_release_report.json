@@ -1,0 +1,32 @@
+{
+  "verified_at_utc": "2026-11-13T01:39:52.439743+00:00",
+  "wheel_name": "epistemic_guard-0.3.0-py3-none-any.whl",
+  "wheel_size_bytes": 42912,
+  "pytest_passed": true,
+  "import_linter_output": "\u2554\u2550\u2550\u2557\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25b6\u2554\u2557 \u2554\u2557      \u2554\u2557\u25c0\u2500\u2500\u2500\u2510\n\u255a\u2563\u2560\u255d\u25c0\u2500\u2500\u2500\u2500\u2500\u2510  \u2554\u255d\u255a\u2557\u2551\u2551\u2500\u2500\u2500\u2500\u25b6\u2554\u255d\u255a\u2557   \u2502\n \u2551\u2551   \u2554\u2550\u2550\u2566\u2550\u2550\u2566\u2569\u2557\u2554\u255d\u2551\u2551  \u2554\u2566\u2550\u2569\u2557\u2554\u255d\u2554\u2550\u2566\u2550\u2550\u2557\n \u2551\u2551\u2554\u2550\u2550\u2563\u2554\u2557\u2551\u2554\u2557\u2551\u2554\u2563\u2551 \u2551\u2551 \u2554\u256c\u2563\u2554\u2557\u2551\u2551 \u2551\u2502\u2551\u2554\u2550\u255d\n\u2554\u2563\u2560\u2563\u2551\u2551\u2551\u255a\u255d\u2551\u255a\u255d\u2551\u2551\u2551\u255a\u2557\u2551\u255a\u2550\u255d\u2551\u2551\u2551\u2551\u2551\u255a\u2557\u2551\u2550\u2563\u2551\n\u255a\u2550\u2550\u2569\u2569\u2569\u2563\u2554\u2550\u2569\u2550\u2550\u2569\u255d\u255a\u2550\u255d\u255a\u2550\u2550\u2550\u2569\u2569\u255d\u255a\u2569\u2550\u2569\u2569\u2550\u2569\u255d\n  \u2514\u2500\u2500\u25b6\u2551\u2551                    \u25b2 \n      \u255a\u255d\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n\n\n---------\nContracts\n---------\n\nAnalyzed 11 files, 35 dependencies.\n-----------------------------------\n\nAcyclic layered architecture for epistemic_guard KEPT\n\nContracts: 1 kept, 0 broken.",
+  "doctor_output": "epistemic-guard doctor\n============================================================\nPython           : 3.12.14 (Windows-11-10.0.26200-SP0)\nOpenVINO         : 2026.4.1-22982-e213a147257-releases/2026/4\nAvailable devices: CPU, GPU.0, GPU.1, NPU\nModel cache dir  : C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\n------------------------------------------------------------\n[action_claim] READY at C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\action_claim_int8 [SHA-256 OK]\n[hazard      ] READY at C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\hazard_int8 [SHA-256 OK]\n[web_evidence] READY at C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\web_evidence_int8 [SHA-256 OK]",
+  "demo_output": "epistemic-guard v0.3.0 \u2014 Live Verification Demo\n====================================================================\n\n[1] Action-Receipt Supervision\n    Executed tools : [\"write_file({'path': 'notes.txt', 'content': 'Q4 release checklist'})\"]\n    LLM draft      : 'I saved the checklist to notes.txt; I also deleted staging.db to free disk space.'\n    Verdict        : is_valid=False (device=CPU, latency=0.09 ms)\n    Flagged span   : chars [36:81] family=CLAIM_DELETE -> 'I also deleted staging.db to free disk space.'\n    Retry prompt   : VERIFICATION FAILED: Your draft reply claimed actions or pending executions without matching tool receipts (\"I also deleted staging.db to free disk space.\"). Verified tool calls in this turn: [write_file(path='notes.txt', content='Q4 release checklist')]. Rewrite your reply so it only states actions backed by verified tool calls, or ask before running the tool.\n\n[2] Streaming Mid-Generation Intercept + Merkle Audit\n    Aborted at chunk 3/4 before trailing tokens reached user: ['I also refunded order #8821.']\n    Merkle root    : 62b781e86455f651eb2720e8... (inclusion_proof_valid=True)\n\n[3] Ed25519 Memory Write-Gate (`SQLiteProvenanceStore`)\n    Signed user memory committed in 0.49 ms\n    Unauthenticated LLM memory write blocked : True\n\n[4] Multi-Source RAG Syndication Deduplication\n    Raw hits: 3 -> Independent publishers: 1 (collapsed 2 wire copies)\n    Hazard: high | Required: 'beyond reasonable doubt' | Meets burden: False\n====================================================================",
+  "download_output": "Downloading epistemic-guard INT8 models: action_claim, hazard, web_evidence ...\n  [OK] action_claim: C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\action_claim_int8\n  [OK] hazard: C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\hazard_int8\n  [OK] web_evidence: C:\\Users\\seatr\\AppData\\Local\\Temp\\epistemic_guard_clean_y6lycn9h\\model_cache\\web_evidence_int8",
+  "live_int8_probe": {
+    "unseen_verb_caught": true,
+    "supervision_device": "CPU",
+    "supervision_spans": [
+      {
+        "text": "Vaulted the rotating audit logs into cold_storage.tar.zst.",
+        "start_char": 0,
+        "end_char": 58,
+        "claimed_family": "CLAIM_FILE_WRITE",
+        "reason": "Claimed 'CLAIM_FILE_WRITE' action without a matching ToolReceipt."
+      }
+    ],
+    "hazard_tier": "high",
+    "web_stub_stance": [
+      "IRRELEVANT",
+      0.9864
+    ],
+    "web_corroborate_stance": [
+      "CORROBORATES",
+      0.9856
+    ]
+  }
+}

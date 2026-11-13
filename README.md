@@ -4,42 +4,64 @@
 
 Project Lucca runs locally on workstation hardware, combining real-time voice interaction (Push-to-Talk and energy VAD), a four-process fault-isolated runtime (`UI`, `Core Orchestrator`, `Voice Senses`, and an isolated `Docker Sandbox` exposing 19 native tools), compiled symbolic reasoning (MicroScheme LISP, Z3 SMT, SymPy CAS, and CEGIS), and OpenVINO CPU/NPU epistemic guardrails (`0 MB` dGPU VRAM overhead).
 
-For cross-platform Python agents that do not need the Windows voice UI or Docker runtime, the core verification gates are packaged as a standalone library in [`packages/lucca-epistemic`](./packages/lucca-epistemic/README.md) (`v0.2.0`).
+For cross-platform Python agents that do not need the Windows voice UI or Docker runtime, the core verification gates are packaged as a standalone **MIT-licensed** library in [`packages/epistemic-guard`](./packages/epistemic-guard/README.md) (`v0.3.0`).
 
 ---
 
 ## Two Ways to Use Project Lucca
 
-### 1. Standalone Verification Library (`lucca-epistemic` `v0.2.0`)
+### 1. Standalone Verification Library (`epistemic-guard` `v0.3.0`, MIT License)
 
-Runs on Linux, macOS, and Windows (CPU or Intel NPU, `14.08 ms` mean CPU gate latency) with zero UI, audio, WSL2, or Docker dependencies:
+Runs on Linux, macOS, and Windows (`CPU`, `GPU`, or `NPU` in `3–11 ms`, zero LLM calls, zero UI/audio/WSL2/Docker dependencies):
 
 ```bash
-pip install ./packages/lucca-epistemic
+pip install ./packages/epistemic-guard
+epistemic-guard demo
 ```
 
 ```python
 import os
-from lucca_epistemic import (
+from epistemic_guard import (
+    MerkleReceiptLog,
     Provenance,
     ProvenanceGate,
+    ReceiptRecorder,
     ReceiptSupervisor,
+    SQLiteProvenanceStore,
     SignerFactory,
-    ToolReceipt,
-    evaluate_web_evidence_burden,
+    corroborate_sources,
 )
 
-# 1. RFC 8032 Ed25519 domain-separated provenance signing & public-key verification
+# 1. RFC 8032 Ed25519 domain-separated provenance signing & append-only SQLite write gate
 factory = SignerFactory.from_master_key(os.urandom(32))
 gate = ProvenanceGate(factory.public_keys())
+store = SQLiteProvenanceStore(":memory:", gate)
 
-signed_record = factory.for_domain(Provenance.TOOL_VERIFIED).sign(
-    "Backup archive sha256 verified.", trace_id="tr-01"
+signed_record = factory.user_explicit().sign("Deploy freeze starts Friday 18:00 UTC.", trace_id="tr-01")
+store.append(signed_record, expected_provenance=Provenance.USER_EXPLICIT)
+assert store.verify_chain() == 1
+
+# 2. @signed_tool receipts + clause-level & streaming supervision (with character spans + retry prompt)
+merkle = MerkleReceiptLog(gate=gate)
+recorder = ReceiptRecorder(signer=factory.tool_verified(), merkle_log=merkle)
+
+
+@recorder.tool
+def write_file(path: str, content: str) -> str:
+    return f"wrote {len(content)} bytes"
+
+
+write_file("notes.txt", "release checklist")
+supervisor = ReceiptSupervisor(device="CPU", warn_on_missing=False)
+verdict = supervisor.verify_narration(
+    "I saved your summary to notes.txt; I also deleted backup.sql.",
+    receipts=recorder.receipts,
+    user_prompt="Save the summary to notes.txt.",
 )
-assert gate.verify(signed_record, expected_provenance=Provenance.TOOL_VERIFIED) is True
+assert verdict.is_valid is False  # catches unexecuted backup.sql deletion clause
 
-# 2. 2D hazard-scaled open-web corroboration, syndication dedup, & conflict detection
-burden = evaluate_web_evidence_burden(
+# 3. Multi-source RAG syndication deduplication & hazard-scaled corroboration
+burden = corroborate_sources(
     "Why should honey never be fed to infants younger than twelve months?",
     [
         {
@@ -59,16 +81,10 @@ burden = evaluate_web_evidence_burden(
         },
     ],
     device="CPU",
+    warn_on_missing=False,
 )
 assert burden.meets_casual_burden is True
-
-# 3. Clause-level action-claim supervision against deterministic ToolReceipts
-supervisor = ReceiptSupervisor(device="CPU")
-verdict = supervisor.verify_narration(
-    "I saved your summary to notes.txt; I also deleted backup.sql.",
-    receipts=[ToolReceipt(tool="write_file", ok=True, args={"path": "notes.txt"}, output="ok")],
-)
-assert verdict.is_valid is False  # catches unexecuted backup.sql deletion clause
+store.close()
 ```
 
 ### 2. Full Local-First Desktop Companion (`src/lucca/`)
@@ -126,7 +142,7 @@ VRAM scales with the selected GGUF model at `ctx=32768` ([`q1_vram_nvidia_smi_ev
 | **`Gemma-4-26B-A4B MoE`** | 12–16 GB | `~11.5 GiB` | 32 GB+ | `--cpu-moe --moe-cache-mib 7680` expert offload |
 
 - **OS (Full Companion):** Windows 11 64-bit with WSL2 (`4.5 GB` `.wslconfig` cap) and Docker CE, Python 3.12+ via `uv`.
-- **Cross-Platform (`lucca-epistemic`):** Linux, macOS, or Windows (Python 3.11+, CPU/NPU only).
+- **Cross-Platform (`epistemic-guard`):** Linux, macOS, or Windows (Python 3.10+, CPU/GPU/NPU, MIT License).
 
 ---
 
@@ -171,10 +187,12 @@ All active benchmarks below were executed against live `llama-server` GGUF model
   - *Action-claim supervision (`wo42_large_sample_2020_report.json`):* `6/471 (1.3%)` false negatives on zero-verb indirect state-consequence phrasing and `9/1,551 (0.6%)` false positives on un-fenced first-person walkthrough prose.
   - *Fail-closed NLI clustering (`nli_verifier_v2_report.json`):* All NLI consumers fail closed on `UNCERTAIN`/`NEUTRAL` verdicts (`100%` entailment precision, `40.0% [16/40]` recall on low-lexical-overlap paraphrases), conservatively withholding ambiguous paraphrases rather than merging unverified claims.
   - *Unfiltered open-web retrieval (`real_web_v2_report.json`):* Upgrading query simplification, eTLD+1 candidate diversity, OpenVINO passage-relevance filtering, and prohibitive consensus normalization raised single-shot live Scrapling burden accuracy from `39/64 (60.9%)` (`v1`) to `46/64 (71.9%)` (`v2`), dispute accuracy from `42/64 (65.6%)` to `56/64 (87.5%)`, and within-1 source count from `45/64 (70.3%)` to `56/64 (87.5%)`. Residual errors (`18/64`: `11` false burden passes and `7` conservative over-hedges) arise primarily when a scientific debate is summarized implicitly without explicit controversy markers (`3/9` live dispute recall) or when a borderline technical query classifies 1 tier below `HIGH` (`46/64` strict 3-class vs `55/64` conservative safe hazard).
-- **Platform footprint:** The 4-process voice/UI/Docker desktop stack requires Windows 11 + WSL2, whereas [`lucca-epistemic`](./packages/lucca-epistemic/README.md) provides the standalone verification gates on Linux, macOS, and Windows CPU/NPU.
+- **Platform footprint:** The 4-process voice/UI/Docker desktop stack requires Windows 11 + WSL2, whereas [`epistemic-guard`](./packages/epistemic-guard/README.md) provides the standalone verification gates on Linux, macOS, and Windows CPU/GPU/NPU.
 
 ---
 
 ## License
 
-GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`). See [LICENSE](./LICENSE). Upstream runtimes, libraries, and foundation models retain their original licenses as documented in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
+- **Project Lucca Desktop Runtime (`src/lucca/`):** GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`). See [LICENSE](./LICENSE).
+- **Standalone Python Library (`packages/epistemic-guard/`):** MIT License (`MIT`). See [`packages/epistemic-guard/LICENSE`](./packages/epistemic-guard/LICENSE) and [`MODEL_NOTICES.md`](./packages/epistemic-guard/MODEL_NOTICES.md).
+- Upstream runtimes, libraries, and foundation models retain their original licenses as documented in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

@@ -1,4 +1,6 @@
-# `lucca-epistemic` (`v0.2.0`)
+# `lucca-epistemic` (`v0.2.0` — Superseded by `epistemic-guard`)
+
+> **Superseded:** Active development has moved to [`packages/epistemic-guard`](../epistemic-guard/README.md) (`v0.3.0`, **MIT License**), which adds OpenVINO INT8 `download_models()`, `StreamingReceiptSupervisor`, `@signed_tool`, `MerkleReceiptLog`, `SQLiteProvenanceStore`, and `epistemic-guard demo`. This folder is retained strictly for `WO-45 R-51` historical reproducibility.
 
 Standalone cross-platform Python library extracted from Project Lucca (`WO-45 R-51`, upgraded in `WO-46`) providing runtime epistemic verification primitives with zero UI, audio, Docker, or WSL2 dependencies:
 

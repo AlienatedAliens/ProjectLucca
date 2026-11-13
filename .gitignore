@@ -114,6 +114,7 @@ OpenRouter Chat*.json
 # WO-41/WO-42 OpenVINO NPU and PyTorch fine-tuned model directories
 models/*_ov/
 models/*_pt/
+models/epistemic_guard_int8/
 models/**/*.pt
 models/**/*.bin
 models/**/*.safetensors
