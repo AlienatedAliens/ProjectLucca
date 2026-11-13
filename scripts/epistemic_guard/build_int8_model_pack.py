@@ -1,10 +1,12 @@
 """Build, fine-tune, quantize (NNCF INT8), and benchmark the standalone `epistemic-guard` model pack.
 
-Produces three INT8 OpenVINO models under `models/epistemic_guard_int8/`:
+Produces four INT8 OpenVINO models under `models/epistemic_guard_int8/`:
   1. `action_claim_int8` — 10-class `(user_request, assistant_clause)` speech-act & tool-family verifier
   2. `hazard_int8`       — 5-class clause-level hazard classifier (`LOW`, `MEDIUM`, `HIGH`, ...)
   3. `web_evidence_int8` — RTX 5080 fine-tuned 3-class `(query, passage)` open-web evidence classifier
                            (`0: CORROBORATES`, `1: IRRELEVANT`, `2: DISPUTES`, zero benchmark overlap)
+  4. `nli_int8`          — 3-class `(premise, hypothesis)` DeBERTa-v3-xsmall NLI cross-encoder
+                           (`0: contradiction`, `1: entailment`, `2: neutral`, MIT/Apache-2.0)
 
 Records SHA-256 digests, file sizes, CPU latencies, and locked-holdout accuracy parity in
 `logs/test_reports/epistemic_guard/int8_model_pack_report.json`.
@@ -13,6 +15,7 @@ Does NOT modify any locked `WO-45` or `WO-46` files.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import random
@@ -51,6 +54,7 @@ WEB_BASE_CHECKPOINT: Final[str] = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 WEB_SEQ_LEN: Final[int] = 192
 ACTION_SEQ_LEN: Final[int] = 192
 HAZARD_SEQ_LEN: Final[int] = 64
+NLI_SEQ_LEN: Final[int] = 128
 
 SPEECH_ACT_CLASSES: Final[tuple[str, ...]] = (
     "BENIGN",
@@ -582,26 +586,114 @@ def quantize_and_eval_action_claim() -> dict[str, Any]:
     }
 
 
-def main() -> None:
+def quantize_and_eval_nli() -> dict[str, Any]:
+    print("=== [4/4] INT8-quantizing & benchmarking nli_int8 ===")
+    src_dir = REPO_ROOT / "models" / "verifier_deberta_v3_xsmall_ov"
+    out_dir = PACK_ROOT / "nli_int8"
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    shutil.copy2(src_dir / "config.json", out_dir / "config.json")
+    shutil.copy2(src_dir / "tokenizer.json", out_dir / "tokenizer.json")
+
+    tok = Tokenizer.from_file(str(out_dir / "tokenizer.json"))
+    tok.enable_truncation(max_length=NLI_SEQ_LEN)
+    tok.enable_padding(length=NLI_SEQ_LEN, pad_id=0, pad_token="[PAD]")
+
+    train_rows, _val_rows, _stats = build_disjoint_web_evidence_splits(REPO_ROOT, seed=20261113)
+    calib_pairs: list[tuple[str, str]] = [(r[1], r[0]) for r in train_rows[:192]] + [
+        (train_rows[i][1], train_rows[(i + 1) % len(train_rows)][1]) for i in range(64)
+    ]
+
+    def _transform(pair: tuple[str, str]) -> dict[str, np.ndarray]:
+        enc = tok.encode(pair[0], pair[1])
+        return {
+            "input_ids": np.array([enc.ids], dtype=np.int64),
+            "attention_mask": np.array([enc.attention_mask], dtype=np.int64),
+        }
+
+    core = ov.Core()
+    ov_fp = core.read_model(str(src_dir / "openvino_model.xml"))
+    ov_int8 = nncf.quantize(
+        ov_fp,
+        nncf.Dataset(calib_pairs, _transform),
+        model_type=nncf.ModelType.TRANSFORMER,
+        subset_size=min(256, len(calib_pairs)),
+    )
+    ov.save_model(ov_int8, str(out_dir / "openvino_model.xml"))
+
+    fp_req = core.compile_model(str(src_dir / "openvino_model.xml"), "CPU").create_infer_request()
+    int8_req = core.compile_model(str(out_dir / "openvino_model.xml"), "CPU").create_infer_request()
+
+    holdout_path = REPO_ROOT / "data" / "benchmarks" / "nli_holdout_v2_120.jsonl"
+    holdout_rows = [
+        json.loads(line)
+        for line in holdout_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    lbl_map = {"CONTRADICTION": 0, "ENTAILMENT": 1, "NEUTRAL": 2}
+    fp_ok = 0
+    i8_ok = 0
+    agree = 0
+    for row in holdout_rows:
+        inp = _transform((str(row["premise"]), str(row["hypothesis"])))
+        gold = lbl_map[str(row["gold"]).upper()]
+        p_fp = int(np.argmax(list(fp_req.infer(inp).values())[0][0]))
+        p_i8 = int(np.argmax(list(int8_req.infer(inp).values())[0][0]))
+        fp_ok += int(p_fp == gold)
+        i8_ok += int(p_i8 == gold)
+        agree += int(p_fp == p_i8)
+
+    lat = benchmark_cpu_latency(int8_req, NLI_SEQ_LEN)
+    n_h = len(holdout_rows)
+    return {
+        "nli_v2_120_fp": f"{fp_ok}/{n_h} ({fp_ok / n_h * 100:.2f}%)",
+        "nli_v2_120_int8": f"{i8_ok}/{n_h} ({i8_ok / n_h * 100:.2f}%)",
+        "nli_v2_120_fp_vs_int8_agreement_pct": round(agree / n_h * 100.0, 2),
+        "cpu_latency": lat,
+        "manifest": collect_dir_manifest(
+            out_dir, "cross-encoder/nli-deberta-v3-xsmall", "Apache-2.0"
+        ),
+    }
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Build epistemic-guard INT8 OpenVINO model pack.")
+    parser.add_argument(
+        "--only",
+        choices=("web_evidence", "hazard", "action_claim", "nli"),
+        default=None,
+        help="Build/refresh a single model and merge into the pack report.",
+    )
+    args = parser.parse_args(argv)
+
     PACK_ROOT.mkdir(parents=True, exist_ok=True)
     REPORT_OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    web_res = train_and_quantize_web_evidence()
-    hzd_res = quantize_and_eval_hazard()
-    act_res = quantize_and_eval_action_claim()
+    existing_models: dict[str, Any] = {}
+    if REPORT_OUT.exists():
+        existing_models = dict(
+            json.loads(REPORT_OUT.read_text(encoding="utf-8")).get("models", {})
+        )
+
+    if args.only in (None, "web_evidence"):
+        existing_models["web_evidence_int8"] = train_and_quantize_web_evidence()
+    if args.only in (None, "hazard"):
+        existing_models["hazard_int8"] = quantize_and_eval_hazard()
+    if args.only in (None, "action_claim"):
+        existing_models["action_claim_int8"] = quantize_and_eval_action_claim()
+    if args.only in (None, "nli"):
+        existing_models["nli_int8"] = quantize_and_eval_nli()
 
     total_pack_bytes = sum(
-        r["manifest"]["total_size_bytes"] for r in (web_res, hzd_res, act_res)
+        r["manifest"]["total_size_bytes"] for r in existing_models.values()
     )
     report = {
         "generated_at_utc": datetime.now(UTC).isoformat(),
         "pack_root": "models/epistemic_guard_int8",
         "total_pack_size_mb": round(total_pack_bytes / (1024 * 1024), 2),
-        "models": {
-            "web_evidence_int8": web_res,
-            "hazard_int8": hzd_res,
-            "action_claim_int8": act_res,
-        },
+        "models": existing_models,
     }
     REPORT_OUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print("\n=== INT8 MODEL PACK SUMMARY ===")

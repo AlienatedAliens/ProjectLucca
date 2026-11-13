@@ -70,3 +70,10 @@ include = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
+[tool.mypy]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["openvino.*", "tokenizers.*"]
+ignore_missing_imports = true
+

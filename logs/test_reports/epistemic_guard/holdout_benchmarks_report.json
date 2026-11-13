@@ -1,0 +1,40 @@
+{
+  "generated_at_utc": "2026-11-13T04:05:10.599222+00:00",
+  "package_version": "0.3.0",
+  "holdouts": {
+    "LOCKED_COH_50": {
+      "correct": 50,
+      "total": 50,
+      "accuracy_pct": 100.0
+    },
+    "R33_sybil_holdout_45": {
+      "sybil_wire_collapse": "30/30 (100.0%)",
+      "dispute_exact": "43/45 (95.56%)",
+      "source_count_exact": "41/45 (91.11%)"
+    },
+    "real_web_v1_64": {
+      "burden_accuracy": "42/64 (65.62%)",
+      "dispute_accuracy": "60/64 (93.75%)",
+      "dispute_recall": "10/14",
+      "dispute_fpr": "0/50 (0.0%)",
+      "within_1_source_count": "51/64 (79.69%)"
+    },
+    "real_web_v2_64": {
+      "burden_accuracy": "47/64 (73.44%)",
+      "dispute_accuracy": "56/64 (87.50%)",
+      "dispute_recall": "3/9",
+      "dispute_fpr": "2/55 (3.64%)",
+      "within_1_source_count": "51/64 (79.69%)"
+    },
+    "nli_holdout_v2_120": {
+      "int8_accuracy": "88/120 (73.33%)",
+      "fp32_accuracy": "87/120 (72.50%)",
+      "fp_vs_int8_agreement_pct": 99.17
+    }
+  },
+  "readme_blocks_verified": 8,
+  "integrity_locks": {
+    "wo46_locked_files_verified": 21,
+    "lucca_epistemic_whl_sha256": "beb941a40585cc55975b98b7de14ef87f80e62ba9002c1cc0c1b11d91bf71cf7"
+  }
+}

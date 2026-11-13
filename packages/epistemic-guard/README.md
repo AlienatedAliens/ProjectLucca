@@ -18,7 +18,7 @@ Runs locally on CPU, GPU, or NPU in **3–11 ms**. Zero LLM API calls. MIT Licen
 ```bash
 pip install epistemic-guard
 
-# Optional: download the ~188 MB OpenVINO INT8 neural pack (SHA-256 verified)
+# Optional: download the 4-model OpenVINO INT8 pack (~227 MB download / ~279 MB unpacked, SHA-256 verified)
 epistemic-guard download-models
 
 # Run the live 4-part verification demo on CPU
@@ -115,18 +115,18 @@ assert burden.meets_casual_burden is False  # High-hazard query requires >=3 ind
 
 ## Measured CPU Performance & Holdout Accuracy (OpenVINO INT8)
 
-All three optional neural classifiers run in-process via OpenVINO INT8 (`CPU`, `GPU`, or `NPU`) with pinned SHA-256 manifests. If weights are not installed, `epistemic-guard` emits an explicit `EpistemicModelUnavailableWarning` (or raises `ModelIntegrityError` when `require_neural=True`) rather than silently degrading.
+All four optional neural classifiers run in-process via OpenVINO INT8 (`CPU`, `GPU`, or `NPU`) with pinned SHA-256 manifests. If weights are not installed, `epistemic-guard` emits an explicit `EpistemicModelUnavailableWarning` (or raises `ModelIntegrityError` when `require_neural=True`) rather than silently degrading.
 
 | Component | INT8 Size | CPU p50 Latency | Locked Holdout Result | Known Failure Modes |
 | :--- | :---: | :---: | :--- | :--- |
 | **`ProvenanceGate` (Ed25519)** | `0 MB` (crypto) | `< 0.3 ms` | `0/100 (0.0%)` natural self-poisoning vs `100/100` in unguarded RAG | Does not fact-check false statements explicitly asserted by an authenticated human user (`USER_EXPLICIT`). |
-| **`action_claim_int8`** (`ReceiptSupervisor`) | `82.7 MB` | `10.9 ms` | `50/50 (100.0%)` on `LOCKED_COH_50`; `99.0%` 10-class speech-act accuracy (`99.7%` FP16 parity) | Creative fiction or translated dialogue containing first-person action verbs should pass `user_prompt` context or use `[ACTION: verb target]` tags. |
+| **`action_claim_int8`** (`ReceiptSupervisor`) | `82.7 MB` | `10.9 ms` | `50/50 (100.0%)` on `LOCKED_COH_50`; `99.0%` 10-class speech-act accuracy (`99.7%` FP16 parity) | Fenced code blocks, markdown blockquotes, attributed quotes/dialogue, and creative/translation `user_prompt` contexts are masked automatically; unprompted first-person fiction (`user_prompt=""`) with no dialogue attribution should pass `user_prompt` or use `[ACTION: verb target]` tags. |
 | **`hazard_int8`** (`OpenVINOHazardClassifier`) | `82.7 MB` | `3.2 ms` | `128/130 (98.5%)` safe tier assignment on multi-clause `R-21`; `44/50 (88.0%)` exact on `HZD_50` | Conservatively over-escalates ~12–15% of benign technical queries mentioning security/clinical nouns to higher proof tiers. |
-| **`web_evidence_int8`** + `corroborate_sources` | `23.1 MB` | `3.0 ms` | `113/128 (88.3%)` unseen-topic 3-class stance accuracy; `46/64 (71.9%)` end-to-end burden accuracy & `56/64 (87.5%)` dispute accuracy on live-scraped open web (`real_web_v2`) | Subtle implicit directional contradictions across technical prose without explicit dispute cues remain bounded (~28% end-to-end open-web error rate). |
+| **`web_evidence_int8` + `nli_int8`** (`corroborate_sources`) | `23.1 MB` + `91.1 MB` | `3.0 ms` / `9.9 ms` | `30/30 (100.0%)` wire/sybil collapse & `43/45 (95.6%)` dispute accuracy on `R-33`; `60/64 (93.8%)` dispute accuracy on `real_web_v1`; `47/64 (73.4%)` burden accuracy & `56/64 (87.5%)` dispute accuracy on single-shot open web (`real_web_v2`); `88/120 (73.3%)` 3-class NLI (`99.2%` FP32 parity) | Implicit cross-article contradictions lacking lexical or single-sentence NLI opposition remain ~26.6% of open-web error cases (`17/64` on `real_web_v2`). |
 
 ---
 
 ## License
 
 - **Source Code:** [MIT License](LICENSE) (`Copyright (c) 2026 Sean Maxwell`).
-- **INT8 Model Weights:** Derived from `Apache-2.0` upstream checkpoints (`cross-encoder/nli-MiniLM2-L6-H768` and `cross-encoder/ms-marco-MiniLM-L-6-v2`); see [`MODEL_NOTICES.md`](MODEL_NOTICES.md).
+- **INT8 Model Weights:** Derived from `Apache-2.0` / `MIT` upstream checkpoints (`cross-encoder/nli-MiniLM2-L6-H768`, `cross-encoder/ms-marco-MiniLM-L-6-v2`, and `cross-encoder/nli-deberta-v3-xsmall`); see [`MODEL_NOTICES.md`](MODEL_NOTICES.md).

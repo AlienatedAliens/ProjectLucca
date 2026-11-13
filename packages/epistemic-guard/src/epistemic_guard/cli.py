@@ -8,7 +8,7 @@ import platform
 import sys
 import time
 
-import openvino as ov  # type: ignore[import-untyped]
+import openvino as ov
 
 from epistemic_guard.corroboration import corroborate_sources
 from epistemic_guard.exceptions import ProvenanceError
@@ -163,7 +163,11 @@ def _cmd_demo() -> int:
 
 
 def _cmd_download(args: argparse.Namespace) -> int:
-    selected = tuple(args.models) if args.models else ("action_claim", "hazard", "web_evidence")
+    selected = (
+        tuple(args.models)
+        if args.models
+        else ("action_claim", "hazard", "web_evidence", "nli")
+    )
     print(f"Downloading epistemic-guard INT8 models: {', '.join(selected)} ...")
     paths = download_models(
         list(selected),
@@ -193,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
         "--models",
         nargs="+",
         choices=tuple(MODEL_SPECS),
-        help="Subset of models to download (default: all 3)",
+        help="Subset of models to download (default: all 4)",
     )
     dl.add_argument("--cache-dir", default=None, help="Target directory override")
     dl.add_argument("--base-url", default=None, help="Release mirror URL override")

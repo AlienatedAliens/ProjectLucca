@@ -99,6 +99,26 @@ MODEL_SPECS: Final[dict[str, ModelSpec]] = {
             "tokenizer.json": "f83a7f24eee69f73e1a5cad5a09dac6e3c6731c461540cb3498b22285d3ca6ed",
         },
     ),
+    "nli": ModelSpec(
+        key="nli",
+        subdir="nli_int8",
+        archive_name="nli_int8.tar.gz",
+        env_var="EPISTEMIC_GUARD_NLI_DIR",
+        legacy_subdirs=("verifier_deberta_v3_xsmall_ov",),
+        upstream_base_model="cross-encoder/nli-deberta-v3-xsmall",
+        upstream_license="Apache-2.0",
+        total_size_mb=91.10,
+        files_sha256={
+            "config.json": "1e943b927f6cc9aef0c83f8c437d473d0cffe0340ec761436cfe26cb2126d1e7",
+            "openvino_model.bin": (
+                "82a34abe3ccd60003c15ca9984eb6d3c27f51454912a6b5aadd2569695a3423f"
+            ),
+            "openvino_model.xml": (
+                "38fd323b7a633a242f0cb306aaa3a68f3298df91d4afafedf8c2b12d85d8c7cf"
+            ),
+            "tokenizer.json": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf",
+        },
+    ),
 }
 
 
@@ -213,7 +233,7 @@ def _safe_extract_tar(tar: tarfile.TarFile, dest: Path) -> None:
 
 
 def download_models(
-    models: tuple[str, ...] | list[str] = ("action_claim", "hazard", "web_evidence"),
+    models: tuple[str, ...] | list[str] = ("action_claim", "hazard", "web_evidence", "nli"),
     *,
     cache_dir: Path | str | None = None,
     base_url: str | None = None,

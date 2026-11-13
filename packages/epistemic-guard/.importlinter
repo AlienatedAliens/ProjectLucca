@@ -8,6 +8,7 @@ layers =
     epistemic_guard.cli
     epistemic_guard.integrations
     epistemic_guard.corroboration : epistemic_guard.supervision : epistemic_guard.store
-    epistemic_guard.hazard : epistemic_guard.provenance : epistemic_guard.models
+    epistemic_guard.hazard : epistemic_guard.nli : epistemic_guard.web_filters : epistemic_guard.provenance
+    epistemic_guard.models
     epistemic_guard.schemas
     epistemic_guard.exceptions

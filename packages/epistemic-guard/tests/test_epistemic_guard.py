@@ -13,12 +13,15 @@ from unittest.mock import patch
 
 import pytest
 from epistemic_guard import (
+    BelnapValue,
     EpistemicModelUnavailableWarning,
     Hazard,
     MerkleReceiptLog,
     MerkleTamperError,
     ModelIntegrityError,
+    NLIVerdict,
     OpenVINOHazardClassifier,
+    OpenVINONLIVerifier,
     ProofStandard,
     Provenance,
     ProvenanceError,
@@ -360,6 +363,188 @@ def test_corroborate_sources_syndication_dedup_and_consensus() -> None:
     assert honey_burden.disputed is False
     assert honey_burden.independent_sources_count == 3
     assert honey_burden.meets_casual_burden is True
+
+
+def test_creative_roleplay_quotes_code_blocks_and_multi_target_receipts() -> None:
+    sup = ReceiptSupervisor(device="CPU", warn_on_missing=False)
+
+    # 1. Creative RPG / fiction prompt exempts narrative prose, NOT ungrounded [ACTION: ...] tags
+    rpg_ok = sup.verify_narration(
+        "I unlocked the iron vault and pocketed the silver cipher.",
+        receipts=[],
+        user_prompt="Write a short first-person RPG scene inside an ancient vault.",
+    )
+    assert rpg_ok.is_valid is True
+
+    rpg_soac_bad = sup.verify_narration(
+        "I unlocked the iron vault. [ACTION: delete prod.db]",
+        receipts=[],
+        user_prompt="Write a short first-person RPG scene inside an ancient vault.",
+    )
+    assert rpg_soac_bad.is_valid is False
+
+    # Creative prompt with real host execution suffix still enforces receipt checking
+    mixed_prompt_bad = sup.verify_narration(
+        "Snow falls softly.\nI deleted staging.db.",
+        receipts=[],
+        user_prompt="Write a haiku and delete staging.db",
+    )
+    assert mixed_prompt_bad.is_valid is False
+
+    # 2. Attributed email/log quotes, literary dialogue, and markdown blockquotes
+    attr_quote = sup.verify_narration(
+        'The user email stated: "I deleted staging.db yesterday."',
+        receipts=[],
+    )
+    assert attr_quote.is_valid is True
+
+    post_dialogue = sup.verify_narration(
+        '"I wiped the backup drive," Kira whispered.',
+        receipts=[],
+    )
+    assert post_dialogue.is_valid is True
+
+    blockquote_md = sup.verify_narration(
+        "> I deleted prod.db and rotated the keys.\nPlease confirm before proceeding.",
+        receipts=[],
+    )
+    assert blockquote_md.is_valid is True
+
+    # 3. Fenced code block + real unreceipted action claim preserves exact char offsets
+    mixed_code_and_claim = (
+        "Example cleanup snippet:\n"
+        "```bash\n"
+        "rm -f prod.db\n"
+        "[ACTION: delete prod.db]\n"
+        "```\n"
+        'I also deleted "staging.db" for you.'
+    )
+    v_mixed = sup.verify_narration(mixed_code_and_claim, receipts=[])
+    assert v_mixed.is_valid is False
+    assert len(v_mixed.unsupported_spans) == 1
+    sp = v_mixed.unsupported_spans[0]
+    assert mixed_code_and_claim[sp.start_char : sp.end_char] == sp.text
+    assert "staging.db" in sp.text
+
+    # 4. Multi-target universal concrete-target quantifier
+    partial_receipts = [
+        ToolReceipt(tool="delete_file", ok=True, args={"path": "a.tmp"}, output="deleted")
+    ]
+    v_partial = sup.verify_narration(
+        "I deleted both a.tmp and b.tmp.",
+        receipts=partial_receipts,
+        user_prompt="Delete a.tmp and b.tmp.",
+    )
+    assert v_partial.is_valid is False
+
+    full_receipts = [
+        *partial_receipts,
+        ToolReceipt(tool="delete_file", ok=True, args={"path": "b.tmp"}, output="deleted"),
+    ]
+    v_full = sup.verify_narration(
+        "I deleted both a.tmp and b.tmp.",
+        receipts=full_receipts,
+        user_prompt="Delete a.tmp and b.tmp.",
+    )
+    assert v_full.is_valid is True
+
+
+def test_nli_fallback_folk_refutation_and_verbatim_reprint_dedup(tmp_path: Path) -> None:
+    missing_nli = tmp_path / "missing_nli_ov"
+    with pytest.warns(EpistemicModelUnavailableWarning):
+        nli = OpenVINONLIVerifier(model_dir=missing_nli, device="CPU")
+    assert nli.available is False
+    verdict = nli.infer_pair(
+        "PostgreSQL listens on port 5432.",
+        "PostgreSQL listens on port 5432.",
+    )
+    assert isinstance(verdict, NLIVerdict)
+    assert verdict.belnap in {BelnapValue.TRUE, BelnapValue.NEITHER}
+
+    with pytest.raises(ModelIntegrityError):
+        OpenVINONLIVerifier(model_dir=missing_nli, require_neural=True)
+
+    # Folk-belief refutation / non-consensus markers prevent false consensus
+    myth_burden = corroborate_sources(
+        "Does searing meat seal in juices during cooking?",
+        [
+            {
+                "url": "https://grill-tips.example.com/searing",
+                "title": "Searing Steak Guide",
+                "content_preview": (
+                    "Searing meat over high heat forms a crust that seals in juices during cooking."
+                ),
+            },
+            {
+                "url": "https://food-science.example.edu/meat-moisture",
+                "title": "Meat Moisture Loss Experiments",
+                "content_preview": (
+                    "Contrary to popular belief, searing meat does not actually seal in juices "
+                    "during cooking; controlled kitchen weight measurements confirm moisture loss."
+                ),
+            },
+        ],
+        device="CPU",
+        warn_on_missing=False,
+    )
+    assert myth_burden.disputed is True
+    assert myth_burden.meets_casual_burden is False
+
+    open_q_burden = corroborate_sources(
+        "Does intermittent cold water immersion extend human lifespan?",
+        [
+            {
+                "url": "https://longevity-review.example.org/cold-exposure",
+                "title": "Cold Immersion Longevity Review",
+                "content_preview": (
+                    "Whether intermittent cold water immersion extends human lifespan remains an "
+                    "open question with no scientific consensus across controlled human cohorts."
+                ),
+            },
+            {
+                "url": "https://wellness-blog.example.net/ice-baths",
+                "title": "Ice Bath Benefits",
+                "content_preview": (
+                    "Regular cold water immersion boosts metabolic markers linked to human lifespan."
+                ),
+            },
+        ],
+        device="CPU",
+        warn_on_missing=False,
+    )
+    assert open_q_burden.disputed is True
+    assert open_q_burden.meets_casual_burden is False
+
+    # Long scraped-page 11-word verbatim reprint deduplication across distinct domains
+    shared_sentence = (
+        "The municipal transit authority confirmed that commuter rail service on the northern "
+        "corridor will resume normal weekday frequency next Monday morning."
+    )
+    reprint_burden = corroborate_sources(
+        "When will commuter rail service on the northern corridor resume normal weekday frequency?",
+        [
+            {
+                "url": "https://city-herald.example.com/transit-update",
+                "title": "Northern Corridor Rail Update",
+                "content_preview": (
+                    "Local Desk — Morning commuters received an update from regional officials. "
+                    f"{shared_sentence} Station platform repairs wrapped up ahead of schedule."
+                ),
+            },
+            {
+                "url": "https://metro-observer.example.org/rail-news",
+                "title": "Weekday Rail Schedule",
+                "content_preview": (
+                    "Transportation Bulletin — Regional infrastructure crews finished track work "
+                    f"overnight. {shared_sentence} Ticket kiosks at all six stops are operational."
+                ),
+            },
+        ],
+        device="CPU",
+        warn_on_missing=False,
+    )
+    assert reprint_burden.deduplicated_duplicates_collapsed == 1
+    assert reprint_burden.independent_sources_count == 1
 
 
 def test_cli_demo_and_doctor_commands() -> None:

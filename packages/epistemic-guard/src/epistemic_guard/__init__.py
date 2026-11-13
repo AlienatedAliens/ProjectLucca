@@ -40,6 +40,7 @@ from epistemic_guard.models import (
     download_models,
     verify_model_dir,
 )
+from epistemic_guard.nli import OpenVINONLIVerifier
 from epistemic_guard.provenance import (
     DomainSigner,
     OperatorApprovalToken,
@@ -56,6 +57,7 @@ from epistemic_guard.schemas import (
     BelnapValue,
     ClauseSupervisionVerdict,
     Hazard,
+    NLIVerdict,
     PassageAssessment,
     ProofStandard,
     Provenance,
@@ -76,6 +78,8 @@ from epistemic_guard.store import (
 from epistemic_guard.supervision import (
     ReceiptSupervisor,
     StreamingReceiptSupervisor,
+    is_creative_or_meta_prompt,
+    mask_non_assertive_spans,
     parse_structured_action_tags,
 )
 
@@ -100,7 +104,9 @@ __all__ = [
     "MerkleTamperError",
     "ModelIntegrityError",
     "ModelSpec",
+    "NLIVerdict",
     "OpenVINOHazardClassifier",
+    "OpenVINONLIVerifier",
     "OpenVINOWebEvidenceClassifier",
     "OperatorApprovalToken",
     "PassageAssessment",
@@ -129,6 +135,8 @@ __all__ = [
     "download_models",
     "evaluate_web_evidence_burden",
     "generate_operator_keypair",
+    "is_creative_or_meta_prompt",
+    "mask_non_assertive_spans",
     "meets_standard",
     "parse_structured_action_tags",
     "required_standard",

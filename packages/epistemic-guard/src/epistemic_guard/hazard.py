@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Final
 
 import numpy as np
-import openvino as ov  # type: ignore[import-untyped]
-from tokenizers import Tokenizer  # type: ignore[import-untyped]
+import openvino as ov
+from tokenizers import Tokenizer
 
 from epistemic_guard.models import resolve_managed_model_dir
 from epistemic_guard.schemas import Hazard

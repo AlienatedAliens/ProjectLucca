@@ -1,7 +1,7 @@
 {
-  "generated_at_utc": "2026-11-13T01:15:31.945733+00:00",
+  "generated_at_utc": "2026-11-13T03:19:59.787504+00:00",
   "pack_root": "models/epistemic_guard_int8",
-  "total_pack_size_mb": 188.37,
+  "total_pack_size_mb": 279.47,
   "models": {
     "web_evidence_int8": {
       "disjoint_verification": {
@@ -116,6 +116,40 @@
           "tokenizer.json": {
             "size_bytes": 3558912,
             "sha256": "f7eb98e28291c70cc66f5e26c9598c0111e34be81517e48d4b8de84d125c70eb"
+          }
+        }
+      }
+    },
+    "nli_int8": {
+      "nli_v2_120_fp": "87/120 (72.50%)",
+      "nli_v2_120_int8": "88/120 (73.33%)",
+      "nli_v2_120_fp_vs_int8_agreement_pct": 99.17,
+      "cpu_latency": {
+        "mean_ms": 9.76,
+        "p50_ms": 9.939,
+        "p95_ms": 10.633
+      },
+      "manifest": {
+        "upstream_base_model": "cross-encoder/nli-deberta-v3-xsmall",
+        "upstream_license": "Apache-2.0",
+        "total_size_bytes": 95524418,
+        "total_size_mb": 91.1,
+        "files": {
+          "config.json": {
+            "size_bytes": 1141,
+            "sha256": "1e943b927f6cc9aef0c83f8c437d473d0cffe0340ec761436cfe26cb2126d1e7"
+          },
+          "openvino_model.bin": {
+            "size_bytes": 85958432,
+            "sha256": "82a34abe3ccd60003c15ca9984eb6d3c27f51454912a6b5aadd2569695a3423f"
+          },
+          "openvino_model.xml": {
+            "size_bytes": 1224970,
+            "sha256": "38fd323b7a633a242f0cb306aaa3a68f3298df91d4afafedf8c2b12d85d8c7cf"
+          },
+          "tokenizer.json": {
+            "size_bytes": 8339875,
+            "sha256": "2c070ff353c36f85e20919da787a30e1e8e52b626d0e026e044f373378f6d0bf"
           }
         }
       }

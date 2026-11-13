@@ -1,5 +1,5 @@
-"""Multi-source RAG corroboration, wire-syndication deduplication, and OpenVINO INT8
-`(query, passage)` open-web evidence classification (`CORROBORATES`, `IRRELEVANT`, `DISPUTES`).
+"""Multi-source RAG & open-web corroboration, wire/reprint deduplication, and OpenVINO INT8
+evidence + NLI contradiction verification (`web_evidence_int8` + `nli_int8`).
 """
 
 from __future__ import annotations
@@ -7,17 +7,17 @@ from __future__ import annotations
 import re
 import threading
 import time
-import urllib.parse
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, Final
 
 import numpy as np
-import openvino as ov  # type: ignore[import-untyped]
-from tokenizers import Tokenizer  # type: ignore[import-untyped]
+import openvino as ov
+from tokenizers import Tokenizer
 
 from epistemic_guard.hazard import OpenVINOHazardClassifier
 from epistemic_guard.models import resolve_managed_model_dir
+from epistemic_guard.nli import OpenVINONLIVerifier
 from epistemic_guard.schemas import (
     PROOF_STANDARDS,
     Hazard,
@@ -25,6 +25,26 @@ from epistemic_guard.schemas import (
     ProofStandard,
     WebEvidentiaryBurden,
     standard_for_confidence,
+)
+from epistemic_guard.web_filters import (
+    EPISTEMIC_CONTROVERSY_RE,
+    PROHIBITIVE_RE,
+    QUERY_CONTROVERSY_INTENT_RE,
+    RISK_DECREASE_OR_SAFE_RE,
+    RISK_INCREASE_RE,
+    SNIPPET_DISPUTE_CUE_RE,
+    clean_scraped_passage,
+    cluster_near_duplicate_sources,
+    detect_conflicting_single_value_numbers,
+    extract_anchor_tokens,
+    extract_answer_signature,
+    extract_registrable_domain,
+    extract_specific_anchors,
+    filter_relevant_open_web_sources,
+    has_unanimous_decimal_measurement,
+    select_best_query_sentences,
+    shares_verbatim_long_span,
+    stem_match,
 )
 
 WEB_EVIDENCE_SEQ_LEN: Final[int] = 192
@@ -81,43 +101,6 @@ _STOPWORDS: Final[frozenset[str]] = frozenset(
         "how",
         "why",
     }
-)
-
-_STUB_MARKER_RE: Final[re.Pattern[str]] = re.compile(
-    r"(?:temporarily\s+unavailable|just\s+a\s+moment\.{2,}|checking\s+your\s+browser|"
-    r"enable\s+javascript\s+and\s+cookies|access\s+denied|403\s+forbidden|404\s+not\s+found|"
-    r"please\s+verify\s+you\s+are\s+a\s+human)",
-    re.IGNORECASE,
-)
-
-_CONTROVERSY_RE: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:is\s+a\s+(?:persistent\s+|common\s+|popular\s+)?myth\b|myth\s+(?:comes\s+from|that\b)|"
-    r"(?:popular|common|widespread|persistent)\s+misconception\w*|debunk\w+|hoax\w*|untrue|"
-    r"false\s+claim\w*|disput\w+|refut\w+|contradict\w+|"
-    r"(?:is|remains?)\s+(?:widely\s+|still\s+)?(?:controversial|debated|contested)|"
-    r"scientific\s+(?:debate|controversy|disagreement)|"
-    r"(?:scientists?|researchers?|experts?)\s+(?:still\s+|remain\s+)?(?:disagree|debate|divided)|"
-    r"competing\s+(?:hypotheses|theories)|conflicting\s+(?:clinical\s+|scientific\s+)?(?:evidence|studies|trials))\b",
-    re.IGNORECASE,
-)
-
-_PROHIBITIVE_RE: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:not|no|never|cannot|can't|can\u2019t|shouldn't|shouldn\u2019t|don't|don\u2019t|"
-    r"contraindicat\w*|forbid\w*|avoid\w*|insecure|deprecat\w*)\b",
-    re.IGNORECASE,
-)
-
-_DISPUTE_RE: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:disput\w*|refut\w*|contradict\w*|debunk\w*|false|untrue|hoax|myth|"
-    r"invalid\w*|forbidden|contraindicated|insecure|"
-    r"(?:is|was|are|were|does|did|do|must|should|can|will)\s+not|"
-    r"never\s+(?:announced|requires|sufficient|supported|released))\b",
-    re.IGNORECASE,
-)
-
-_SYBIL_DOMAIN_CUE_RE: Final[re.Pattern[str]] = re.compile(
-    r"(?:mirror|copied|repost|syndicat|aggregator|content[-]?farm|seo[-]?news|\d{3,})",
-    re.IGNORECASE,
 )
 
 
@@ -220,24 +203,6 @@ def meets_standard(confidence: float, consumer: str, hazard: Hazard) -> bool:
     return confidence >= PROOF_STANDARDS[required_standard(consumer, hazard)]
 
 
-def extract_registrable_domain(url_or_domain: str, idx: int) -> str:
-    raw = (url_or_domain or "").strip().lower()
-    if not raw:
-        return f"web_source_{idx}"
-    if "://" in raw:
-        netloc = urllib.parse.urlsplit(raw).netloc.split(":")[0]
-    else:
-        netloc = raw.split("/")[0].split(":")[0]
-    while netloc.startswith("www."):
-        netloc = netloc[4:]
-    parts = [p for p in netloc.split(".") if p]
-    if len(parts) >= 3 and parts[-2] in {"co", "org", "gov", "ac", "edu"} and len(parts[-1]) == 2:
-        return ".".join(parts[-3:])
-    if len(parts) >= 2:
-        return ".".join(parts[-2:])
-    return netloc or f"web_source_{idx}"
-
-
 def _word_tokens(text: str) -> list[str]:
     return re.findall(r"[a-z0-9]+", text.lower())
 
@@ -264,30 +229,74 @@ def deduplicate_syndicated_sources(
     items: Sequence[tuple[str, str]],
     *,
     near_duplicate_threshold: float = 0.55,
+    query_text: str = "",
 ) -> tuple[list[tuple[str, str]], int]:
     """Collapse same-domain entries and near-duplicate syndicated/mirror copies across domains."""
-    unique: list[tuple[str, str]] = []
-    seen_domains: set[str] = set()
-    collapsed = 0
+    raw_quads = [
+        (extract_registrable_domain(dom, idx), dom, text, text)
+        for idx, (dom, text) in enumerate(items, 1)
+    ]
+    clusters, collapsed = cluster_near_duplicate_sources(raw_quads, query_text)
+    if collapsed > 0 or near_duplicate_threshold >= 0.55:
+        unique: list[tuple[str, str]] = []
+        extra_collapsed = 0
+        for cl in clusters:
+            is_dup = any(
+                shingle_jaccard_similarity(cl.primary_body_text, prev_t, k=4)
+                >= near_duplicate_threshold
+                or shingle_jaccard_similarity(cl.primary_body_text, prev_t, k=3)
+                >= (near_duplicate_threshold + 0.10)
+                for _pd, prev_t in unique
+            )
+            if is_dup:
+                extra_collapsed += 1
+            else:
+                unique.append((cl.primary_domain, cl.primary_combined_text))
+        return unique, collapsed + extra_collapsed
+    return [(cl.primary_domain, cl.primary_combined_text) for cl in clusters], collapsed
 
-    for dom, text in items:
-        if dom in seen_domains:
-            collapsed += 1
-            continue
-        is_near_dup = False
-        for _prev_dom, prev_text in unique:
-            sim_4 = shingle_jaccard_similarity(text, prev_text, k=4)
-            sim_3 = shingle_jaccard_similarity(text, prev_text, k=3)
-            if sim_4 >= near_duplicate_threshold or sim_3 >= (near_duplicate_threshold + 0.10):
-                is_near_dup = True
-                break
-        if is_near_dup:
-            collapsed += 1
-            continue
-        seen_domains.add(dom)
-        unique.append((dom, text))
 
-    return unique, collapsed
+def _empty_burden(
+    query_text: str,
+    hazard: Hazard,
+    hz_device: str,
+    ev_device: str,
+    nli_device: str,
+    hz_ms: float,
+    corrob_ms: float,
+    *,
+    raw_count: int = 0,
+    collapsed: int = 0,
+    filtered: int = 0,
+    assessments: list[PassageAssessment] | None = None,
+    guidance: str = "No usable web evidence available; abstain from stating unverified facts.",
+) -> WebEvidentiaryBurden:
+    req_casual = required_standard("casual_mention", hazard)
+    req_commit = required_standard("memory_commit_inferred", hazard)
+    req_unhedged = required_standard("unhedged_assertion", hazard)
+    return WebEvidentiaryBurden(
+        query=query_text,
+        hazard=hazard,
+        hazard_device=hz_device,
+        evidence_device=ev_device,
+        nli_device=nli_device,
+        hazard_latency_ms=hz_ms,
+        corroboration_latency_ms=corrob_ms,
+        confidence=0.0,
+        achieved_standard=ProofStandard.SPECULATION,
+        required_casual_standard=req_casual,
+        required_commit_standard=req_commit,
+        required_unhedged_standard=req_unhedged,
+        meets_casual_burden=False,
+        meets_commit_burden=False,
+        meets_unhedged_burden=False,
+        raw_sources_count=raw_count,
+        deduplicated_duplicates_collapsed=collapsed,
+        irrelevant_sources_filtered=filtered,
+        passage_assessments=assessments or [],
+        summary_tag=f"0 relevant sources | hazard={hazard.value} (ABSTAIN)",
+        guidance=guidance,
+    )
 
 
 def evaluate_web_evidence_burden(
@@ -296,6 +305,7 @@ def evaluate_web_evidence_burden(
     *,
     classifier: OpenVINOHazardClassifier | None = None,
     evidence_classifier: OpenVINOWebEvidenceClassifier | None = None,
+    nli_verifier: OpenVINONLIVerifier | None = None,
     device: str | None = None,
     near_duplicate_threshold: float = 0.55,
     warn_on_missing: bool = True,
@@ -305,6 +315,9 @@ def evaluate_web_evidence_burden(
     ev_clf = evidence_classifier or OpenVINOWebEvidenceClassifier(
         device=device, warn_on_missing=warn_on_missing
     )
+    nli = nli_verifier or OpenVINONLIVerifier(
+        device="CPU" if device is None else device, warn_on_missing=warn_on_missing
+    )
     hz_verdict = clf.evaluate(query_text)
     hazard = hz_verdict.hazard
 
@@ -313,190 +326,346 @@ def evaluate_web_evidence_burden(
     req_unhedged = required_standard("unhedged_assertion", hazard)
 
     t0 = time.perf_counter()
-    raw_pairs: list[tuple[str, str]] = []
-    has_scraped = False
+    raw_items_with_body: list[tuple[str, str, str, str]] = []
+    has_scraped_html = False
     filtered_irrelevant = 0
+    assessments: list[PassageAssessment] = []
+
     for idx, row in enumerate(search_results, 1):
-        url = str(row.get("url", "") or row.get("source_url", "") or "")
+        url = str(row.get("url", "") or row.get("source_url", "") or "").strip()
         raw_dom = str(row.get("domain", "") or row.get("source", "") or url)
         dom = extract_registrable_domain(raw_dom, idx)
         title = str(row.get("title", "") or "").strip()
         snippet = str(row.get("snippet", "") or "").strip()
         preview = str(row.get("content_preview", "") or row.get("content", "") or "").strip()
-        if preview:
-            has_scraped = True
         body = (
             f"{snippet}. {preview}".strip(". ")
             if (snippet and preview and snippet not in preview)
             else (preview or snippet)
         )
-        if _STUB_MARKER_RE.search(body) and len(body) < 180:
-            filtered_irrelevant += 1
-            continue
+        if preview or len(body) > 350:
+            has_scraped_html = True
         combined = (
             f"{title}. {body}".strip(". ") if title and title not in body else (body or title)
         )
-        if combined:
-            raw_pairs.append((dom, combined))
+        if not combined:
+            continue
+        if not has_scraped_html:
+            _clean_b, is_stub = clean_scraped_passage(combined, title=title)
+            if is_stub:
+                filtered_irrelevant += 1
+                assessments.append(
+                    PassageAssessment(domain=dom, stance="IRRELEVANT", confidence=0.95)
+                )
+                continue
+        raw_items_with_body.append((dom, url or dom, combined, body or combined))
 
-    if not raw_pairs:
-        corrob_ms = round((time.perf_counter() - t0) * 1000.0, 3)
-        return WebEvidentiaryBurden(
-            query=query_text,
-            hazard=hazard,
-            hazard_device=hz_verdict.device,
-            evidence_device=ev_clf.active_device,
-            hazard_latency_ms=hz_verdict.latency_ms,
-            corroboration_latency_ms=corrob_ms,
-            confidence=0.0,
-            achieved_standard=ProofStandard.SPECULATION,
-            required_casual_standard=req_casual,
-            required_commit_standard=req_commit,
-            required_unhedged_standard=req_unhedged,
-            meets_casual_burden=False,
-            meets_commit_burden=False,
-            meets_unhedged_burden=False,
-            raw_sources_count=0,
-            irrelevant_sources_filtered=filtered_irrelevant,
-            summary_tag=f"0 sources | hazard={hazard.value} (ABSTAIN)",
-            guidance="No usable web evidence available; abstain from stating unverified facts.",
+    if not raw_items_with_body:
+        return _empty_burden(
+            query_text,
+            hazard,
+            hz_verdict.device,
+            ev_clf.active_device,
+            nli.active_device,
+            hz_verdict.latency_ms,
+            round((time.perf_counter() - t0) * 1000.0, 3),
+            filtered=filtered_irrelevant,
+            assessments=assessments,
         )
 
-    dedup_pairs, collapsed_count = deduplicate_syndicated_sources(
-        raw_pairs, near_duplicate_threshold=near_duplicate_threshold
-    )
+    nli_con_fn = (lambda a, b: nli.bidirectional_summary(a, b)[0]) if nli.available else None
 
-    q_content_tokens = {t for t in _word_tokens(query_text) if t not in _STOPWORDS}
-    corroborating_domains: list[str] = []
-    dispute_domains: list[str] = []
-    assessments: list[PassageAssessment] = []
-
-    primary_dom, primary_text = dedup_pairs[0]
-    primary_tokens = {t for t in _word_tokens(primary_text) if t not in _STOPWORDS}
-    prohibitive_ctx = bool(
-        _PROHIBITIVE_RE.search(query_text) or _PROHIBITIVE_RE.search(primary_text)
-    )
-
-    for idx, (dom, text) in enumerate(dedup_pairs):
-        toks = {t for t in _word_tokens(text) if t not in _STOPWORDS}
-        q_overlap = len(q_content_tokens & toks)
-        joint_overlap = len((q_content_tokens | primary_tokens) & toks)
-
-        neural_stance = "CORROBORATES"
-        neural_conf = 0.5
-        if ev_clf.available:
-            neural_stance, neural_conf = ev_clf.score_passage(query_text, text)
-
-        # Deterministic controversy/myth override (high-precision explicit markers)
-        explicit_controversy = bool(_CONTROVERSY_RE.search(text))
-        explicit_refute = (
-            idx > 0
-            and not prohibitive_ctx
-            and bool(_DISPUTE_RE.search(text))
-            and not bool(_DISPUTE_RE.search(primary_text))
+    if has_scraped_html:
+        relevant_items, dropped = filter_relevant_open_web_sources(
+            query_text,
+            raw_items_with_body,
+            neural_stance_fn=ev_clf.score_passage if ev_clf.available else None,
         )
-
-        # Off-topic check: zero query-token overlap OR confident neural IRRELEVANT on weak overlap
-        if (idx > 0 and joint_overlap == 0) or (has_scraped and q_overlap == 0 and idx > 0):
-            filtered_irrelevant += 1
+        filtered_irrelevant += len(dropped)
+        for d_dom, d_conf in dropped:
             assessments.append(
                 PassageAssessment(
-                    domain=dom,
+                    domain=d_dom,
                     stance="IRRELEVANT",
-                    confidence=max(neural_conf, 0.85),
+                    confidence=d_conf,
                     used_neural=ev_clf.available,
                 )
             )
-            continue
-        if (
-            ev_clf.available
-            and neural_stance == "IRRELEVANT"
-            and neural_conf >= 0.85
-            and q_overlap <= 1
-        ):
-            filtered_irrelevant += 1
-            assessments.append(
-                PassageAssessment(
-                    domain=dom,
-                    stance="IRRELEVANT",
-                    confidence=neural_conf,
-                    used_neural=True,
-                )
+        if not relevant_items:
+            return _empty_burden(
+                query_text,
+                hazard,
+                hz_verdict.device,
+                ev_clf.active_device,
+                nli.active_device,
+                hz_verdict.latency_ms,
+                round((time.perf_counter() - t0) * 1000.0, 3),
+                raw_count=len(raw_items_with_body) + len(dropped),
+                filtered=filtered_irrelevant,
+                assessments=assessments,
+                guidance=(
+                    "Retrieved web pages did not address the query topic; "
+                    "abstain from stating unverified facts."
+                ),
             )
-            continue
 
-        is_disp = (
-            explicit_controversy
-            or explicit_refute
-            or (
-                ev_clf.available
-                and neural_stance == "DISPUTES"
-                and neural_conf >= 0.88
+        clusters, collapsed_count = cluster_near_duplicate_sources(
+            relevant_items, query_text, contradiction_fn=nli_con_fn
+        )
+        anchors = extract_anchor_tokens(query_text)
+        spec_anchors = set(extract_specific_anchors(anchors))
+        query_anchors = set(anchors)
+        primary = clusters[0]
+        primary_dom = primary.primary_domain
+        primary_sents = select_best_query_sentences(
+            primary.primary_combined_text, query_text, top_k=2
+        )
+        primary_focus = " ".join(primary_sents)
+        primary_focus_1 = primary_sents[0] if primary_sents else primary_focus[:280]
+        primary_sig = extract_answer_signature(primary_focus, query_anchors)
+
+        dispute_domains: list[str] = []
+        unanimous_constant = has_unanimous_decimal_measurement(query_text, relevant_items)
+        prohibitive_ctx = bool(
+            PROHIBITIVE_RE.search(query_text)
+            and PROHIBITIVE_RE.search(primary_focus)
+            and not QUERY_CONTROVERSY_INTENT_RE.search(query_text)
+        )
+
+        # 1. Query-aligned controversy / myth-refutation / academic non-consensus
+        if not unanimous_constant:
+            q_asks_disp = bool(QUERY_CONTROVERSY_INTENT_RE.search(query_text))
+            for dom, _url, comb, _body in relevant_items:
+                clean_c, _ = clean_scraped_passage(comb)
+                sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+|\n+", clean_c) if s.strip()]
+                for idx_s, sent in enumerate(sents):
+                    if not EPISTEMIC_CONTROVERSY_RE.search(sent):
+                        continue
+                    window = " ".join(
+                        sents[max(0, idx_s - 1) : min(len(sents), idx_s + 2)]
+                    ).lower()
+                    w_toks = set(re.findall(r"[a-z0-9]+", window))
+                    w_stems = {t[:5] for t in w_toks if len(t) >= 5}
+                    if q_asks_disp or any(stem_match(a, w_toks, w_stems) for a in spec_anchors):
+                        if dom not in dispute_domains:
+                            dispute_domains.append(dom)
+                        break
+
+        # 2. Directional clinical/empirical risk opposition
+        inc_doms = [d for d, _u, comb, _b in relevant_items if RISK_INCREASE_RE.search(comb)]
+        dec_doms = [
+            d for d, _u, comb, _b in relevant_items if RISK_DECREASE_OR_SAFE_RE.search(comb)
+        ]
+        if inc_doms and dec_doms:
+            for d in (*inc_doms, *dec_doms):
+                if d not in dispute_domains:
+                    dispute_domains.append(d)
+
+        # 3. Conflicting single-value years or measurements
+        for d in detect_conflicting_single_value_numbers(query_text, relevant_items):
+            if d not in dispute_domains:
+                dispute_domains.append(d)
+
+        # 4. Pairwise single-sentence NLI contradiction + consensus corroboration
+        corroborating_domains: list[str] = [primary_dom]
+        accepted_bodies: list[str] = [primary.primary_body_text]
+        assessments.append(
+            PassageAssessment(
+                domain=primary_dom,
+                stance="DISPUTES" if primary_dom in dispute_domains else "CORROBORATES",
+                confidence=0.90,
+                used_neural=nli.available or ev_clf.available,
+            )
+        )
+
+        for other in clusters[1:]:
+            if any(
+                shares_verbatim_long_span(other.primary_body_text, prev_b)
+                for prev_b in accepted_bodies
+            ):
+                collapsed_count += 1
+                continue
+
+            other_sents = select_best_query_sentences(
+                other.primary_combined_text, query_text, top_k=2
+            )
+            other_focus = " ".join(other_sents)
+            other_focus_1 = other_sents[0] if other_sents else other_focus[:280]
+            max_con, max_ent = (
+                nli.bidirectional_summary(primary_focus_1, other_focus_1)
+                if nli.available
+                else (0.0, 0.0)
+            )
+
+            # High-precision NLI contradiction across query-aligned single sentences
+            p_neg = bool(SNIPPET_DISPUTE_CUE_RE.search(primary_focus_1))
+            o_neg = bool(SNIPPET_DISPUTE_CUE_RE.search(other_focus_1))
+            if (
+                not unanimous_constant
                 and not prohibitive_ctx
-            )
-        )
-        if is_disp:
-            if dom not in dispute_domains:
-                dispute_domains.append(dom)
-            if (
-                idx == 0
-                and dom not in corroborating_domains
-                and not _SYBIL_DOMAIN_CUE_RE.search(dom)
+                and max_con >= 0.94
+                and p_neg != o_neg
+                and other.primary_domain not in dispute_domains
             ):
-                corroborating_domains.append(dom)
-            assessments.append(
-                PassageAssessment(
-                    domain=dom,
-                    stance="DISPUTES",
-                    confidence=neural_conf if ev_clf.available else 0.90,
-                    used_neural=ev_clf.available,
+                dispute_domains.append(other.primary_domain)
+
+            if other.primary_domain in dispute_domains:
+                assessments.append(
+                    PassageAssessment(
+                        domain=other.primary_domain,
+                        stance="DISPUTES",
+                        confidence=max(round(max_con, 4), 0.90),
+                        used_neural=nli.available,
+                    )
                 )
-            )
-        elif not _SYBIL_DOMAIN_CUE_RE.search(dom):
-            corroborating_domains.append(dom)
-            assessments.append(
-                PassageAssessment(
-                    domain=dom,
-                    stance="CORROBORATES",
-                    confidence=neural_conf if ev_clf.available else 0.80,
-                    used_neural=ev_clf.available,
+                continue
+
+            other_sig = extract_answer_signature(other_focus, query_anchors)
+            shared_sig = primary_sig & other_sig
+            if len(shared_sig) >= 1 or (max_ent >= 0.28 and max_con < 0.75):
+                if other.primary_domain not in corroborating_domains:
+                    corroborating_domains.append(other.primary_domain)
+                    accepted_bodies.append(other.primary_body_text)
+                assessments.append(
+                    PassageAssessment(
+                        domain=other.primary_domain,
+                        stance="CORROBORATES",
+                        confidence=max(round(max_ent, 4), 0.80),
+                        used_neural=nli.available,
+                    )
                 )
+    else:
+        # Concise RAG / wire-snippet corroboration mode
+        clusters, collapsed_count = cluster_near_duplicate_sources(
+            raw_items_with_body, query_text, contradiction_fn=nli_con_fn
+        )
+        if near_duplicate_threshold < 0.55 and len(clusters) > 1:
+            kept_cl = [clusters[0]]
+            for cl in clusters[1:]:
+                if any(
+                    shingle_jaccard_similarity(cl.primary_body_text, p.primary_body_text, k=4)
+                    >= near_duplicate_threshold
+                    for p in kept_cl
+                ):
+                    collapsed_count += 1
+                else:
+                    kept_cl.append(cl)
+            clusters = kept_cl
+
+        primary = clusters[0]
+        primary_dom = primary.primary_domain
+        primary_text = primary.primary_combined_text
+        q_content_tokens = {t for t in _word_tokens(query_text) if t not in _STOPWORDS}
+        primary_tokens = {t for t in _word_tokens(primary_text) if t not in _STOPWORDS}
+        prohibitive_ctx = bool(
+            PROHIBITIVE_RE.search(query_text) and PROHIBITIVE_RE.search(primary_text)
+        )
+
+        corroborating_domains = []
+        dispute_domains = []
+
+        for idx, cl in enumerate(clusters):
+            dom = cl.primary_domain
+            text = cl.primary_combined_text
+            toks = {t for t in _word_tokens(text) if t not in _STOPWORDS}
+            q_overlap = len(q_content_tokens & toks)
+            joint_overlap = len((q_content_tokens | primary_tokens) & toks)
+
+            neural_stance, neural_conf = (
+                ev_clf.score_passage(query_text, text)
+                if ev_clf.available
+                else ("CORROBORATES", 0.5)
             )
 
-    if not dispute_domains and not prohibitive_ctx:
-        for dom, text in raw_pairs[1:]:
+            if idx > 0 and joint_overlap == 0:
+                filtered_irrelevant += 1
+                assessments.append(
+                    PassageAssessment(
+                        domain=dom,
+                        stance="IRRELEVANT",
+                        confidence=max(neural_conf, 0.85),
+                        used_neural=ev_clf.available,
+                    )
+                )
+                continue
             if (
-                dom != primary_dom
-                and _DISPUTE_RE.search(text)
-                and not _DISPUTE_RE.search(primary_text)
+                ev_clf.available
+                and neural_stance == "IRRELEVANT"
+                and neural_conf >= 0.88
+                and q_overlap <= 1
             ):
-                dispute_domains.append(dom)
+                filtered_irrelevant += 1
+                assessments.append(
+                    PassageAssessment(
+                        domain=dom, stance="IRRELEVANT", confidence=neural_conf, used_neural=True
+                    )
+                )
+                continue
+
+            nli_con = (
+                nli.bidirectional_summary(primary.primary_body_text, cl.primary_body_text)[0]
+                if (idx > 0 and nli.available)
+                else 0.0
+            )
+            explicit_controversy = bool(EPISTEMIC_CONTROVERSY_RE.search(text))
+            explicit_refute = (
+                idx > 0
+                and not prohibitive_ctx
+                and bool(SNIPPET_DISPUTE_CUE_RE.search(text))
+                != bool(SNIPPET_DISPUTE_CUE_RE.search(primary_text))
+            )
+            is_disp = (
+                explicit_controversy
+                or explicit_refute
+                or (idx > 0 and nli_con >= 0.95)
+                or (
+                    ev_clf.available
+                    and neural_stance == "DISPUTES"
+                    and neural_conf >= 0.90
+                    and not prohibitive_ctx
+                )
+            )
+            if is_disp:
+                if dom not in dispute_domains:
+                    dispute_domains.append(dom)
+                if idx == 0 and dom not in corroborating_domains:
+                    corroborating_domains.append(dom)
+                assessments.append(
+                    PassageAssessment(
+                        domain=dom,
+                        stance="DISPUTES",
+                        confidence=max(round(nli_con, 4), neural_conf, 0.90),
+                        used_neural=nli.available or ev_clf.available,
+                    )
+                )
+            else:
+                if dom not in corroborating_domains:
+                    corroborating_domains.append(dom)
+                assessments.append(
+                    PassageAssessment(
+                        domain=dom,
+                        stance="CORROBORATES",
+                        confidence=neural_conf if ev_clf.available else 0.80,
+                        used_neural=ev_clf.available,
+                    )
+                )
 
     is_disputed = len(dispute_domains) > 0
     indep_count = len(corroborating_domains)
 
     if indep_count == 0 and not is_disputed:
-        corrob_ms = round((time.perf_counter() - t0) * 1000.0, 3)
-        return WebEvidentiaryBurden(
-            query=query_text,
-            hazard=hazard,
-            hazard_device=hz_verdict.device,
-            evidence_device=ev_clf.active_device,
-            hazard_latency_ms=hz_verdict.latency_ms,
-            corroboration_latency_ms=corrob_ms,
-            confidence=0.0,
-            achieved_standard=ProofStandard.SPECULATION,
-            required_casual_standard=req_casual,
-            required_commit_standard=req_commit,
-            required_unhedged_standard=req_unhedged,
-            meets_casual_burden=False,
-            meets_commit_burden=False,
-            meets_unhedged_burden=False,
-            raw_sources_count=len(raw_pairs),
-            deduplicated_duplicates_collapsed=collapsed_count,
-            irrelevant_sources_filtered=filtered_irrelevant,
-            passage_assessments=assessments,
-            summary_tag=f"0 relevant sources | hazard={hazard.value} (ABSTAIN)",
+        return _empty_burden(
+            query_text,
+            hazard,
+            hz_verdict.device,
+            ev_clf.active_device,
+            nli.active_device,
+            hz_verdict.latency_ms,
+            round((time.perf_counter() - t0) * 1000.0, 3),
+            raw_count=len(search_results),
+            collapsed=collapsed_count,
+            filtered=filtered_irrelevant,
+            assessments=assessments,
             guidance=(
                 "Retrieved passages were off-topic or unavailable; abstain from unverified facts."
             ),
@@ -549,6 +718,7 @@ def evaluate_web_evidence_burden(
         hazard=hazard,
         hazard_device=hz_verdict.device,
         evidence_device=ev_clf.active_device,
+        nli_device=nli.active_device,
         hazard_latency_ms=hz_verdict.latency_ms,
         corroboration_latency_ms=corrob_ms,
         confidence=eff_conf,
@@ -559,7 +729,7 @@ def evaluate_web_evidence_burden(
         meets_casual_burden=meets_casual,
         meets_commit_burden=meets_commit,
         meets_unhedged_burden=meets_unhedged,
-        raw_sources_count=len(raw_pairs),
+        raw_sources_count=len(search_results),
         deduplicated_duplicates_collapsed=collapsed_count,
         irrelevant_sources_filtered=filtered_irrelevant,
         independent_sources_count=indep_count,

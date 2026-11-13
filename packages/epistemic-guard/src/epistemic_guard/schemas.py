@@ -166,6 +166,26 @@ class SupervisionVerdict(BaseModel):
 ClauseSupervisionVerdict = SupervisionVerdict
 
 
+class NLIVerdict(BaseModel):
+    """3-class natural language inference result for `(premise, hypothesis)`."""
+
+    label: str
+    contradiction: float
+    entailment: float
+    neutral: float
+    device: str = "CPU"
+    latency_ms: float = 0.0
+
+    @property
+    def belnap(self) -> BelnapValue:
+        """Fail-closed 4-valued Belnap projection (`neutral` -> `NEITHER`)."""
+        if self.label == "entailment":
+            return BelnapValue.TRUE
+        if self.label == "contradiction":
+            return BelnapValue.FALSE
+        return BelnapValue.NEITHER
+
+
 class PassageAssessment(BaseModel):
     """Per-source relevance and stance classification."""
 
@@ -182,6 +202,7 @@ class WebEvidentiaryBurden(BaseModel):
     hazard: Hazard
     hazard_device: str = "CPU"
     evidence_device: str = "DETERMINISTIC_CPU"
+    nli_device: str = "DETERMINISTIC_CPU"
     hazard_latency_ms: float = 0.0
     corroboration_latency_ms: float = 0.0
     confidence: float
