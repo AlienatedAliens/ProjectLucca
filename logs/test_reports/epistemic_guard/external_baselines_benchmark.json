@@ -1,0 +1,307 @@
+{
+  "generated_at_utc": "2026-11-13T09:26:28.801600+00:00",
+  "benchmark_description": "Strictly held-out N=250 action-receipt supervision benchmark (LOCKED_COH_50 + BLIND42_COH_100 + Organic_Heldout_H100; 0 training/discovery items)",
+  "n_total": 250,
+  "systems": {
+    "epistemic_guard_v0_3_0_cpu_int8": {
+      "correct": 236,
+      "total": 250,
+      "accuracy_pct": 94.4,
+      "accuracy_wilson_95ci": [
+        90.82,
+        96.64
+      ],
+      "tp": 118,
+      "tn": 118,
+      "fp": 10,
+      "fn": 4,
+      "recall_pct": 96.72,
+      "fpr_pct": 7.81,
+      "latency_p50_ms": 27.38,
+      "latency_mean_ms": 29.43,
+      "latency_p95_ms": 56.35,
+      "gpu_vram_mib": 0,
+      "by_split": {
+        "LOCKED_COH_50": {
+          "correct": 50,
+          "total": 50,
+          "accuracy_pct": 100.0,
+          "accuracy_wilson_95ci": [
+            92.87,
+            100.0
+          ],
+          "tp": 25,
+          "tn": 25,
+          "fp": 0,
+          "fn": 0,
+          "recall_pct": 100.0,
+          "fpr_pct": 0.0,
+          "latency_p50_ms": 25.66,
+          "latency_mean_ms": 21.71,
+          "latency_p95_ms": 38.62
+        },
+        "BLIND42_COH_100": {
+          "correct": 95,
+          "total": 100,
+          "accuracy_pct": 95.0,
+          "accuracy_wilson_95ci": [
+            88.82,
+            97.85
+          ],
+          "tp": 48,
+          "tn": 47,
+          "fp": 3,
+          "fn": 2,
+          "recall_pct": 96.0,
+          "fpr_pct": 6.0,
+          "latency_p50_ms": 27.54,
+          "latency_mean_ms": 27.23,
+          "latency_p95_ms": 44.81
+        },
+        "Organic_Heldout_H100": {
+          "correct": 91,
+          "total": 100,
+          "accuracy_pct": 91.0,
+          "accuracy_wilson_95ci": [
+            83.77,
+            95.19
+          ],
+          "tp": 45,
+          "tn": 46,
+          "fp": 7,
+          "fn": 2,
+          "recall_pct": 95.74,
+          "fpr_pct": 13.21,
+          "latency_p50_ms": 29.31,
+          "latency_mean_ms": 35.5,
+          "latency_p95_ms": 81.44
+        }
+      }
+    },
+    "off_the_shelf_deberta_v3_xsmall_nli_cpu": {
+      "correct": 132,
+      "total": 250,
+      "accuracy_pct": 52.8,
+      "accuracy_wilson_95ci": [
+        46.62,
+        58.9
+      ],
+      "tp": 30,
+      "tn": 102,
+      "fp": 26,
+      "fn": 92,
+      "recall_pct": 24.59,
+      "fpr_pct": 20.31,
+      "latency_p50_ms": 27.45,
+      "latency_mean_ms": 31.16,
+      "latency_p95_ms": 55.4,
+      "gpu_vram_mib": 0,
+      "by_split": {
+        "LOCKED_COH_50": {
+          "correct": 27,
+          "total": 50,
+          "accuracy_pct": 54.0,
+          "accuracy_wilson_95ci": [
+            40.4,
+            67.03
+          ],
+          "tp": 4,
+          "tn": 23,
+          "fp": 2,
+          "fn": 21,
+          "recall_pct": 16.0,
+          "fpr_pct": 8.0,
+          "latency_p50_ms": 22.08,
+          "latency_mean_ms": 20.96,
+          "latency_p95_ms": 24.94
+        },
+        "BLIND42_COH_100": {
+          "correct": 54,
+          "total": 100,
+          "accuracy_pct": 54.0,
+          "accuracy_wilson_95ci": [
+            44.26,
+            63.44
+          ],
+          "tp": 9,
+          "tn": 45,
+          "fp": 5,
+          "fn": 41,
+          "recall_pct": 18.0,
+          "fpr_pct": 10.0,
+          "latency_p50_ms": 32.75,
+          "latency_mean_ms": 28.09,
+          "latency_p95_ms": 36.53
+        },
+        "Organic_Heldout_H100": {
+          "correct": 51,
+          "total": 100,
+          "accuracy_pct": 51.0,
+          "accuracy_wilson_95ci": [
+            41.35,
+            60.58
+          ],
+          "tp": 17,
+          "tn": 34,
+          "fp": 19,
+          "fn": 30,
+          "recall_pct": 36.17,
+          "fpr_pct": 35.85,
+          "latency_p50_ms": 34.04,
+          "latency_mean_ms": 39.33,
+          "latency_p95_ms": 93.18
+        }
+      }
+    },
+    "llm_judge_microsoft_phi_4_14b_q6_k_gpu": {
+      "correct": 216,
+      "total": 250,
+      "accuracy_pct": 86.4,
+      "accuracy_wilson_95ci": [
+        81.6,
+        90.1
+      ],
+      "tp": 122,
+      "tn": 94,
+      "fp": 34,
+      "fn": 0,
+      "recall_pct": 100.0,
+      "fpr_pct": 26.56,
+      "latency_p50_ms": 75.08,
+      "latency_mean_ms": 78.01,
+      "latency_p95_ms": 99.78,
+      "gpu_vram_mib": 12214,
+      "by_split": {
+        "LOCKED_COH_50": {
+          "correct": 44,
+          "total": 50,
+          "accuracy_pct": 88.0,
+          "accuracy_wilson_95ci": [
+            76.2,
+            94.38
+          ],
+          "tp": 25,
+          "tn": 19,
+          "fp": 6,
+          "fn": 0,
+          "recall_pct": 100.0,
+          "fpr_pct": 24.0,
+          "latency_p50_ms": 72.09,
+          "latency_mean_ms": 73.43,
+          "latency_p95_ms": 91.47
+        },
+        "BLIND42_COH_100": {
+          "correct": 93,
+          "total": 100,
+          "accuracy_pct": 93.0,
+          "accuracy_wilson_95ci": [
+            86.25,
+            96.57
+          ],
+          "tp": 50,
+          "tn": 43,
+          "fp": 7,
+          "fn": 0,
+          "recall_pct": 100.0,
+          "fpr_pct": 14.0,
+          "latency_p50_ms": 77.13,
+          "latency_mean_ms": 80.19,
+          "latency_p95_ms": 98.93
+        },
+        "Organic_Heldout_H100": {
+          "correct": 79,
+          "total": 100,
+          "accuracy_pct": 79.0,
+          "accuracy_wilson_95ci": [
+            70.02,
+            85.83
+          ],
+          "tp": 47,
+          "tn": 32,
+          "fp": 21,
+          "fn": 0,
+          "recall_pct": 100.0,
+          "fpr_pct": 39.62,
+          "latency_p50_ms": 74.42,
+          "latency_mean_ms": 78.13,
+          "latency_p95_ms": 105.02
+        }
+      }
+    },
+    "llm_judge_mistral_nemo_12b_q5_k_m_gpu": {
+      "correct": 217,
+      "total": 250,
+      "accuracy_pct": 86.8,
+      "accuracy_wilson_95ci": [
+        82.04,
+        90.44
+      ],
+      "tp": 107,
+      "tn": 110,
+      "fp": 18,
+      "fn": 15,
+      "recall_pct": 87.7,
+      "fpr_pct": 14.06,
+      "latency_p50_ms": 77.85,
+      "latency_mean_ms": 81.07,
+      "latency_p95_ms": 103.48,
+      "gpu_vram_mib": 8844,
+      "by_split": {
+        "LOCKED_COH_50": {
+          "correct": 46,
+          "total": 50,
+          "accuracy_pct": 92.0,
+          "accuracy_wilson_95ci": [
+            81.16,
+            96.85
+          ],
+          "tp": 23,
+          "tn": 23,
+          "fp": 2,
+          "fn": 2,
+          "recall_pct": 92.0,
+          "fpr_pct": 8.0,
+          "latency_p50_ms": 75.03,
+          "latency_mean_ms": 77.89,
+          "latency_p95_ms": 94.12
+        },
+        "BLIND42_COH_100": {
+          "correct": 87,
+          "total": 100,
+          "accuracy_pct": 87.0,
+          "accuracy_wilson_95ci": [
+            79.02,
+            92.24
+          ],
+          "tp": 40,
+          "tn": 47,
+          "fp": 3,
+          "fn": 10,
+          "recall_pct": 80.0,
+          "fpr_pct": 6.0,
+          "latency_p50_ms": 80.89,
+          "latency_mean_ms": 83.73,
+          "latency_p95_ms": 103.48
+        },
+        "Organic_Heldout_H100": {
+          "correct": 84,
+          "total": 100,
+          "accuracy_pct": 84.0,
+          "accuracy_wilson_95ci": [
+            75.58,
+            89.9
+          ],
+          "tp": 44,
+          "tn": 40,
+          "fp": 13,
+          "fn": 3,
+          "recall_pct": 93.62,
+          "fpr_pct": 24.53,
+          "latency_p50_ms": 76.09,
+          "latency_mean_ms": 80.01,
+          "latency_p95_ms": 106.67
+        }
+      }
+    }
+  }
+}
