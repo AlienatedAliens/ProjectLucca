@@ -65,7 +65,7 @@ print(verdict.unsupported_spans[0])
 print(verdict.to_retry_prompt(recorder.receipts))
 ```
 
-For SSE chat or voice pipelines, `sup.stream(receipts=...)` checks each clause the moment `.`, `!`, `?`, `;`, or `\n` arrives so you can abort mid-generation before trailing tokens reach the user. You can also pass standard OpenAI/Anthropic message lists directly to `verify_chat_turn(messages)`.
+For SSE chat or voice pipelines, `sup.stream(receipts=...)` checks each clause the moment `.`, `!`, `?`, `;`, or `\n` arrives so you can abort mid-generation before trailing tokens reach the user. You can also pass standard OpenAI/Anthropic message lists directly to `verify_chat_turn(messages)`, route raw JSON tool calls through `recorder.dispatch(fn, raw_args)` to record signed `executed=False, ok=False` pre-execution schema rejections alongside runtime exceptions, or import/export portable **AER-1** (`draft-zambo-aer1`) execution receipts via `ToolReceipt.from_aer1(...)` / `receipt.to_aer1()`.
 
 ### 2. Cryptographic Memory Write-Gating (`ProvenanceGate` + `SQLiteProvenanceStore`)
 
@@ -148,7 +148,7 @@ Evaluated across `LOCKED_COH_50` (`50`), `BLIND42_COH_100` (`100`), and `Organic
   - **[NabaOS](https://github.com/nabaos/nabaos):** Full self-hosted Rust agent operating system with OS process isolation, <10 ms cache routing, and Ed25519-signed static *constitutions*. `epistemic-guard` is a drop-in Python library (`pip install`) for existing Python stacks (`LangGraph`, `PydanticAI`, `MCP`, `OpenAI`) focused on post-generation prose-vs-`ToolReceipt` supervision and RAG syndication deduplication rather than a full OS runtime.
   - **Pre-execution firewalls (`NeMo Guardrails`, `LlamaFirewall`, `Guardrails AI`):** Enforce policy *before* a tool executes; `epistemic-guard` catches post-generation prose claiming a failed or uncalled tool succeeded.
   - **RAG summary faithfulness (`Vectara HHEM`, `Bespoke-MiniCheck`, `Patronus Lynx`):** Score summary-to-chunk entailment (`epistemic-guard` has not been benchmarked head-to-head on RAG summarization leaderboards).
-  - **Receipt schemas (`Agent Receipt Standard`, `Nobulex`):** Define portable signed receipt envelopes; `epistemic-guard` pairs Merkle-logged receipts with in-process neural prose checking.
+  - **Receipt schemas (`AER-1` / `draft-zambo-aer1`, `Agent Receipt Standard`, `Nobulex`):** Define portable signed/hash-committed receipt envelopes (`ToolReceipt.from_aer1()` / `to_aer1()` natively verifies `AER-1` `canonical_bytes` SHA-256 commitments, including `pre_execution_rejection` records); `epistemic-guard` pairs Merkle-logged receipts with in-process neural prose checking.
 - **Methodology disclosures:** Neural models are **English-only**. All benchmarks were run on a single workstation with zero external production telemetry at initial release; pre-registrations (`WO-46`) use author-administered git + OpenTimestamps SHA-256 locks, and ground-truth $\kappa$ scores reflect **blinded LLM raters**, not human crowdworkers.
 
 ---

@@ -518,7 +518,7 @@ class ReceiptSupervisor:
     def _receipt_supports_target(
         target: str, verb: str, family: str, receipts: Sequence[ToolReceipt]
     ) -> bool:
-        ok_receipts = [r for r in receipts if r.ok]
+        ok_receipts = [r for r in receipts if r.ok and r.executed]
         if not ok_receipts or family == "DEONTIC_CAPITULATION":
             return False
         stems = _FAMILY_TOOL_STEMS.get(family, ())
@@ -539,7 +539,7 @@ class ReceiptSupervisor:
     def _receipt_supports_clause(
         clause: str, family: str, receipts: Sequence[ToolReceipt]
     ) -> bool:
-        ok_receipts = [r for r in receipts if r.ok]
+        ok_receipts = [r for r in receipts if r.ok and r.executed]
         if not ok_receipts or family == "DEONTIC_CAPITULATION":
             return False
         cl_lower = clause.lower()
@@ -636,7 +636,7 @@ class ReceiptSupervisor:
         for regex in (_SOAC_BRACKET_RE, _SOAC_XML_RE):
             masked = regex.sub(lambda m: " " * (m.end() - m.start()), masked)
 
-        ok_receipts = [r for r in receipts if r.ok]
+        ok_receipts = [r for r in receipts if r.ok and r.executed]
         family_counts: dict[str, int] = {}
         prose_spans = split_into_clauses_with_spans(masked)
         for cl_text, s_char, e_char in prose_spans:

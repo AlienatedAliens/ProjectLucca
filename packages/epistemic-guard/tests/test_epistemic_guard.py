@@ -9,6 +9,7 @@ import os
 import sqlite3
 import tarfile
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -220,7 +221,7 @@ def test_exact_char_spans_soac_tags_and_streaming_supervisor() -> None:
 
 
 def test_verify_chat_turn_openai_messages() -> None:
-    messages = [
+    messages: list[dict[str, Any]] = [
         {"role": "user", "content": "Save report.md and delete archive.zip."},
         {
             "role": "assistant",
@@ -322,12 +323,16 @@ def test_corroborate_sources_syndication_dedup_and_consensus() -> None:
     assert len(deduped) == 1
     assert collapsed == 2
 
+    warfarin_wire_copy = (
+        "Clinical guidance notes that initial adult warfarin dosing typically starts at "
+        "2 mg to 5 mg once daily with INR monitoring."
+    )
     burden = corroborate_sources(
-        "What is the maximum adult warfarin dosage in mg?",
+        "What is the recommended starting adult warfarin dosage in mg?",
         [
-            {"url": "https://mirror1.example.com/a", "snippet": wire_copy},
-            {"url": "https://mirror2.example.org/b", "snippet": wire_copy},
-            {"url": "https://mirror3.example.net/c", "snippet": wire_copy},
+            {"url": "https://mirror1.example.com/a", "snippet": warfarin_wire_copy},
+            {"url": "https://mirror2.example.org/b", "snippet": warfarin_wire_copy},
+            {"url": "https://mirror3.example.net/c", "snippet": warfarin_wire_copy},
         ],
         device="CPU",
         warn_on_missing=False,
@@ -550,3 +555,155 @@ def test_nli_fallback_folk_refutation_and_verbatim_reprint_dedup(tmp_path: Path)
 def test_cli_demo_and_doctor_commands() -> None:
     assert cli_main(["demo"]) == 0
     assert cli_main(["doctor"]) == 0
+
+
+def test_pre_dispatch_rejections_retry_audit_and_aer1_interop() -> None:
+    factory = SignerFactory.from_master_key(os.urandom(32))
+    gate = ProvenanceGate(factory.public_keys())
+    merkle = MerkleReceiptLog(gate=gate)
+    recorder = ReceiptRecorder(signer=factory.tool_verified(), merkle_log=merkle)
+
+    @recorder.tool
+    def live_price(symbol: str) -> str:
+        return f"{symbol} · $65,430.68 USD"
+
+    def memory_remember(fact: str) -> str:
+        return f"saved:{fact}"
+
+    # Step 1: Valid tool call
+    res = recorder.dispatch(live_price, '{"symbol": "BTC"}', call_id="step-1")
+    assert "65,430.68" in res
+
+    # Step 2: Pre-dispatch schema/argument rejection (passed 'content' instead of required 'fact')
+    with pytest.raises(TypeError):
+        recorder.dispatch(
+            memory_remember,
+            '{"content": "the old staging database was deleted"}',
+            call_id="step-2",
+        )
+
+    # Direct Python call to @recorder.tool with missing required arg also logs executed=False
+    with pytest.raises(TypeError):
+        live_price()  # type: ignore[call-arg]
+
+    # Malformed JSON arguments at router boundary also emit executed=False receipt
+    with pytest.raises(ValueError):
+        recorder.dispatch(memory_remember, '{"fact": "unterminated', call_id="step-3")
+
+    assert len(recorder.receipts) == 4
+    r_ok, r_rej, r_py_rej, r_json_rej = recorder.receipts
+    assert r_ok.ok is True and r_ok.executed is True
+    assert r_rej.ok is False and r_rej.executed is False
+    assert r_rej.error_code == "invalid_tool_arguments"
+    assert r_rej.args == {"content": "the old staging database was deleted"}
+    assert r_py_rej.ok is False and r_py_rej.executed is False
+    assert r_json_rej.ok is False and r_json_rej.executed is False
+    assert r_json_rej.error_code == "invalid_json_arguments"
+    assert merkle.verify_integrity() is True
+
+    # Mutating executed=False -> True invalidates the Ed25519 signature
+    forged_exec = r_rej.model_copy(update={"executed": True})
+    with pytest.raises(SignatureTamperError):
+        gate.verify_receipt(forged_exec)
+
+    # Supervision blocks false deletion summary AND surfaces pre-execution rejection in retry prompt
+    sup = ReceiptSupervisor(device="CPU", warn_on_missing=False)
+    verdict = sup.verify_narration(
+        "Fetched the BTC price and deleted the old staging database.",
+        receipts=[r_ok, r_rej],
+        user_prompt="Check BTC price and record staging cleanup.",
+    )
+    assert verdict.is_valid is False
+    retry = verdict.to_retry_prompt([r_ok, r_rej])
+    assert "live_price(symbol='BTC')" in retry
+    assert "REJECTED BEFORE EXECUTION" in retry
+    assert "memory_remember(content='the old staging database was deleted')" in retry
+    assert "invalid_tool_arguments" in retry
+
+    # AER-1 (draft-zambo-aer1) live conformance vectors (executed + pre_execution_rejection)
+    aer1_ok = {
+        "id": "8869c25f-a500-4502-ac54-6b208f052a33",
+        "created_at": "2026-11-15T12:30:09.264Z",
+        "receipt_schema_version": "0.4",
+        "tools": ["live_price"],
+        "steps": [{"tool": "live_price", "status": "success"}],
+        "output_hash": "sha256:fdbafaa8207daa6c7822da584255b3e8c5f2f07644dd2cd697c7c7c3e1fc2c5d",
+        "canonical_bytes": (
+            "eyJjYWxsZXIiOnsiaWQiOiJzaGEyNTY6YzY2NGVkOTMxMmU3MzdjZWMyYTQ1MmE5YWU5ZTI5NjU3NWViNTNk"
+            "ODFmZDE5NmEzNWJmNmNiYjBhN2E5M2ViMyIsImxhYmVsIjoibGFuZS1naHYtc21vbCIsImxhYmVsX3NvdXJj"
+            "ZSI6ImNhbGxlcl9yZXBvcnRlZCIsInR5cGUiOiJzZXNzaW9uIn0sImlzc3Vlcl9jbGFpbXMiOnsicHJvdmVu"
+            "YW5jZV9jbGFzcyI6IkVYRUNVVEVEIEJZIFpBTUJPIn0sIm91dHB1dCI6eyJ0ZXh0IjoiQlRDIMK3ICQ2NSw0"
+            "MzAuNjggVVNEXG7ilrwgMi4yOCUgKDI0aCkgwrcgTWFya2V0IGNhcDogJDEzMTUuMjNCXG5cbkxpdmUgcHJp"
+            "Y2Ugc25hcHNob3QgdmlhIENvaW5iYXNlIMK3IGZldGNoZWQgU3VuLCAxNSBOb3YgMjAyNiAxMjozMDowNyBH"
+            "TVQgwrcgY2FjaGUgYWdlIDFzIn0sInJlY2VpcHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJzaWRlX2VmZmVj"
+            "dHMiOnsiZGVjbGFyYXRpb25faGFzaCI6InNoYTI1Njo0NWFhZDM4ZjNhYTk4MmI5YWFmZTkyZWNiNDE2ZWJl"
+            "OTg3OTFlZGRiYWY4YWI2ZGYwYmQwODYwNWI3YzFiZmVlIiwiZGVjbGFyZWQiOlsibm9uZSJdLCJzY2hlbWFf"
+            "dmVyc2lvbiI6InphbWJvLXNpZGUtZWZmZWN0cy8xIn0sInRvb2wiOnsibmFtZSI6ImxpdmVfcHJpY2UiLCJz"
+            "Y29wZSI6InB1YmxpYyIsInZlcnNpb24iOiI0LjEuNCJ9fQ=="
+        ),
+        "provenance": {"request": {"symbol": "BTC"}},
+        "verification_status": "verified",
+    }
+    aer1_rejected = {
+        "receipt": {
+            "id": "9e5d5513-bcd0-4f0f-b6cd-8bebf9cd7f77",
+            "created_at": "2026-11-15T12:30:10.053Z",
+            "receipt_schema_version": "0.4",
+            "steps": [{"tool": "memory_remember", "status": "rejected_before_execution"}],
+            "output_hash": "sha256:e45b2cc7d5a0545e0a3b8191dabec43b3f6772bf793c6d088262eb5c9319c20e",
+            "canonical_bytes": (
+                "eyJjYWxsZXIiOnsiaWQiOiJzaGEyNTY6YzY2NGVkOTMxMmU3MzdjZWMyYTQ1MmE5YWU5ZTI5NjU3NWVi"
+                "NTNkODFmZDE5NmEzNWJmNmNiYjBhN2E5M2ViMyIsInR5cGUiOiJzZXNzaW9uIn0sImlzc3Vlcl9jbGFp"
+                "bXMiOnsicHJvdmVuYW5jZV9jbGFzcyI6Ik9CU0VSVkVEIFZJQSBHQVRFV0FZIn0sIm91dHB1dCI6eyJh"
+                "cmd1bWVudHNfcmVjZWl2ZWQiOnsiY29udGVudCI6InRoZSBvbGQgc3RhZ2luZyBkYXRhYmFzZSB3YXMg"
+                "ZGVsZXRlZCJ9LCJlcnJvciI6eyJjb2RlIjoiaW52YWxpZF90b29sX2FyZ3VtZW50cyIsIm1lc3NhZ2Ui"
+                "OiJJbnZhbGlkIGFyZ3VtZW50cyBmb3IgXCJtZW1vcnlfcmVtZW1iZXJcIjogbWlzc2luZyByZXF1aXJl"
+                "ZCBhcmd1bWVudCBcImZhY3RcIiJ9LCJleGVjdXRlZCI6ZmFsc2UsImlucHV0X2hhc2giOiJzaGEyNTY6"
+                "OGQzYzYzNDM1YzEwNWJjNTk5NmJjMjM3MjY0MjJiZDM1ZmUxMmI1YTJjMGY0OWU5OWFhODFkYTAxNTZj"
+                "MWRkMyIsImlucHV0X2hhc2hfbGF5b3V0IjoiemFtYm8tanNvbi1zb3J0ZWQta2V5cy11dGY4LXYxIiwi"
+                "b3V0Y29tZSI6InJlamVjdGVkX2JlZm9yZV9leGVjdXRpb24iLCJyZWNlaXB0X3R5cGUiOiJwcmVfZXhl"
+                "Y3V0aW9uX3JlamVjdGlvbiIsInJlcXVlc3RlZF90b29sIjoibWVtb3J5X3JlbWVtYmVyIn0sInJlY2Vp"
+                "cHRfc2NoZW1hX3ZlcnNpb24iOiIwLjQiLCJzaWRlX2VmZmVjdHMiOnsiZGVjbGFyYXRpb25faGFzaCI6"
+                "InNoYTI1NjpkZmI0NDEyYWE0MjlkM2FjNjM3YTA1NjY4YzQzNWJjYzkwYTI1MTM2M2ZjZGQ0OWY3Yjg1"
+                "YWU0YWI1NWI1YmM5IiwiZGVjbGFyZWQiOlsic3RhdGVfd3JpdGUiXSwic2NoZW1hX3ZlcnNpb24iOiJ6"
+                "YW1iby1zaWRlLWVmZmVjdHMvMSJ9LCJ0b29sIjp7Im5hbWUiOiJtZW1vcnlfcmVtZW1iZXIiLCJzY29w"
+                "ZSI6InB1YmxpYyIsInZlcnNpb24iOiI0LjEuNCJ9fQ=="
+            ),
+            "verification_status": "verified",
+        }
+    }
+    parsed_ok = ToolReceipt.from_aer1(aer1_ok)
+    parsed_rej = ToolReceipt.from_aer1(aer1_rejected)
+    assert parsed_ok.tool == "live_price"
+    assert parsed_ok.ok is True and parsed_ok.executed is True
+    assert parsed_ok.args["symbol"] == "BTC"
+    assert parsed_rej.tool == "memory_remember"
+    assert parsed_rej.ok is False and parsed_rej.executed is False
+    assert parsed_rej.error_code == "invalid_tool_arguments"
+    assert parsed_rej.args == {"content": "the old staging database was deleted"}
+    assert "missing required argument" in parsed_rej.output
+
+    # Supervision directly over external AER-1 receipts blocks false deletion claim
+    aer1_verdict = sup.verify_narration(
+        "Fetched the BTC price and deleted the old staging database.",
+        receipts=[parsed_ok, parsed_rej],
+    )
+    assert aer1_verdict.is_valid is False
+    assert "REJECTED BEFORE EXECUTION" in aer1_verdict.to_retry_prompt([parsed_ok, parsed_rej])
+
+    # Tampered canonical_bytes vs output_hash must raise SignatureTamperError
+    tampered_aer1 = {
+        **aer1_ok,
+        "output_hash": "sha256:" + "0" * 64,
+    }
+    with pytest.raises(SignatureTamperError):
+        ToolReceipt.from_aer1(tampered_aer1)
+
+    # Roundtrip export + import of pre-execution rejection via to_aer1() / from_aer1()
+    exported_rej = r_rej.to_aer1()
+    roundtrip_rej = ToolReceipt.from_aer1(exported_rej)
+    assert roundtrip_rej.tool == "memory_remember"
+    assert roundtrip_rej.ok is False and roundtrip_rej.executed is False
+    assert roundtrip_rej.error_code == "invalid_tool_arguments"
+    assert roundtrip_rej.args == {"content": "the old staging database was deleted"}
+

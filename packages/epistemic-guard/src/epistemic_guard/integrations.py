@@ -7,7 +7,7 @@ from __future__ import annotations
 import functools
 import inspect
 import json
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any, ParamSpec, TypeVar, overload
 
 from epistemic_guard.provenance import DomainSigner
@@ -72,13 +72,182 @@ class ReceiptRecorder:
         ok: bool,
         args: dict[str, str | int | float | bool],
         output: str,
+        executed: bool = True,
+        error_code: str = "",
+        call_id: str | None = None,
     ) -> ToolReceipt:
-        raw = ToolReceipt(tool=tool, ok=ok, args=args, output=output)
+        kwargs: dict[str, Any] = {
+            "tool": tool,
+            "ok": ok,
+            "executed": executed,
+            "error_code": error_code,
+            "args": args,
+            "output": output,
+        }
+        if call_id is not None:
+            kwargs["call_id"] = call_id
+        raw = ToolReceipt(**kwargs)
         final = self._signer.sign_receipt(raw) if self._signer is not None else raw
         self._turn_receipts.append(final)
         if self._merkle_log is not None:
             self._merkle_log.append(final)
         return final
+
+    def record_rejection(
+        self,
+        tool: str,
+        *,
+        args: Mapping[str, object] | None = None,
+        reason: str,
+        error_code: str = "invalid_tool_arguments",
+        call_id: str | None = None,
+    ) -> ToolReceipt:
+        """Record an explicit `executed=False, ok=False` receipt on pre-dispatch rejection."""
+        coerced_args = {
+            str(k): _coerce_arg_scalar(v) for k, v in (args or {}).items()
+        }
+        return self.record(
+            tool,
+            ok=False,
+            executed=False,
+            error_code=error_code,
+            args=coerced_args,
+            output=reason,
+            call_id=call_id,
+        )
+
+    def _parse_dispatch_kwargs(
+        self,
+        tool_name: str,
+        raw_args: str | Mapping[str, object],
+        *,
+        call_id: str | None = None,
+    ) -> dict[str, object]:
+        if isinstance(raw_args, str):
+            try:
+                parsed = json.loads(raw_args) if raw_args.strip() else {}
+            except Exception as exc:
+                self.record_rejection(
+                    tool_name,
+                    args={"_raw_arguments": raw_args},
+                    reason=f"Malformed JSON tool arguments: {exc}",
+                    error_code="invalid_json_arguments",
+                    call_id=call_id,
+                )
+                raise ValueError(f"Malformed JSON arguments for '{tool_name}': {exc}") from exc
+            if not isinstance(parsed, Mapping):
+                self.record_rejection(
+                    tool_name,
+                    args={"_raw_arguments": raw_args},
+                    reason="Tool arguments JSON must decode to an object.",
+                    error_code="invalid_tool_arguments",
+                    call_id=call_id,
+                )
+                raise TypeError(f"Tool arguments for '{tool_name}' must be a JSON object.")
+            return {str(k): v for k, v in parsed.items()}
+        return {str(k): v for k, v in raw_args.items()}
+
+    def dispatch(
+        self,
+        fn: Callable[..., R],
+        raw_args: str | Mapping[str, object],
+        *,
+        name: str | None = None,
+        call_id: str | None = None,
+    ) -> R:
+        """Validate JSON/dict arguments against `fn` and record pre-dispatch rejections."""
+        raw_fn: Callable[..., Any] = getattr(fn, "__wrapped__", fn)
+        tool_name = name or raw_fn.__name__
+        kwargs = self._parse_dispatch_kwargs(tool_name, raw_args, call_id=call_id)
+        try:
+            sig = inspect.signature(raw_fn)
+            bound = sig.bind(**kwargs)
+            bound.apply_defaults()
+        except TypeError as exc:
+            self.record_rejection(
+                tool_name,
+                args=kwargs,
+                reason=str(exc),
+                error_code="invalid_tool_arguments",
+                call_id=call_id,
+            )
+            raise
+        bound_args = {
+            k: _coerce_arg_scalar(v) for k, v in bound.arguments.items() if k not in ("self", "cls")
+        }
+        try:
+            res = raw_fn(**kwargs)
+        except Exception as exc:
+            self.record(
+                tool_name,
+                ok=False,
+                executed=True,
+                error_code=type(exc).__name__,
+                args=bound_args,
+                output=f"{type(exc).__name__}: {exc}",
+                call_id=call_id,
+            )
+            raise
+        self.record(
+            tool_name,
+            ok=True,
+            executed=True,
+            args=bound_args,
+            output=str(res),
+            call_id=call_id,
+        )
+        return res  # type: ignore[no-any-return]
+
+    async def adispatch(
+        self,
+        fn: Callable[..., Awaitable[R]],
+        raw_args: str | Mapping[str, object],
+        *,
+        name: str | None = None,
+        call_id: str | None = None,
+    ) -> R:
+        """Async counterpart to `dispatch()` with pre-dispatch schema/JSON rejection receipts."""
+        raw_fn: Callable[..., Awaitable[R]] = getattr(fn, "__wrapped__", fn)
+        tool_name = name or raw_fn.__name__
+        kwargs = self._parse_dispatch_kwargs(tool_name, raw_args, call_id=call_id)
+        try:
+            sig = inspect.signature(raw_fn)
+            bound = sig.bind(**kwargs)
+            bound.apply_defaults()
+        except TypeError as exc:
+            self.record_rejection(
+                tool_name,
+                args=kwargs,
+                reason=str(exc),
+                error_code="invalid_tool_arguments",
+                call_id=call_id,
+            )
+            raise
+        bound_args = {
+            k: _coerce_arg_scalar(v) for k, v in bound.arguments.items() if k not in ("self", "cls")
+        }
+        try:
+            res = await raw_fn(**kwargs)
+        except Exception as exc:
+            self.record(
+                tool_name,
+                ok=False,
+                executed=True,
+                error_code=type(exc).__name__,
+                args=bound_args,
+                output=f"{type(exc).__name__}: {exc}",
+                call_id=call_id,
+            )
+            raise
+        self.record(
+            tool_name,
+            ok=True,
+            executed=True,
+            args=bound_args,
+            output=str(res),
+            call_id=call_id,
+        )
+        return res
 
     @overload
     def tool(self, fn: Callable[P, R], *, name: str | None = None) -> Callable[P, R]: ...
@@ -130,6 +299,7 @@ def signed_tool(  # noqa: UP047
 
     def _decorator(func: Callable[P, R]) -> Callable[P, R]:
         tool_name = name or func.__name__
+        sig = inspect.signature(func)
 
         if inspect.iscoroutinefunction(func):
 
@@ -137,16 +307,30 @@ def signed_tool(  # noqa: UP047
             async def _async_wrapper(*args: P.args, **kwargs: P.kwargs) -> object:
                 arg_map = _extract_bound_args(func, args, kwargs)
                 try:
+                    sig.bind(*args, **kwargs)
+                except TypeError as exc:
+                    recorder.record(
+                        tool_name,
+                        ok=False,
+                        executed=False,
+                        error_code="invalid_tool_arguments",
+                        args=arg_map,
+                        output=f"TypeError: {exc}",
+                    )
+                    raise
+                try:
                     res = await func(*args, **kwargs)
                 except Exception as exc:
                     recorder.record(
                         tool_name,
                         ok=False,
+                        executed=True,
+                        error_code=type(exc).__name__,
                         args=arg_map,
                         output=f"{type(exc).__name__}: {exc}",
                     )
                     raise
-                recorder.record(tool_name, ok=True, args=arg_map, output=str(res))
+                recorder.record(tool_name, ok=True, executed=True, args=arg_map, output=str(res))
                 return res
 
             return _async_wrapper  # type: ignore[return-value]
@@ -155,16 +339,30 @@ def signed_tool(  # noqa: UP047
         def _sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
             arg_map = _extract_bound_args(func, args, kwargs)
             try:
+                sig.bind(*args, **kwargs)
+            except TypeError as exc:
+                recorder.record(
+                    tool_name,
+                    ok=False,
+                    executed=False,
+                    error_code="invalid_tool_arguments",
+                    args=arg_map,
+                    output=f"TypeError: {exc}",
+                )
+                raise
+            try:
                 res = func(*args, **kwargs)
             except Exception as exc:
                 recorder.record(
                     tool_name,
                     ok=False,
+                    executed=True,
+                    error_code=type(exc).__name__,
                     args=arg_map,
                     output=f"{type(exc).__name__}: {exc}",
                 )
                 raise
-            recorder.record(tool_name, ok=True, args=arg_map, output=str(res))
+            recorder.record(tool_name, ok=True, executed=True, args=arg_map, output=str(res))
             return res
 
         return _sync_wrapper

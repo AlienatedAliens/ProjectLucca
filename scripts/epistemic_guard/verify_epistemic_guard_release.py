@@ -55,7 +55,7 @@ def main() -> None:
         archive_sizes_mb[f"{dname}.tar.gz"] = round(tar_dest.stat().st_size / (1024 * 1024), 2)
 
     _run(["uv", "build", "--wheel"], cwd=PKG_DIR)
-    whl = next((PKG_DIR / "dist").glob("epistemic_guard-0.3.0-*.whl"))
+    whl = sorted((PKG_DIR / "dist").glob("epistemic_guard-*.whl"))[-1]
 
     tmp = Path(tempfile.mkdtemp(prefix="epistemic_guard_clean_"))
     try:

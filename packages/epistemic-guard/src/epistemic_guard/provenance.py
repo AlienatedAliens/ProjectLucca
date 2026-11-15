@@ -55,6 +55,8 @@ def canonical_receipt_bytes(receipt: ToolReceipt) -> bytes:
         "call_id": receipt.call_id,
         "tool": receipt.tool,
         "ok": receipt.ok,
+        "executed": receipt.executed,
+        "error_code": receipt.error_code,
         "args": receipt.args,
         "output_sha256": live_out_sha,
         "timestamp_utc": receipt.timestamp_utc,
