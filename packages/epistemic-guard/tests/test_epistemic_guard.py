@@ -609,9 +609,9 @@ def test_pre_dispatch_rejections_retry_audit_and_aer1_interop() -> None:
     # Supervision blocks false deletion summary AND surfaces pre-execution rejection in retry prompt
     sup = ReceiptSupervisor(device="CPU", warn_on_missing=False)
     verdict = sup.verify_narration(
-        "Fetched the BTC price and deleted the old staging database.",
+        "I checked the BTC price; I also deleted staging.db.",
         receipts=[r_ok, r_rej],
-        user_prompt="Check BTC price and record staging cleanup.",
+        user_prompt="Check BTC price and delete staging.db.",
     )
     assert verdict.is_valid is False
     retry = verdict.to_retry_prompt([r_ok, r_rej])
@@ -685,7 +685,7 @@ def test_pre_dispatch_rejections_retry_audit_and_aer1_interop() -> None:
 
     # Supervision directly over external AER-1 receipts blocks false deletion claim
     aer1_verdict = sup.verify_narration(
-        "Fetched the BTC price and deleted the old staging database.",
+        "I checked the BTC price; I also deleted staging.db.",
         receipts=[parsed_ok, parsed_rej],
     )
     assert aer1_verdict.is_valid is False
