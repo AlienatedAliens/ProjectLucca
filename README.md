@@ -2,7 +2,7 @@
 
 **Ed25519 provenance memory, clause-level tool-receipt supervision, and hazard-scaled RAG corroboration — built inside a local-first Windows neurosymbolic agent testbed.**
 
-- **Reusable Python Library (MIT, Linux/macOS/Windows):** [`packages/epistemic-guard`](./packages/epistemic-guard/README.md) (`v0.3.0`) packages the standalone verification gates (`3–11 ms` on CPU/GPU/NPU, zero LLM API calls).
+- **Reusable Python Library (MIT, Linux/macOS/Windows):** [`epistemic-guard`](https://github.com/AlienatedAliens/epistemic-guard) (`pip install epistemic-guard`) packages the standalone verification gates and out-of-process MCP receipt proxy (`3–11 ms` on CPU/GPU/NPU, zero LLM API calls) in a standalone MIT repository.
 - **Full Research Testbed & Desktop Runtime (AGPL-3.0, Windows 11 + WSL2):** `src/lucca/` runs the four-process local voice & tool companion (`UI`, `Core Orchestrator`, `Voice Senses`, and isolated `Docker Sandbox` with 19 native tools, MicroScheme/Z3/SymPy/CEGIS symbolic lobes, and `0 MB` VRAM OpenVINO guardrails).
 - **Zenodo Preprints & DOIs:** [Foundational (`10.5281/zenodo.23649049`)](https://doi.org/10.5281/zenodo.23649049) · [Paper 1: Memory Poisoning (`10.5281/zenodo.23901452`)](https://doi.org/10.5281/zenodo.23901452) · [Paper 2: Action Supervision (`10.5281/zenodo.23901605`)](https://doi.org/10.5281/zenodo.23901605) · [Paper 3: 5-Layer Memory (`10.5281/zenodo.23901683`)](https://doi.org/10.5281/zenodo.23901683) · [Paper 4: Clause-Level NPU Supervision](./docs/papers/04_clause_level_npu_supervision.pdf)
 - **Author & Citation:** Sean Maxwell ([ORCID `0009-0004-0133-0463`](https://orcid.org/0009-0004-0133-0463)) · [`CITATION.cff`](./CITATION.cff)
@@ -11,12 +11,12 @@
 
 ## Two Ways to Use Project Lucca
 
-### 1. Standalone Verification Library (`epistemic-guard` `v0.3.0`, MIT License)
+### 1. Standalone Verification Library ([`epistemic-guard`](https://github.com/AlienatedAliens/epistemic-guard), MIT License)
 
 Runs on Linux, macOS, and Windows (`CPU`, `GPU`, or `NPU` in `3–11 ms`, zero LLM calls, zero UI/audio/WSL2/Docker dependencies):
 
 ```bash
-pip install ./packages/epistemic-guard
+pip install epistemic-guard
 epistemic-guard demo
 ```
 
@@ -188,12 +188,12 @@ All active benchmarks below were executed against live `llama-server` GGUF model
   - *Action-claim supervision (`wo42_large_sample_2020_report.json`):* Across strictly held-out splits (`N=379`), misses (`5/143 [3.5%]` FN, `4/236 [1.7%]` FP) occur on zero-verb indirect state-consequence phrasing and un-fenced walkthrough prose (`6/471 [1.3%]` FN and `9/1,551 [0.6%]` FP across pooled discovery+heldout `N=2,022`).
   - *Fail-closed NLI clustering (`nli_verifier_v2_report.json`):* All NLI consumers fail closed on `UNCERTAIN`/`NEUTRAL` verdicts (`100%` entailment precision, `40.0% [16/40]` recall on low-lexical-overlap paraphrases), conservatively withholding ambiguous paraphrases rather than merging unverified claims.
   - *Unfiltered open-web retrieval (`real_web_v2_report.json`):* Upgrading query simplification, eTLD+1 candidate diversity, OpenVINO passage-relevance filtering, and prohibitive consensus normalization raised single-shot live Scrapling burden accuracy from `39/64 (60.9%)` (`v1`) to `46/64 (71.9%)` (`v2`), dispute accuracy from `42/64 (65.6%)` to `56/64 (87.5%)`, and within-1 source count from `45/64 (70.3%)` to `56/64 (87.5%)`. Residual errors (`18/64`: `11` false burden passes and `7` conservative over-hedges) arise primarily when a scientific debate is summarized implicitly without explicit controversy markers (`3/9` live dispute recall) or when a borderline technical query classifies 1 tier below `HIGH` (`46/64` strict 3-class vs `55/64` conservative safe hazard).
-- **Platform footprint:** The 4-process voice/UI/Docker desktop stack requires Windows 11 + WSL2, whereas [`epistemic-guard`](./packages/epistemic-guard/README.md) provides the standalone verification gates on Linux, macOS, and Windows CPU/GPU/NPU.
+- **Platform footprint:** The 4-process voice/UI/Docker desktop stack requires Windows 11 + WSL2, whereas [`epistemic-guard`](https://github.com/AlienatedAliens/epistemic-guard) provides the standalone verification gates on Linux, macOS, and Windows CPU/GPU/NPU.
 
 ---
 
 ## License
 
 - **Project Lucca Desktop Runtime (`src/lucca/`):** GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`). See [LICENSE](./LICENSE).
-- **Standalone Python Library (`packages/epistemic-guard/`):** MIT License (`MIT`). See [`packages/epistemic-guard/LICENSE`](./packages/epistemic-guard/LICENSE) and [`MODEL_NOTICES.md`](./packages/epistemic-guard/MODEL_NOTICES.md).
+- **Standalone Python Library (`epistemic-guard`):** Moved to [`github.com/AlienatedAliens/epistemic-guard`](https://github.com/AlienatedAliens/epistemic-guard) under the MIT License (`MIT`). See [`packages/epistemic-guard/LICENSE`](./packages/epistemic-guard/LICENSE) and [`MODEL_NOTICES.md`](./packages/epistemic-guard/MODEL_NOTICES.md).
 - Upstream runtimes, libraries, and foundation models retain their original licenses as documented in [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).
